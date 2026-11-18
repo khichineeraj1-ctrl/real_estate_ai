@@ -4,7 +4,7 @@ import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, S
 import { PropertyCard } from '../../components/PropertyCard';
 import { CostCalculator, EmiCalculator } from '../../components/tools/Calculators';
 import { CompareToggle } from '../../components/tools/Compare';
-import { REPORT_REASONS, getProperty, photoUrl, sendEnquiry, sendReport, type EnquiryResult, type PropertyDetail } from '../../lib/api';
+import { REPORT_REASONS, TIMELINES, getProperty, photoUrl, sendEnquiry, sendReport, type EnquiryResult, type PropertyDetail } from '../../lib/api';
 import { num, price, statusLabel, typeLabel } from '../../lib/format';
 import { useTheme, type Theme } from '../../lib/theme';
 
@@ -51,7 +51,9 @@ function Report({ slug, t }: { slug: string; t: Theme }) {
   );
 }
 
-function Enquiry({ slug, t }: { slug: string; t: Theme }) {
+function Enquiry({ slug, t, reveal }: { slug: string; t: Theme; reveal: boolean }) {
+  const [timeline, setTimeline] = useState('');
+  const [visit, setVisit] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [consent, setConsent] = useState(false);
@@ -61,9 +63,9 @@ function Enquiry({ slug, t }: { slug: string; t: Theme }) {
 
   async function submit() {
     if (!name.trim() || !phone.trim()) { setError('Enter your name and phone number'); return; }
-    if (!consent) { setError('Turn on the switch to share your details with the seller'); return; }
+    if (!consent) { setError(reveal ? 'Turn on the switch to share your details with the seller' : 'Turn on the switch to agree to be contacted'); return; }
     setBusy(true); setError('');
-    try { setDone(await sendEnquiry(slug, { name, phone })); } catch (e) { setError((e as Error).message); }
+    try { setDone(await sendEnquiry(slug, { name, phone, timeline: timeline || undefined, wantsVisit: visit })); } catch (e) { setError((e as Error).message); }
     setBusy(false);
   }
 
@@ -75,7 +77,7 @@ function Enquiry({ slug, t }: { slug: string; t: Theme }) {
           <Pressable accessibilityRole="button" onPress={() => Linking.openURL(`tel:${done.seller!.phone}`)}>
             <Text style={{ color: t.fg }}>Call the seller, {done.seller.name}: <Text style={{ color: t.brand, fontWeight: '700' }}>{done.seller.phone}</Text></Text>
           </Pressable>
-        ) : <Text style={{ color: t.fg }}>Our team will call you about this home.</Text>}
+        ) : <Text style={{ color: t.fg }}>You will get a call back about this home.</Text>}
         {done.seller && (done.seller.level ?? 0) < 2 ? <Text style={{ color: t.danger }}>We have not fully verified this seller yet. Do not pay a token, booking amount or any advance before you have seen the home and had its papers checked.</Text> : null}
       </View>
     );
@@ -83,16 +85,30 @@ function Enquiry({ slug, t }: { slug: string; t: Theme }) {
   const input = [s.input, { color: t.fg, borderColor: t.line, backgroundColor: t.card }];
   return (
     <View style={[s.box, { backgroundColor: t.soft, borderColor: t.line }]}>
-      <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 18, fontWeight: '700' }}>Contact the seller</Text>
+      <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 18, fontWeight: '700' }}>{reveal ? 'Contact the seller' : 'Ask for a call back'}</Text>
       <TextInput value={name} onChangeText={setName} placeholder="Your name" placeholderTextColor={t.muted} accessibilityLabel="Your name" autoComplete="name" maxLength={80} style={input} />
       <TextInput value={phone} onChangeText={setPhone} placeholder="Phone" placeholderTextColor={t.muted} accessibilityLabel="Phone" keyboardType="phone-pad" autoComplete="tel" maxLength={20} style={input} />
+      <View style={{ gap: 6 }}>
+        <Text style={{ color: t.fg, fontWeight: '600', fontSize: 14 }}>When do you plan to buy? <Text style={{ color: t.muted, fontWeight: '400' }}>(optional)</Text></Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }} accessibilityRole="radiogroup">
+          {TIMELINES.map(([code, label]) => (
+            <Pressable key={code} accessibilityRole="radio" accessibilityState={{ selected: timeline === code }} onPress={() => setTimeline(timeline === code ? '' : code)} style={{ borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7, borderColor: timeline === code ? t.brand : t.line, backgroundColor: timeline === code ? t.brand : t.card }}>
+              <Text style={{ color: timeline === code ? t.brandInk : t.fg, fontSize: 13 }}>{label}</Text>
+            </Pressable>
+          ))}
+        </View>
+      </View>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-        <Switch value={consent} onValueChange={setConsent} accessibilityLabel="Share my name and phone number with the seller" trackColor={{ true: t.brand }} />
-        <Text style={{ color: t.muted, flex: 1, fontSize: 13 }}>Share my name and phone number with the seller so they can contact me about this home.</Text>
+        <Switch value={visit} onValueChange={setVisit} accessibilityLabel="I would like to arrange a site visit" trackColor={{ true: t.brand }} />
+        <Text style={{ color: t.fg, flex: 1, fontSize: 14 }}>I would like to arrange a site visit</Text>
+      </View>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+        <Switch value={consent} onValueChange={setConsent} accessibilityLabel={reveal ? 'Share my name and phone number with the seller' : 'I agree to be contacted about this home'} trackColor={{ true: t.brand }} />
+        <Text style={{ color: t.muted, flex: 1, fontSize: 13 }}>{reveal ? 'Share my name and phone number with the seller so they can contact me about this home.' : 'I agree to be contacted by phone about this home by its builder or this app’s team.'}</Text>
       </View>
       {error ? <Text accessibilityLiveRegion="polite" style={{ color: t.danger }}>{error}</Text> : null}
       <Pressable accessibilityRole="button" disabled={busy} onPress={submit} style={[s.button, { backgroundColor: t.brand, opacity: busy ? 0.6 : 1 }]}>
-        <Text style={{ color: t.brandInk, fontWeight: '700' }}>{busy ? 'Sending…' : 'Get seller’s contact'}</Text>
+        <Text style={{ color: t.brandInk, fontWeight: '700' }}>{busy ? 'Sending…' : reveal ? 'Get seller’s contact' : 'Request a call back'}</Text>
       </Pressable>
     </View>
   );
@@ -146,7 +162,7 @@ export default function Property() {
       {p.costs ? <CostCalculator key={`cost-${p.slug}`} price={p.priceInr} costs={p.costs} cityName={p.city.name} underConstruction={p.status === 'UNDER_CONSTRUCTION'} /> : <Text style={{ color: t.muted }}>We do not have the government charges for {p.city.name} yet.</Text>}
       <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 18, fontWeight: '700', marginTop: 8 }}>Monthly EMI for this home</Text>
       <EmiCalculator key={`emi-${p.slug}`} price={p.priceInr} />
-      <Enquiry key={p.slug} slug={p.slug} t={t} />
+      <Enquiry key={p.slug} slug={p.slug} t={t} reveal={p.contact === 'seller'} />
       <Report key={`report-${p.slug}`} slug={p.slug} t={t} />
       <Text style={{ color: t.fg, fontSize: 16, lineHeight: 23 }}>{p.description}</Text>
       {p.amenities.length > 0 && <Text style={{ color: t.muted }}>{p.amenities.join(' · ')}</Text>}

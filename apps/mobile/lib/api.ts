@@ -37,6 +37,8 @@ export interface ProjectDetail extends Place {
 }
 export interface Listing { items: PropertyCard[]; total: number; stats: Stats }
 export interface PropertyDetail extends Omit<PropertyCard, 'locality' | 'project' | 'confidence'> {
+  /** 'seller': an owner or agent posted it and their contact is shown after an enquiry. 'callback': it takes a lead instead. */
+  contact: 'seller' | 'callback';
   confidence: Confidence; seller: { name: string; firmName: string | null; confidence: Confidence } | null;
   description: string; floor: number | null; totalFloors: number | null; facing: string | null; furnishing: string | null; amenities: string[]; listedBy: string;
   locality: Place & { highlights: string[] }; city: Place & { state: string }; project: (Place & { builder: string; reraId: string | null }) | null;
@@ -71,7 +73,7 @@ export const getBuilders = () => call<BuilderSummary[]>('/builders');
 export const getBuilder = (slug: string, city: string) => call<BuilderDetail | { movedTo: string }>(`/builders/${encodeURIComponent(slug)}?city=${encodeURIComponent(city)}`);
 export const getProject = (slug: string) => call<ProjectDetail>(`/projects/${slug}`);
 /** Leaves the buyer's details for a call back about a builder's project. */
-export const sendProjectEnquiry = (slug: string, body: { name: string; phone: string; interest?: string }) =>
+export const sendProjectEnquiry = (slug: string, body: { name: string; phone: string; interest?: string } & { timeline?: string; wantsVisit?: boolean }) =>
   call<{ ok: true }>(`/projects/${slug}/enquiries`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
 export const getProperty = (slug: string) => call<PropertyDetail>(`/properties/${slug}`);
 export const getCompare = (slugs: string[]) => call<CompareHome[]>(`/compare?slugs=${encodeURIComponent(slugs.slice(0, 4).join(','))}`);
@@ -91,5 +93,8 @@ export const sendReport = (slug: string, body: { reason: string; details: string
 
 export interface EnquiryResult { ok: true; seller: { name: string; phone: string; level?: number | null; label?: string } | null }
 /** Asks the seller to get in touch; the answer includes the seller's contact when the listing has a seller account. */
-export const sendEnquiry = (slug: string, body: { name: string; phone: string; message?: string }) =>
+/** What a buyer can say about their plans on an enquiry. The codes match the API's lead scoring. */
+export const TIMELINES = [['NOW', 'Within a month'], ['SOON', '1 to 3 months'], ['LATER', '3 to 6 months'], ['EXPLORING', 'Just exploring']] as const;
+export interface Plans { timeline?: string; wantsVisit?: boolean }
+export const sendEnquiry = (slug: string, body: { name: string; phone: string; message?: string } & Plans) =>
   call<EnquiryResult>(`/properties/${slug}/enquiries`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });

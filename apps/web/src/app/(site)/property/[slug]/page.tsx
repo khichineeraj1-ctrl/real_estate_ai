@@ -106,8 +106,9 @@ export default async function PropertyPage({ params }: Props) {
       </section>
 
       <section className="section enquiry" id="contact">
-        <h2>Contact the seller</h2>
-        <EnquiryForm slug={p.slug} />
+        <h2>{p.contact === 'seller' ? 'Contact the seller' : 'Ask for a call back about this home'}</h2>
+        <p>{p.contact === 'seller' ? 'Leave your details and you will be shown the seller’s name and phone number.' : p.project ? `This home is sold by the builder of ${p.project.name}. Leave your details and their sales team, or ours, will call you.` : 'Leave your details and our team will call you about this home.'}</p>
+        <EnquiryForm slug={p.slug} reveal={p.contact === 'seller'} />
       </section>
       <ReportForm slug={p.slug} />
 

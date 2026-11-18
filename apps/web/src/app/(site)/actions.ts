@@ -32,7 +32,9 @@ export async function enquire(kind: 'property' | 'project', slug: string, _: Enq
   if (form.get('website')) return { sent: true, seller: null };
   if (!form.get('consent')) return { error: 'Tick the box to agree to be contacted' };
   const visitor = (await headers()).get('x-forwarded-for')?.split(',')[0].trim();
-  const body = { name: form.get('name'), phone: form.get('phone'), email: form.get('email'), message: form.get('message'), interest: form.get('interest'), visitor };
+  const body = { name: form.get('name'), phone: form.get('phone'), email: form.get('email'), message: form.get('message'), interest: form.get('interest'), visitor,
+    // The buyer's plans, each optional, and their browser's note of how they used the site: the API scores the lead from these.
+    timeline: form.get('timeline'), budget: form.get('budget'), loan: form.get('loan'), purpose: form.get('purpose'), wantsVisit: form.get('wantsVisit') === 'on', signals: form.get('signals') };
   try {
     const res = await fetch(`${API_URL}/${kind === 'project' ? 'projects' : 'properties'}/${encodeURIComponent(slug)}/enquiries`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), cache: 'no-store' });
     const data = (await res.json().catch(() => null)) as { message?: string; seller?: { name: string; phone: string; level?: number | null; label?: string } | null } | null;

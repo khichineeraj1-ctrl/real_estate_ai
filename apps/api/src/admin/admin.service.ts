@@ -1,3 +1,4 @@
+import { intentInWords } from '../leads/score';
 import { aside, ensureBuilder } from '../catalog/builders';
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException, OnModuleInit, UnauthorizedException } from '@nestjs/common';
 import { ConstructionStatus, LeadStatus, ListedBy, ListingState, Prisma, PropertyType, Role } from '@prisma/client';
@@ -359,19 +360,23 @@ export class AdminService implements OnModuleInit {
       : { party: 'PARTNER' as const, status: 'partnerStatus' as const, note: 'partnerNote' as const, at: 'partnerStatusAt' as const };
   }
 
-  async enquiries(user: SessionUser, q: { page?: string; kind?: string; project?: string; status?: string }) {
+  async enquiries(user: SessionUser, q: { page?: string; kind?: string; project?: string; status?: string; band?: string; sort?: string }) {
     const scope = this.enquiryWhere(user, q);
     const t = this.track(user);
     const staff = isStaff(user);
     const status = Object.values(LeadStatus).includes(q.status as LeadStatus) ? (q.status as LeadStatus) : undefined;
-    const where: Prisma.EnquiryWhereInput = status ? { AND: [scope, { [t.status]: status }] } : scope;
+    const band = (['HOT', 'WARM', 'COLD'] as const).find((x) => x === q.band);
+    const where: Prisma.EnquiryWhereInput = { AND: [scope, ...(status ? [{ [t.status]: status }] : []), ...(band ? [{ scoreBand: band }] : [])] };
+    // How many leads are in each strength band, within the same scope and status.
+    const bands = await this.db.enquiry.groupBy({ by: ['scoreBand'], where: { AND: [scope, ...(status ? [{ [t.status]: status }] : [])] }, _count: true });
+    const byBand = Object.fromEntries(['HOT', 'WARM', 'COLD'].map((x) => [x, bands.find((g) => g.scoreBand === x)?._count ?? 0]));
     const p = page(q.page);
     // How many leads are at each stage on this account's own track, for the filter tabs.
     const grouped = await this.db.enquiry.groupBy({ by: [t.status], where: scope, _count: true });
     const byStatus = Object.fromEntries(Object.values(LeadStatus).map((x) => [x, grouped.find((g) => g[t.status] === x)?._count ?? 0]));
     const [rows, total, project] = await Promise.all([
       this.db.enquiry.findMany({
-        where, orderBy: { createdAt: 'desc' }, skip: (p - 1) * 50, take: 50,
+        where, orderBy: q.sort === 'newest' ? { createdAt: 'desc' } : [{ score: 'desc' }, { createdAt: 'desc' }], skip: (p - 1) * 50, take: 50,
         include: {
           property: { select: { id: true, slug: true, title: true, state: true, owner: { select: { name: true, role: true } } } },
           project: { select: { id: true, slug: true, name: true, account: { select: { name: true } } } },
@@ -388,6 +393,8 @@ export class AdminService implements OnModuleInit {
       const partnerName = seller ?? e.project?.account?.name ?? null;
       return {
         id: e.id, name: e.name, phone: e.phone, email: e.email, message: e.message, interest: e.interest, createdAt: e.createdAt,
+        // How strong the lead looks and why, and what the buyer said about their plans. Shown to whoever follows it up.
+        score: e.score, band: e.scoreBand, reasons: (e.scoreReasons ?? []) as unknown as { points: number; text: string }[], plans: intentInWords(e),
         property: e.property && { id: e.property.id, slug: e.property.slug, title: e.property.title, state: e.property.state },
         project: e.project && { id: e.project.id, slug: e.project.slug, name: e.project.name },
         status: e[t.status], note: e[t.note], events: e.events,
@@ -395,7 +402,7 @@ export class AdminService implements OnModuleInit {
         partner: staff && partnerName ? { kind: seller ? 'Seller' : 'Builder', name: partnerName, status: e.partnerStatus, note: e.partnerNote, at: e.partnerStatusAt } : null,
       };
     });
-    return { items, total, page: p, pageSize: 50, project, byStatus };
+    return { items, total, page: p, pageSize: 50, project, byStatus, byBand };
   }
 
   /** Records where this account's follow-up stands, with a short private note, and adds the change to the lead's trail. */
@@ -420,13 +427,13 @@ export class AdminService implements OnModuleInit {
     const t = this.track(user);
     const staff = isStaff(user);
     const rows = await this.db.enquiry.findMany({
-      where: this.enquiryWhere(user, q), orderBy: { createdAt: 'desc' }, take: 5000,
+      where: this.enquiryWhere(user, q), orderBy: [{ score: 'desc' }, { createdAt: 'desc' }], take: 5000,
       include: { property: { select: { title: true } }, project: { select: { name: true } } },
     });
     // Quoted throughout; a leading apostrophe stops a spreadsheet from running a cell that starts like a formula.
     const cell = (v: string | null | undefined) => { const x = v ?? ''; return `"${(/^[=+\-@\t\r]/.test(x) ? `'${x}` : x).replace(/"/g, '""')}"`; };
-    const lines = rows.map((e) => [e.createdAt.toISOString(), e.project?.name, e.property?.title, e.name, e.phone, e.email, e.interest, e.message, e[t.status], e[t.note], ...(staff ? [e.partnerStatus, e.partnerNote] : [])].map(cell).join(','));
-    const header = ['received', 'project', 'listing', 'name', 'phone', 'email', 'interested_in', 'message', 'status', 'note', ...(staff ? ['seller_or_builder_status', 'seller_or_builder_note'] : [])];
+    const lines = rows.map((e) => [e.createdAt.toISOString(), e.project?.name, e.property?.title, e.name, e.phone, e.email, e.interest, e.message, String(e.score), e.scoreBand, intentInWords(e).join('; '), e[t.status], e[t.note], ...(staff ? [e.partnerStatus, e.partnerNote] : [])].map(cell).join(','));
+    const header = ['received', 'project', 'listing', 'name', 'phone', 'email', 'interested_in', 'message', 'lead_score', 'lead_strength', 'buyer_plans', 'status', 'note', ...(staff ? ['seller_or_builder_status', 'seller_or_builder_note'] : [])];
     return [header.map((h) => `"${h}"`).join(','), ...lines].join('\r\n') + '\r\n';
   }
 

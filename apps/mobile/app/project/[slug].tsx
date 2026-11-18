@@ -2,7 +2,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { PropertyCard } from '../../components/PropertyCard';
-import { getProject, sendProjectEnquiry, type ProjectDetail } from '../../lib/api';
+import { TIMELINES, getProject, sendProjectEnquiry, type ProjectDetail } from '../../lib/api';
 import { monthYear, num, statusLabel } from '../../lib/format';
 import { useTheme, type Theme } from '../../lib/theme';
 
@@ -13,6 +13,8 @@ function LeadForm({ p, t }: { p: ProjectDetail; t: Theme }) {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [interest, setInterest] = useState('');
+  const [timeline, setTimeline] = useState('');
+  const [visit, setVisit] = useState(false);
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -22,7 +24,7 @@ function LeadForm({ p, t }: { p: ProjectDetail; t: Theme }) {
     if (!name.trim() || !phone.trim()) { setError('Enter your name and phone number'); return; }
     if (!consent) { setError('Turn on the switch to agree to be contacted'); return; }
     setBusy(true); setError('');
-    try { await sendProjectEnquiry(p.slug, { name, phone, interest: interest || undefined }); setDone(true); } catch (e) { setError((e as Error).message); }
+    try { await sendProjectEnquiry(p.slug, { name, phone, interest: interest || undefined, timeline: timeline || undefined, wantsVisit: visit }); setDone(true); } catch (e) { setError((e as Error).message); }
     setBusy(false);
   }
 
@@ -51,6 +53,20 @@ function LeadForm({ p, t }: { p: ProjectDetail; t: Theme }) {
           ))}
         </View>
       )}
+      <View style={{ gap: 6 }}>
+        <Text style={{ color: t.fg, fontWeight: '600', fontSize: 14 }}>When do you plan to buy? <Text style={{ color: t.muted, fontWeight: '400' }}>(optional)</Text></Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }} accessibilityRole="radiogroup">
+          {TIMELINES.map(([code, label]) => (
+            <Pressable key={code} accessibilityRole="radio" accessibilityState={{ selected: timeline === code }} onPress={() => setTimeline(timeline === code ? '' : code)} style={{ borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7, borderColor: timeline === code ? t.brand : t.line, backgroundColor: timeline === code ? t.brand : t.card }}>
+              <Text style={{ color: timeline === code ? t.brandInk : t.fg, fontSize: 13 }}>{label}</Text>
+            </Pressable>
+          ))}
+        </View>
+      </View>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+        <Switch value={visit} onValueChange={setVisit} accessibilityLabel="I would like to arrange a site visit" trackColor={{ true: t.brand }} />
+        <Text style={{ color: t.fg, flex: 1, fontSize: 14 }}>I would like to arrange a site visit</Text>
+      </View>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
         <Switch value={consent} onValueChange={setConsent} accessibilityLabel="I agree to be contacted about this project" trackColor={{ true: t.brand }} />
         <Text style={{ color: t.muted, flex: 1, fontSize: 13 }}>{unclaimed ? `I agree to be contacted by phone about ${p.name} by this app’s team, who may pass my enquiry to the builder.` : `I agree to be contacted by phone about ${p.name} by the builder and this app’s team.`}</Text>

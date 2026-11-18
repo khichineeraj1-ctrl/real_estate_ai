@@ -54,6 +54,8 @@ export interface ProjectDetail extends Place {
 export interface PropertyDetail extends Omit<PropertyCard, 'locality' | 'project' | 'confidence'> {
   /** The level with what it rests on, and the seller's public card when the home has an outside seller. */
   confidence: Confidence; seller: PublicDealer | null; staffVerifiedAt: string | null;
+  /** 'seller': an owner or agent posted it, and their contact is shown after an enquiry. 'callback': a builder's stock or our own listing, which takes a lead. */
+  contact: 'seller' | 'callback';
   description: string; floor: number | null; totalFloors: number | null; facing: string | null; furnishing: string | null; amenities: string[];
   locality: Place & { lat: number; lng: number; highlights: string[] }; city: Place & { state: string };
   project: (Place & { builder: string; reraId: string | null; brand: Place | null }) | null; localityStats: Stats; similar: PropertyCard[];

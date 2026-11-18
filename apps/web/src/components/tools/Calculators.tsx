@@ -3,6 +3,7 @@
 import { useId, useState } from 'react';
 import { LOAN_DEFAULTS, affordability, buyingCosts, loanPlan, type CityCosts } from '@/lib/finance';
 import { price as short } from '@/lib/format';
+import { noteTool } from '@/lib/intent';
 
 const rupees = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`;
 const num = (v: string, fallback = 0) => { const n = Number(v); return Number.isFinite(n) && n >= 0 ? n : fallback; };
@@ -113,7 +114,7 @@ export function EmiCalculator({ price }: { price?: number }) {
   const [years, setYears] = useState(LOAN_DEFAULTS.years);
   const p = loanPlan(amount, downPct, rate, years);
   return (
-    <div className="calc">
+    <div className="calc" onInput={() => noteTool('emi')} onClick={(e) => { if ((e.target as HTMLElement).closest('.pick')) noteTool('emi'); }}>
       <div className="calc-inputs">
         {price == null && <PriceField value={amount} onChange={setAmount} />}
         <SliderField label="Down payment" suffix="% of price" value={downPct} onChange={(n) => setDownPct(Math.min(n, 100))} min={0} max={90} step={1} hint={`${rupees(p.downPayment)} from your own money`} presets={[10, 20, 30, 40].map((v) => ({ label: `${v}%`, value: v }))} />
@@ -141,7 +142,7 @@ export function AffordabilityCalculator() {
   const [share, setShare] = useState(LOAN_DEFAULTS.incomeSharePct);
   const a = affordability(income, other, savings, rate, years, share);
   return (
-    <div className="calc">
+    <div className="calc" onInput={() => noteTool('afford')} onClick={(e) => { if ((e.target as HTMLElement).closest('.pick')) noteTool('afford'); }}>
       <div className="calc-inputs">
         <SliderField label="Household take-home pay" suffix="₹ a month" value={income} onChange={setIncome} min={25_000} max={1_000_000} step={5_000} hint={`${short(income * 12)} a year`} />
         <SliderField label="Other loan EMIs" suffix="₹ a month" value={other} onChange={setOther} min={0} max={200_000} step={1_000} hint="Car, personal or education loans you already repay." />
@@ -177,7 +178,7 @@ export function CostCalculator({ price, costs, cityName, underConstruction, citi
   const concession = rule.stampDutyWomenPct < rule.stampDutyPct;
   const onTop = amount > 0 ? (b.charges / amount) * 100 : 0;
   return (
-    <div className="calc">
+    <div className="calc" onInput={() => noteTool('cost')} onClick={(e) => { if ((e.target as HTMLElement).closest('.pick')) noteTool('cost'); }}>
       <div className="calc-inputs">
         {price == null && <PriceField value={amount} onChange={setAmount} />}
         {!costs && <Choice label="City" value={citySlug} onChange={setCitySlug} options={usable.map((c) => ({ value: c.slug, label: c.name }))} />}

@@ -251,6 +251,19 @@ model Enquiry {
   message    String?
   /// What the buyer said they want on a project lead, e.g. "3 BHK".
   interest   String?
+  /// What the buyer told us about their plans, each optional: when they mean to buy, their budget, how they will pay,
+  /// what the home is for, and whether they asked for a site visit. Stored as the short codes in src/leads/score.ts.
+  timeline   String?
+  budget     String?
+  loan       String?
+  purpose    String?
+  wantsVisit Boolean  @default(false)
+  /// How the buyer had used the site before enquiring (pages seen, tools used), as their browser reported it.
+  signals    Json?
+  /// How likely this buyer is to go ahead, 0 to 100, worked out when the enquiry arrives, with the reasons for it.
+  score        Int    @default(0)
+  scoreBand    String @default("COLD")
+  scoreReasons Json?
   /// Our own team's follow-up: where it stands, and a short private note. Never shown to the buyer, seller or builder.
   status     LeadStatus @default(NEW)
   note       String?
@@ -273,6 +286,8 @@ model Enquiry {
   @@index([projectId, createdAt])
   @@index([status, createdAt])
   @@index([partnerStatus, createdAt])
+  @@index([score])
+  @@index([phone, createdAt])
 }
 
 enum LeadParty {

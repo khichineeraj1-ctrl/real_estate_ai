@@ -1,5 +1,6 @@
 'use client';
 
+import { noteAsked } from '@/lib/intent';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import type { AskResult } from '@/lib/types';
@@ -49,6 +50,7 @@ export function AskBox({ initial, context, placeholder, autoFocus }: Props) {
   }, []);
 
   async function ask(question: string, spoken = false) {
+    noteAsked();
     const q = question.trim();
     if (!q || busy) return;
     setBusy(true);

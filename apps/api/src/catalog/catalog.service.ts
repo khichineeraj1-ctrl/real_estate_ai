@@ -1,3 +1,4 @@
+import { BAND_LABEL, intentInWords, readIntent, scoreLead } from '../leads/score';
 import { displayName } from '../rera/parse';
 import { builderFor } from './builders';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
@@ -154,7 +155,7 @@ export class CatalogService {
   async property(slug: string) {
     const p = await this.db.property.findFirst({
       where: { slug, state: 'PUBLISHED' },
-      include: { locality: { include: { city: true } }, project: { select: { slug: true, name: true, builder: true, reraId: true, brand: { select: { slug: true, name: true } } } }, photos: { select: { file: true, width: true, height: true }, orderBy: { position: 'asc' } }, owner: { select: { role: true } } },
+      include: { locality: { include: { city: true } }, project: { select: { slug: true, name: true, builder: true, reraId: true, brand: { select: { slug: true, name: true } } } }, photos: { select: { file: true, width: true, height: true }, orderBy: { position: 'asc' } }, owner: { select: { role: true, active: true, phone: true, dealer: { select: { kind: true } } } } },
     });
     if (!p) throw new NotFoundException('Property not found');
     const similar = await this.db.property.findMany({
@@ -168,6 +169,8 @@ export class CatalogService {
       ...rest,
       confidence: await this.trust.property(id),
       seller: sellerId ? await this.trust.publicDealer(sellerId) : null,
+      // What the form on the page does: 'seller' shows an owner's or agent's contact once the buyer enquires; 'callback' takes a lead.
+      contact: this.revealsSeller(p.owner) ? 'seller' as const : 'callback' as const,
       locality: { slug: locality.slug, name: locality.name, lat: locality.lat, lng: locality.lng, highlights: locality.highlights },
       city: { slug: locality.city.slug, name: locality.city.name, state: locality.city.state },
       costs: costsOf(locality.city),
@@ -213,39 +216,69 @@ export class CatalogService {
    * A lead on a builder project. Unlike a listing enquiry, nobody's phone number is shown to the buyer: the lead is
    * kept for our team and, when the project has a sales address, emailed to the builder.
    */
+  /**
+   * An owner or agent who posted a home is shown to the buyer who enquires, so the two can talk directly. A builder's
+   * stock, and anything our team added, takes a lead instead: the buyer is called back and no number is shown.
+   */
+  private revealsSeller(owner: { role: string; active: boolean; phone: string | null; dealer: { kind: string } | null } | null) {
+    return !!owner && owner.active && owner.role === 'AGENT' && !!owner.phone && owner.dealer?.kind !== 'BUILDER';
+  }
+
+  /** The buyer's stated plans and site use, and the score they add up to, ready to store with the enquiry. */
+  private async intent(body: Record<string, unknown>, b: { name: string; phone: string; email: string | null; message: string | null }, about: { projectId?: string | null; propertyId?: string }) {
+    const i = readIntent(body);
+    const [earlierHere, lastDay] = await Promise.all([
+      this.db.enquiry.count({ where: { phone: b.phone, ...(about.propertyId ? { propertyId: about.propertyId } : { projectId: about.projectId ?? undefined, propertyId: null }) } }),
+      this.db.enquiry.count({ where: { phone: b.phone, createdAt: { gt: new Date(Date.now() - 24 * 3600 * 1000) } } }),
+    ]);
+    const scored = scoreLead({ ...b, ...i, earlierHere, lastDay });
+    const data = { timeline: i.timeline, budget: i.budget, loan: i.loan, purpose: i.purpose, wantsVisit: i.wantsVisit, signals: i.signals ? (i.signals as unknown as Prisma.InputJsonValue) : Prisma.JsonNull, score: scored.score, scoreBand: scored.band, scoreReasons: scored.reasons as unknown as Prisma.InputJsonValue };
+    // For the email to whoever follows the lead up: how strong it looks and what the buyer said.
+    const summary = `\n\nLead strength: ${BAND_LABEL[scored.band]} (${scored.score} of 100)${intentInWords(i).length ? `\n${intentInWords(i).join('\n')}` : ''}${scored.reasons.filter((r) => r.points > 0).length ? `\nWhy: ${scored.reasons.filter((r) => r.points > 0).slice(0, 4).map((r) => r.text).join('; ')}` : ''}`;
+    return { data, summary };
+  }
+
   async enquireProject(slug: string, body: Record<string, unknown>) {
     const b = this.buyer(body);
     const project = await this.db.project.findUnique({ where: { slug }, select: { id: true, name: true, leadEmail: true, account: { select: { email: true, active: true } }, locality: { select: { name: true, city: { select: { name: true } } } } } });
     if (!project) throw new NotFoundException('Project not found');
-    await this.db.enquiry.create({ data: { projectId: project.id, ...b } });
+    const intent = await this.intent(body, b, { projectId: project.id });
+    await this.db.enquiry.create({ data: { projectId: project.id, ...b, ...intent.data } });
     const to = this.leadAddress(project);
     if (to) {
       await this.mail.send({
         to, subject: `New lead: ${project.name}, ${project.locality.name}`,
-        text: `A buyer asked about ${project.name} in ${project.locality.name}, ${project.locality.city.name}.\n\nName: ${b.name}\nPhone: ${b.phone}${b.email ? `\nEmail: ${b.email}` : ''}${b.interest ? `\nInterested in: ${b.interest}` : ''}${b.message ? `\nMessage: ${b.message}` : ''}\n\nThe buyer agreed to be contacted about this project.`,
+        text: `A buyer asked about ${project.name} in ${project.locality.name}, ${project.locality.city.name}.\n\nName: ${b.name}\nPhone: ${b.phone}${b.email ? `\nEmail: ${b.email}` : ''}${b.interest ? `\nInterested in: ${b.interest}` : ''}${b.message ? `\nMessage: ${b.message}` : ''}\n\nThe buyer agreed to be contacted about this project.${intent.summary}`,
       });
     }
     return { ok: true };
   }
 
   async enquire(slug: string, body: Record<string, unknown>) {
-    const { name, phone, email, message } = this.buyer(body);
-    const p = await this.db.property.findFirst({ where: { slug, state: 'PUBLISHED' }, select: { id: true, title: true, projectId: true, ownerId: true, project: { select: { name: true, leadEmail: true, account: { select: { email: true, active: true } } } }, owner: { select: { name: true, phone: true, email: true, role: true, active: true } } } });
+    const b = this.buyer(body);
+    const { name, phone, email, message } = b;
+    const p = await this.db.property.findFirst({ where: { slug, state: 'PUBLISHED' }, select: { id: true, title: true, projectId: true, ownerId: true, project: { select: { name: true, leadEmail: true, account: { select: { email: true, active: true } } } }, owner: { select: { name: true, phone: true, email: true, role: true, active: true, dealer: { select: { kind: true } } } } } });
     if (!p) throw new NotFoundException('Property not found');
-    await this.db.enquiry.create({ data: { propertyId: p.id, projectId: p.projectId, name, phone, email, message } });
-    const seller = p.owner?.active && p.owner.role === 'AGENT' && p.owner.phone ? p.owner : null;
+    const intent = await this.intent(body, b, { propertyId: p.id });
+    await this.db.enquiry.create({ data: { propertyId: p.id, projectId: p.projectId, name, phone, email, message, ...intent.data } });
+    // An owner's or agent's contact is shown to the buyer; a builder who posted the home gets the lead without being shown.
+    const seller = this.revealsSeller(p.owner) ? p.owner : null;
+    const builderOwner = !seller && p.owner?.active && p.owner.dealer?.kind === 'BUILDER' ? p.owner : null;
+    if (builderOwner) {
+      await this.mail.send({ to: builderOwner.email, subject: `New lead: ${p.title}`, text: `Hello ${builderOwner.name},\n\nA buyer asked for a call back about "${p.title}".\n\nName: ${name}\nPhone: ${phone}${email ? `\nEmail: ${email}` : ''}${message ? `\nMessage: ${message}` : ''}${intent.summary}\n\nAll your leads: ${SITE_URL}/admin/enquiries` });
+    }
     if (seller) {
       await this.mail.send({
         to: seller.email, subject: `New enquiry: ${p.title}`,
-        text: `Hello ${seller.name},\n\n${name} is interested in your listing "${p.title}".\n\nPhone: ${phone}${email ? `\nEmail: ${email}` : ''}${message ? `\nMessage: ${message}` : ''}\n\nAll your enquiries: ${SITE_URL}/admin/enquiries`,
+        text: `Hello ${seller.name},\n\n${name} is interested in your listing "${p.title}".\n\nPhone: ${phone}${email ? `\nEmail: ${email}` : ''}${message ? `\nMessage: ${message}` : ''}${intent.summary}\n\nAll your enquiries: ${SITE_URL}/admin/enquiries`,
       });
     }
     // A listing with no seller account that belongs to a builder project is the builder's own stock: the lead goes to their sales address.
     const builderAddress = p.project ? this.leadAddress(p.project) : null;
-    if (!seller && builderAddress) {
+    if (!seller && !builderOwner && builderAddress) {
       await this.mail.send({
         to: builderAddress, subject: `New lead: ${p.project?.name ?? p.title}`,
-        text: `A buyer asked about "${p.title}".\n\nName: ${name}\nPhone: ${phone}${email ? `\nEmail: ${email}` : ''}${message ? `\nMessage: ${message}` : ''}\n\nThe buyer agreed to be contacted about this home.`,
+        text: `A buyer asked about "${p.title}".\n\nName: ${name}\nPhone: ${phone}${email ? `\nEmail: ${email}` : ''}${message ? `\nMessage: ${message}` : ''}${intent.summary}\n\nThe buyer agreed to be contacted about this home.`,
       });
     }
     const sellerLevel = seller && p.ownerId ? (await this.trust.dealer(p.ownerId)).level : null;

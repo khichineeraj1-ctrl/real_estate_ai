@@ -12,6 +12,37 @@ each city's buying charges; it never deletes anything and is safe to run again. 
 RERA registers, which carry no prices. Homes and prices appear only when an owner, agent or builder posts them, so
 locality pages show no price figures until then.
 
+## Who a buyer reaches, and lead scoring
+
+**Which form a page shows**
+
+- A home posted by an **owner or an agent** shows "Contact the seller": after enquiring, the buyer sees the seller's
+  name and phone number, and the seller is emailed.
+- Everything else takes a **lead** ("Request a call back") and shows no number: builder projects, a home posted by a
+  builder, and a home our own team added. The lead goes to the builder's sales address or login, or to our team.
+
+**Lead score** (`apps/api/src/leads/score.ts`, with tests)
+
+Every enquiry gets a score from 0 to 100 and a band: **Hot** (50+, call today), **Warm** (25 to 49, this week),
+**Cold** (below 25). Three things are weighed:
+
+| Up to | From | Examples |
+|---|---|---|
+| 55 | What the buyer says on the form (all optional) | buying within a month +25, wants a site visit +12, loan approved +10, gave a budget +5 |
+| 30 | How they used the site before enquiring | came back on another day +8, used a calculator +6 to +8, compared +4, looked at 3 or more other pages +4 |
+| 15 | How they got in touch | gave an email +4, wrote a message +4, asked about a visit or price +3, enquired about this before +4 |
+
+Points come off for a made-up phone number (−40), a test name (−15) and more than eight enquiries from one number in a
+day (−20). The reasons are stored with the score and shown under "Why" on the leads screen, in the lead email and in
+the spreadsheet, so sales teams can see what counted. Leads are listed strongest first.
+
+Site use is noted in the visitor's own browser (`apps/web/src/lib/intent.ts`) and sent only with an enquiry, as counts;
+the form says so. It is reported by the browser, so it can be faked, which is why it is capped at 30 points. The mobile
+app asks the buying timeline and site visit but sends no site-use counts.
+
+The weights are a starting judgement, not learned from results. Once there is a few months' history, compare scores
+with which leads reached "Site visit planned" and "Booked" and adjust them.
+
 ## Builders and project addresses
 
 Addresses go city, then builder, then project:

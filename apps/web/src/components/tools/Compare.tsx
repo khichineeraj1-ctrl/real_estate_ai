@@ -1,5 +1,6 @@
 'use client';
 
+import { noteCompared } from '@/lib/intent';
 import Link from 'next/link';
 import { useSyncExternalStore } from 'react';
 
@@ -43,7 +44,7 @@ export function CompareToggle({ slug, title }: Pick) {
     <button
       type="button" className={`compare-toggle ${chosen ? 'on' : ''}`} aria-pressed={chosen} disabled={full}
       title={full ? `You can compare up to ${MAX} homes. Remove one first.` : undefined}
-      onClick={() => write(chosen ? picks.filter((p) => p.slug !== slug) : [...picks, { slug, title }])}
+      onClick={() => { if (!chosen) noteCompared(); write(chosen ? picks.filter((p) => p.slug !== slug) : [...picks, { slug, title }]); }}
     >
       {chosen ? '✓ In comparison' : full ? 'Comparison is full' : '+ Compare'}
     </button>

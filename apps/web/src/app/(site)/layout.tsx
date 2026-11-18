@@ -1,4 +1,5 @@
 import { Footer, Header } from '@/components/Chrome';
+import { IntentBeacon } from '@/components/IntentBeacon';
 import { CompareBar } from '@/components/tools/Compare';
 
 export default function SiteLayout({ children }: { children: React.ReactNode }) {
@@ -8,6 +9,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
       <main className="wrap">{children}</main>
       <Footer />
       <CompareBar />
+      <IntentBeacon />
     </>
   );
 }
