@@ -34,9 +34,11 @@ export function ConnectButton({ kind, slug, name, mode, unclaimed, agents }: Pro
         <dialog ref={dialog} className="connect-dialog" aria-label={`${LABEL[mode]}: ${name}`} onClose={() => setOpen(false)} onClick={(e) => { if (e.target === dialog.current) dialog.current?.close(); }}>
           <div className="connect-body">
             <button type="button" className="connect-close" aria-label="Close" onClick={() => dialog.current?.close()}>×</button>
-            <h2>{mode === 'agent' ? 'Connect with a verified agent' : mode === 'seller' ? 'Contact the seller' : 'Request a call back'}</h2>
+            <header className="connect-head">
+              <span className="connect-icon" aria-hidden="true">{mode === 'agent' ? '🛡️' : mode === 'seller' ? '🤝' : '📞'}</span>
+              <div><h2>{mode === 'agent' ? 'Connect with a verified agent' : mode === 'seller' ? 'Contact the seller' : 'Request a call back'}</h2><p>{name}</p></div>
+            </header>
             <p className="connect-about">
-              <strong>{name}</strong><br />
               {mode === 'agent' ? `${agents && agents > 1 ? `${agents} agents we have verified sell this project.` : 'An agent we have verified sells this project.'} Leave your details and you will be shown one agent’s name and number; they will call you too.`
                 : mode === 'seller' ? 'Leave your details and you will be shown the seller’s name and phone number.'
                   : unclaimed ? 'Leave your details and our team will call you. The builder has not joined us yet, so we will find out prices and availability for you.' : 'Leave your details and you will get a call back.'}
