@@ -15,6 +15,20 @@ const GROUPS: Record<string, string> = {
   dlf: 'DLF', godrej: 'Godrej Properties', sobha: 'Sobha', emaar: 'Emaar', elan: 'Elan', vatika: 'Vatika', adani: 'Adani Realty', kalpataru: 'Kalpataru',
 };
 
+/**
+ * Names that a person has confirmed are one builder: a second spelling of the same company, or another company of
+ * the same group. Left: the address the name would otherwise get. Right: the builder it belongs to.
+ */
+const SAME: Record<string, string> = {
+  'athena-infrastructures': 'athena-infrastructure', 'millenium-diplomats': 'millennium-diplomats', 'perfect-buidwell': 'perfect-buildwell',
+  'puri-construction': 'puri-constructions', 'vikas-park': 'vikas-parks', 'pareena-infrastructure': 'pareena-infrastructures',
+  'gatevida-developers': 'sector-113-gatevida-developers',
+  'hcbs-promoters-and-developers': 'hcbs-developments', 'mrg-castle-reality': 'mrg-group-india', 'pareena-builders-and-promoters': 'pareena-infrastructures',
+  'macrotech-developers': 'lodha-developers', // Macrotech Developers is the company behind the Lodha name
+};
+/** The name buyers know a builder by, where it differs from the registered one. */
+const KNOWN_AS: Record<string, string> = { 'sector-113-gatevida-developers': 'Sector 113 Gatevida Developers', 'mrg-group-india': 'MRG Group', 'pareena-infrastructures': 'Pareena', 'lodha-developers': 'Lodha' };
+
 const FORM = /^(private|pvt|limited|limted|ltd|llp|inc)$/i;
 
 export const slugify = (s: string) => s.toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -30,7 +44,9 @@ export function builderFor(registered: string): { slug: string; name: string } {
   const name = words.join(' ').replace(/[.,\s]+$/, '') || registered.trim();
   const group = GROUPS[slugify(words[0] ?? '')];
   if (group) return { slug: slugify(group), name: group };
-  return { slug: slugify(name) || 'builder', name };
+  const own = slugify(name) || 'builder';
+  const slug = SAME[own] ?? own;
+  return { slug, name: KNOWN_AS[slug] ?? name };
 }
 
 /** Words that already mean something right after the city in an address. */

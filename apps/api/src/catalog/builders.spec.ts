@@ -30,3 +30,11 @@ test('different companies stay apart, however alike', () => {
   assert.equal(builderFor('Vijay Associates (Wadhwa)').slug, 'vijay-associates');
   assert.equal(builderFor('Limited').slug, 'limited', 'a name that is only a company form is kept as it is');
 });
+
+test('names a person confirmed as one builder', () => {
+  assert.equal(builderFor('Perfect Buidwell PVT LTD').slug, builderFor('Perfect Buildwell Private Limited').slug, 'a misspelling');
+  assert.equal(builderFor('Puri Construction PVT. LTD.').slug, builderFor('Puri Constructions LTD.').slug);
+  assert.deepEqual(builderFor('Macrotech Developers Limited'), { slug: 'lodha-developers', name: 'Lodha' });
+  assert.deepEqual(builderFor('Lodha Developers Limited'), { slug: 'lodha-developers', name: 'Lodha' });
+  assert.equal(builderFor('MRG Castle Reality LLP').name, 'MRG Group');
+});
