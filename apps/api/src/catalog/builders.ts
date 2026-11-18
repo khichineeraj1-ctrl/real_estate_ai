@@ -31,14 +31,20 @@ const SAME: Record<string, string> = {
   'countrywide-promoters': 'bptp', // a BPTP company
   'city-realty-and-development': 'city-corporation', // both City Group, the developer of Amanora
 };
+/**
+ * Addresses tidied after the name was set right: a builder is not left at an address that repeats a typo or a company
+ * form. Left: the address the rules above arrive at. Right: the one it has now. The old one redirects.
+ */
+export const MOVED: Record<string, string> = { 'deluris-buildtech-india-pvt-lts': 'deluris-buildtech-india', 'sadan-realtechprivate': 'sadan-realtech', 'reliance-enetrprise': 'reliance-enterprise', 'vardhman-propertise': 'vardhman-properties', 'ocus-skycrapers-realty': 'ocus-skyscrapers-realty', 'messrs-src-and-associates': 'src-and-associates', 'mrg-group-india': 'mrg-group', 'pareena-infrastructures': 'pareena', 'lodha-developers': 'lodha', 'city-corporation': 'city-group' };
+
 /** The name buyers know a builder by, where it differs from the registered one. */
-const KNOWN_AS: Record<string, string> = { 'sector-113-gatevida-developers': 'Sector 113 Gatevida Developers', 'mrg-group-india': 'MRG Group', 'pareena-infrastructures': 'Pareena', 'lodha-developers': 'Lodha', indiabulls: 'Indiabulls', 'city-corporation': 'City Group',
+const KNOWN_AS: Record<string, string> = { 'sector-113-gatevida-developers': 'Sector 113 Gatevida Developers', 'mrg-group': 'MRG Group', pareena: 'Pareena', lodha: 'Lodha', indiabulls: 'Indiabulls', 'city-group': 'City Group',
   // registered names with odd capitals or a slip of the hand, set right for display; the address is unchanged
   'anil-thakurdas-kursija': 'Anil Thakurdas Kursija', 'ashar-ventures': 'Ashar Ventures', 'namo-developers': 'Namo Developers', 'sanskruti-life-spaces': 'Sanskruti Life Spaces',
   'siddhesh-properties': 'Siddhesh Properties', mhada: 'MHADA', 'pmay-cell-pune-municipal-corporation': 'PMAY Cell, Pune Municipal Corporation',
-  'aipl-bharat-infrastructure': 'AIPL Bharat Infrastructure', 'rof-housing-and-infrastructure': 'ROF Housing & Infrastructure', 'messrs-src-and-associates': 'SRC and Associates',
-  'deluris-buildtech-india-pvt-lts': 'Deluris Buildtech India', 'sadan-realtechprivate': 'Sadan Realtech', 'reliance-enetrprise': 'Reliance Enterprise',
-  'vardhman-propertise': 'Vardhman Properties', 'ocus-skycrapers-realty': 'Ocus Skyscrapers Realty',
+  'aipl-bharat-infrastructure': 'AIPL Bharat Infrastructure', 'rof-housing-and-infrastructure': 'ROF Housing & Infrastructure', 'src-and-associates': 'SRC and Associates',
+  'deluris-buildtech-india': 'Deluris Buildtech India', 'sadan-realtech': 'Sadan Realtech', 'reliance-enterprise': 'Reliance Enterprise',
+  'vardhman-properties': 'Vardhman Properties', 'ocus-skyscrapers-realty': 'Ocus Skyscrapers Realty',
 };
 export const DISPLAY_NAMES = KNOWN_AS;
 
@@ -58,7 +64,8 @@ export function builderFor(registered: string): { slug: string; name: string } {
   const group = GROUPS[slugify(words[0] ?? '')];
   if (group) return { slug: slugify(group), name: group };
   const own = slugify(name) || 'builder';
-  const slug = SAME[own] ?? own;
+  const same = SAME[own] ?? own;
+  const slug = MOVED[same] ?? same;
   return { slug, name: KNOWN_AS[slug] ?? name };
 }
 

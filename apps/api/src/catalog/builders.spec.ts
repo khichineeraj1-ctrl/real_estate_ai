@@ -11,7 +11,7 @@ test('one company written several ways is one builder', () => {
 
 test('notes in brackets and "M/s" are not part of the name', () => {
   assert.deepEqual(builderFor('Elan Imperial PVT LTD (Formerly Known As Ambience Infrastructure Developers PVT LTD)'), { slug: 'elan', name: 'Elan' });
-  assert.equal(builderFor('MRG Group India Private Limited (Formerly Known As Anudhara Solutions Private Limited))').slug, 'mrg-group-india');
+  assert.equal(builderFor('MRG Group India Private Limited (Formerly Known As Anudhara Solutions Private Limited))').slug, 'mrg-group');
   assert.equal(builderFor('Supreme Holdings & Hospitality (India) Limited').slug, 'supreme-holdings-and-hospitality');
   assert.deepEqual(builderFor('M/s. Shreepad Developers'), { slug: 'shreepad-developers', name: 'Shreepad Developers' });
   assert.equal(builderFor('Ms ASHAR VENTURES').slug, 'ashar-ventures');
@@ -34,10 +34,16 @@ test('different companies stay apart, however alike', () => {
 test('names a person confirmed as one builder', () => {
   assert.equal(builderFor('Perfect Buidwell PVT LTD').slug, builderFor('Perfect Buildwell Private Limited').slug, 'a misspelling');
   assert.equal(builderFor('Puri Construction PVT. LTD.').slug, builderFor('Puri Constructions LTD.').slug);
-  assert.deepEqual(builderFor('Macrotech Developers Limited'), { slug: 'lodha-developers', name: 'Lodha' });
-  assert.deepEqual(builderFor('Lodha Developers Limited'), { slug: 'lodha-developers', name: 'Lodha' });
+  assert.deepEqual(builderFor('Macrotech Developers Limited'), { slug: 'lodha', name: 'Lodha' });
+  assert.deepEqual(builderFor('Lodha Developers Limited'), { slug: 'lodha', name: 'Lodha' });
   assert.equal(builderFor('MRG Castle Reality LLP').name, 'MRG Group');
   for (const n of ['Athena Infrastructure LTD.', 'Athena Infrastructures LTD.', 'Selene Construction LTD', 'Indiabulls Pharmacare Limited']) assert.deepEqual(builderFor(n), { slug: 'indiabulls', name: 'Indiabulls' });
   assert.equal(builderFor('Countrywide Promoters Private Limited').slug, 'bptp');
-  assert.deepEqual(builderFor('City Realty & Development Private Limited'), { slug: 'city-corporation', name: 'City Group' });
+  assert.deepEqual(builderFor('City Realty & Development Private Limited'), { slug: 'city-group', name: 'City Group' });
+});
+
+test('a tidied address is used for every spelling of the name', () => {
+  assert.deepEqual(builderFor('Deluris Buildtech India PVT LTS'), { slug: 'deluris-buildtech-india', name: 'Deluris Buildtech India' });
+  assert.deepEqual(builderFor('Pareena Infrastructure PVT. LTD.'), { slug: 'pareena', name: 'Pareena' });
+  assert.equal(builderFor('MRG Castle Reality LLP').slug, 'mrg-group');
 });
