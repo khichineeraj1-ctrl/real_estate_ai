@@ -186,11 +186,12 @@ export class AdminService implements OnModuleInit {
     const weekAgo = new Date(Date.now() - 7 * 86_400_000);
     const enquiries = await this.db.enquiry.count({ where: { createdAt: { gte: weekAgo } } });
     const enquiriesNew = await this.db.enquiry.count({ where: { status: 'NEW' } });
+    const [reportsNew, sellersWaiting] = await Promise.all([this.db.report.count({ where: { status: 'NEW' } }), this.db.dealerProfile.count({ where: { status: 'SUBMITTED' } })]);
     const [cities, localities, projects, properties, pending, questions, questionsWeek, emptyWeek] = await Promise.all([
       this.db.city.count(), this.db.locality.count(), this.db.project.count(), this.db.property.count({ where: { state: 'PUBLISHED' } }), this.db.property.count({ where: { state: 'PENDING' } }),
       this.db.question.count(), this.db.question.count({ where: { createdAt: { gte: weekAgo } } }), this.db.question.count({ where: { createdAt: { gte: weekAgo }, ...NO_EXACT_MATCH } }),
     ]);
-    return { role: user.role, name: user.name, enquiries, enquiriesNew, cities, localities, projects, properties, pending, questions, questionsWeek, emptyWeek };
+    return { role: user.role, name: user.name, enquiries, enquiriesNew, reportsNew, sellersWaiting, cities, localities, projects, properties, pending, questions, questionsWeek, emptyWeek };
   }
 
   /** Everything the forms need for their dropdowns. */

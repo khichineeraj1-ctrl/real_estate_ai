@@ -6,6 +6,22 @@ export interface EnquiryState { error?: string; sent?: true; seller?: { name: st
 
 const API_URL = process.env.API_URL || 'http://localhost:4100';
 
+export interface ReportState { error?: string; sent?: true }
+
+/** A buyer reports a listing or its seller. Staff look into it; nothing changes for the seller unless they uphold it. */
+export async function reportListing(slug: string, _: ReportState, form: FormData): Promise<ReportState> {
+  if (form.get('website')) return { sent: true }; // the hidden field only scripts fill in
+  const visitor = (await headers()).get('x-forwarded-for')?.split(',')[0].trim();
+  const body = { reason: form.get('reason'), details: form.get('details'), name: form.get('name'), phone: form.get('phone'), visitor };
+  try {
+    const res = await fetch(`${API_URL}/properties/${encodeURIComponent(slug)}/reports`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), cache: 'no-store' });
+    const data = (await res.json().catch(() => null)) as { message?: string } | null;
+    return res.ok ? { sent: true } : { error: data?.message || 'Your report could not be sent. Please try again.' };
+  } catch {
+    return { error: 'Your report could not be sent. Please try again.' };
+  }
+}
+
 /**
  * A buyer asks to be contacted. For a listing the API tells the seller and returns the seller's contact; for a builder
  * project it keeps the lead for our team (and the builder's sales address) and returns no contact.

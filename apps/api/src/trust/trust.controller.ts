@@ -1,7 +1,8 @@
-import { Body, Controller, Delete, Get, HttpCode, NotFoundException, Param, Post, Put, Query, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpException, Ip, NotFoundException, Param, Post, Put, Query, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { AdminGuard, CurrentUser, Roles, SessionUser } from '../admin/auth';
+import { Limiter } from '../ask/ask.service';
 import { MAX_DOCUMENT_BYTES } from './documents';
 import { TrustService } from './trust.service';
 
@@ -17,6 +18,15 @@ export class TrustController {
     const d = await this.trust.publicDealer(id);
     if (!d) throw new NotFoundException('Seller not found');
     return d;
+  }
+
+  /** Anyone can report a listing. Limited per visitor, and nothing changes for the seller until staff uphold it. */
+  private reportLimit = new Limiter(3, 2_000);
+  @Post('properties/:slug/reports') @HttpCode(200)
+  report(@Param('slug') slug: string, @Body() b: Json & { visitor?: unknown }, @Ip() ip: string) {
+    const who = typeof b?.visitor === 'string' && b.visitor ? b.visitor.slice(0, 64) : ip;
+    if (!this.reportLimit.allow(who)) throw new HttpException('Too many reports in a short time. Please try again in a minute.', 429);
+    return this.trust.report(slug, b);
   }
 
   // The seller's own onboarding.
@@ -42,5 +52,7 @@ export class TrustController {
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Post('admin/dealers/:userId/review') @HttpCode(200) review(@CurrentUser() u: SessionUser, @Param('userId') userId: string, @Body() b: Json) { return this.trust.review(u, userId, b); }
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Post('admin/dealers/:userId/documents/purge') @HttpCode(200) purge(@Param('userId') userId: string) { return this.trust.purgeDocuments(userId); }
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Post('admin/properties/:id/verify') @HttpCode(200) verify(@CurrentUser() u: SessionUser, @Param('id') id: string, @Body() b: Json) { return this.trust.verifyProperty(u, id, b); }
+  @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Get('admin/reports') reports(@Query() q: { status?: string }) { return this.trust.reports(q); }
+  @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Post('admin/reports/:id/decide') @HttpCode(200) decide(@CurrentUser() u: SessionUser, @Param('id') id: string, @Body() b: Json) { return this.trust.decideReport(u, id, b); }
   @UseGuards(AdminGuard) @Roles('ADMIN') @Post('admin/confidence/refresh') @HttpCode(200) refresh() { return this.trust.refreshAll(); }
 }

@@ -107,6 +107,14 @@ export async function purgeDocuments(userId: string, _: FormState): Promise<Form
   redirect(`/admin/dealers/${userId}?purged=1`);
 }
 
+/** Staff decide a buyer's report after looking into it; the button pressed carries the decision. */
+export async function decideReport(id: string, _: FormState, form: FormData): Promise<FormState> {
+  const r = await adminFetch(`/reports/${encodeURIComponent(id)}/decide`, { method: 'POST', body: fields(form) });
+  if (!r.ok) return failed(r);
+  revalidatePath('/', 'layout'); // the seller's level, and so the order buyers see, may have changed
+  redirect('/admin/reports?decided=1');
+}
+
 /** Staff confirm they checked a home's papers or visited it, or withdraw that. */
 export async function verifyProperty(id: string, verified: boolean, _: FormState, form: FormData): Promise<FormState> {
   const r = await adminFetch(`/properties/${encodeURIComponent(id)}/verify`, { method: 'POST', body: { verified: String(verified), note: String(form.get('note') ?? '') } });

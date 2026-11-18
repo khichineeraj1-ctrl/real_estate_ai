@@ -59,6 +59,14 @@ export const ask = (message: string, history: Turn[], context?: string) =>
 /** Address of a stored listing photo. */
 export const photoUrl = (file: string, size: 'full' | 'card' = 'full') => `${API_URL}/uploads/${size === 'card' ? file.replace(/\.webp$/, '-card.webp') : file}`;
 
+export const REPORT_REASONS = [
+  ['ASKED_ADVANCE', 'Asked to pay before a visit or papers'], ['FAKE_LISTING', 'Home does not exist or is not for sale'], ['NOT_THE_OWNER', 'Seller is not the owner'],
+  ['WRONG_DETAILS', 'Details are not as listed'], ['UNREACHABLE', 'Seller never answers or was abusive'], ['OTHER', 'Something else'],
+] as const;
+/** Reports a listing or its seller. Our team looks into it; the seller is not told who reported them. */
+export const sendReport = (slug: string, body: { reason: string; details: string; name: string; phone: string }) =>
+  call<{ ok: true }>(`/properties/${slug}/reports`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+
 export interface EnquiryResult { ok: true; seller: { name: string; phone: string; level?: number | null; label?: string } | null }
 /** Asks the seller to get in touch; the answer includes the seller's contact when the listing has a seller account. */
 export const sendEnquiry = (slug: string, body: { name: string; phone: string; message?: string }) =>

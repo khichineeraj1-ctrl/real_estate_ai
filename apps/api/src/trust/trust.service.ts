@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { DealerKind, DealerStatus, DocumentKind, Prisma } from '@prisma/client';
+import { DealerKind, DealerStatus, DocumentKind, Prisma, ReportReason, ReportStatus } from '@prisma/client';
 import { SessionUser, isStaff } from '../admin/auth';
 import { Input } from '../admin/input';
 import { Mailer, SITE_URL } from '../mail/mailer';
@@ -26,13 +26,15 @@ export class TrustService {
     const profile = await this.db.dealerProfile.findUnique({ where: { userId } });
     if (!profile) return null;
     const old = { property: { ownerId: userId }, createdAt: { lt: new Date(Date.now() - OLD_LEAD_MS) } };
+    const upheld = await this.db.report.count({ where: { sellerId: userId, status: 'UPHELD' } });
     const [oldLeads, followedUp, listings, rejected] = await Promise.all([
       this.db.enquiry.count({ where: old }), this.db.enquiry.count({ where: { ...old, partnerStatus: { not: 'NEW' } } }),
       this.db.property.count({ where: { ownerId: userId } }), this.db.property.count({ where: { ownerId: userId, state: 'REJECTED' } }),
     ]);
     return {
       kind: profile.kind, approved: profile.status === 'APPROVED', checkIdentity: profile.checkIdentity, checkRera: profile.checkRera, checkPhone: profile.checkPhone,
-      checkAddress: profile.checkAddress, complaints: profile.complaints, oldLeads, oldLeadsFollowedUp: followedUp, listings, listingsRejected: rejected,
+      // Complaints: buyers' reports that staff upheld, plus any staff recorded by hand.
+      checkAddress: profile.checkAddress, complaints: profile.complaints + upheld, oldLeads, oldLeadsFollowedUp: followedUp, listings, listingsRejected: rejected,
     };
   }
 
@@ -283,6 +285,62 @@ export class TrustService {
     let deleted = 0;
     for (const d of due) deleted += (await this.purgeDocuments(d.userId)).deleted;
     return deleted;
+  }
+
+  // ---- Reports from buyers
+
+  /**
+   * A buyer reports a listing or its seller. Nothing changes for the seller yet: a report is an accusation, and
+   * anyone can make one, so it only counts once staff have looked into it and upheld it.
+   */
+  async report(slug: string, body: Record<string, unknown>) {
+    const i = new Input(body);
+    const reason = i.oneOf('reason', 'What is wrong', Object.values(ReportReason));
+    const details = i.text('details', 'What happened', 1000);
+    if (details.length < 15) throw new BadRequestException('Please tell us a little more about what happened, so we can look into it');
+    const reporterName = i.text('name', 'Your name', 80);
+    const reporterPhone = i.text('phone', 'Phone', 20).replace(/[\s()-]/g, '');
+    if (!/^\+?\d{10,13}$/.test(reporterPhone)) throw new BadRequestException('Enter a phone number with 10 to 13 digits, so we can contact you about your report');
+    const p = await this.db.property.findFirst({ where: { slug, state: 'PUBLISHED' }, select: { id: true, title: true, ownerId: true, owner: { select: { role: true } } } });
+    if (!p) throw new NotFoundException('Property not found');
+    await this.db.report.create({ data: { reason, details, reporterName, reporterPhone, listingTitle: p.title, propertyId: p.id, sellerId: this.sellerOf(p) } });
+    const staff = await this.db.user.findMany({ where: { role: { in: ['ADMIN', 'EDITOR'] }, active: true }, select: { email: true, name: true } });
+    for (const s of staff) {
+      await this.mail.send({ to: s.email, subject: `A buyer reported a listing: ${p.title}`, text: `Hello ${s.name},\n\nA buyer has reported "${p.title}".\n\nReason: ${reason.replace(/_/g, ' ').toLowerCase()}\n\nLook into it and decide:\n${SITE_URL}/admin/reports` });
+    }
+    return { ok: true };
+  }
+
+  async reports(q: { status?: string }) {
+    const status = Object.values(ReportStatus).find((s) => s === q.status);
+    const [items, waiting] = await Promise.all([
+      this.db.report.findMany({
+        where: status ? { status } : {}, orderBy: { createdAt: 'desc' }, take: 200,
+        include: { property: { select: { id: true, slug: true, state: true } }, seller: { select: { id: true, name: true, email: true, phone: true } } },
+      }),
+      this.db.report.count({ where: { status: 'NEW' } }),
+    ]);
+    return { items, waiting };
+  }
+
+  /**
+   * Staff decide a report after looking into it. Upholding it counts as a complaint against the seller, which holds
+   * them at the basic level; the listing can be taken off the site in the same step. A decision can be changed later.
+   */
+  async decideReport(staff: SessionUser, id: string, body: Record<string, unknown>) {
+    const i = new Input(body);
+    const decision = i.oneOf('decision', 'Decision', ['uphold', 'dismiss'] as const);
+    const note = i.text('note', 'What you found', 500);
+    const report = await this.db.report.findUnique({ where: { id }, include: { property: { select: { id: true, state: true } } } });
+    if (!report) throw new NotFoundException('Report not found');
+    await this.db.report.update({ where: { id }, data: { status: decision === 'uphold' ? 'UPHELD' : 'DISMISSED', staffNote: note, decidedAt: new Date(), decidedBy: staff.name } });
+    const takeDown = decision === 'uphold' && (body.takeDown === 'on' || body.takeDown === 'true' || body.takeDown === true);
+    if (takeDown && report.property && report.property.state === 'PUBLISHED') {
+      await this.db.property.update({ where: { id: report.property.id }, data: { state: 'REJECTED', rejectReason: 'Taken off the site after a buyer’s report was upheld. Contact our team.', staffVerified: false, staffVerifiedNote: null, staffVerifiedAt: null, staffVerifiedBy: null } });
+    }
+    if (report.sellerId) await this.refreshDealer(report.sellerId);
+    else if (report.property) await this.refreshProperty(report.property.id);
+    return { ok: true, takenDown: takeDown };
   }
 
   /** Staff confirm they have checked a particular home's papers or visited it, or withdraw that. */

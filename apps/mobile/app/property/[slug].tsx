@@ -4,9 +4,50 @@ import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, S
 import { PropertyCard } from '../../components/PropertyCard';
 import { CostCalculator, EmiCalculator } from '../../components/tools/Calculators';
 import { CompareToggle } from '../../components/tools/Compare';
-import { getProperty, photoUrl, sendEnquiry, type EnquiryResult, type PropertyDetail } from '../../lib/api';
+import { REPORT_REASONS, getProperty, photoUrl, sendEnquiry, sendReport, type EnquiryResult, type PropertyDetail } from '../../lib/api';
 import { num, price, statusLabel, typeLabel } from '../../lib/format';
 import { useTheme, type Theme } from '../../lib/theme';
+
+function Report({ slug, t }: { slug: string; t: Theme }) {
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState('');
+  const [details, setDetails] = useState('');
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [done, setDone] = useState(false);
+
+  async function submit() {
+    if (!reason) { setError('Choose what is wrong'); return; }
+    setBusy(true); setError('');
+    try { await sendReport(slug, { reason, details, name, phone }); setDone(true); } catch (e) { setError((e as Error).message); }
+    setBusy(false);
+  }
+  if (done) return <Text accessibilityLiveRegion="polite" style={{ color: t.ready }}>Thank you. Our team will look into this and may call you. We do not tell the seller who reported them.</Text>;
+  if (!open) return <Pressable accessibilityRole="button" onPress={() => setOpen(true)}><Text style={{ color: t.muted, textDecorationLine: 'underline' }}>Something wrong with this listing or seller? Report it</Text></Pressable>;
+  const input = [s.input, { color: t.fg, borderColor: t.line, backgroundColor: t.card }];
+  return (
+    <View style={[s.box, { backgroundColor: t.soft, borderColor: t.line }]}>
+      <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 18, fontWeight: '700' }}>Report this listing</Text>
+      <Text style={{ color: t.muted, fontSize: 13 }}>Our team looks into every report. A report we uphold lowers the seller’s confidence level for all buyers.</Text>
+      <View accessibilityRole="radiogroup" style={{ gap: 6 }}>
+        {REPORT_REASONS.map(([value, label]) => (
+          <Pressable key={value} accessibilityRole="radio" accessibilityState={{ selected: reason === value }} onPress={() => setReason(value)} style={{ borderWidth: 1, borderRadius: 10, padding: 10, borderColor: reason === value ? t.brand : t.line, backgroundColor: t.card }}>
+            <Text style={{ color: reason === value ? t.brand : t.fg, fontWeight: reason === value ? '700' : '400' }}>{label}</Text>
+          </Pressable>
+        ))}
+      </View>
+      <TextInput value={details} onChangeText={setDetails} placeholder="What happened?" placeholderTextColor={t.muted} accessibilityLabel="What happened" multiline maxLength={1000} style={[input, { minHeight: 80, textAlignVertical: 'top' }]} />
+      <TextInput value={name} onChangeText={setName} placeholder="Your name" placeholderTextColor={t.muted} accessibilityLabel="Your name" autoComplete="name" maxLength={80} style={input} />
+      <TextInput value={phone} onChangeText={setPhone} placeholder="Phone (not shared with the seller)" placeholderTextColor={t.muted} accessibilityLabel="Phone" keyboardType="phone-pad" autoComplete="tel" maxLength={20} style={input} />
+      {error ? <Text accessibilityLiveRegion="polite" style={{ color: t.danger }}>{error}</Text> : null}
+      <Pressable accessibilityRole="button" disabled={busy} onPress={submit} style={[s.button, { borderWidth: 1, borderColor: t.brand, opacity: busy ? 0.6 : 1 }]}>
+        <Text style={{ color: t.brand, fontWeight: '700' }}>{busy ? 'Sending…' : 'Send report'}</Text>
+      </Pressable>
+    </View>
+  );
+}
 
 function Enquiry({ slug, t }: { slug: string; t: Theme }) {
   const [name, setName] = useState('');
@@ -104,6 +145,7 @@ export default function Property() {
       <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 18, fontWeight: '700', marginTop: 8 }}>Monthly EMI for this home</Text>
       <EmiCalculator key={`emi-${p.slug}`} price={p.priceInr} />
       <Enquiry key={p.slug} slug={p.slug} t={t} />
+      <Report key={`report-${p.slug}`} slug={p.slug} t={t} />
       <Text style={{ color: t.fg, fontSize: 16, lineHeight: 23 }}>{p.description}</Text>
       {p.amenities.length > 0 && <Text style={{ color: t.muted }}>{p.amenities.join(' · ')}</Text>}
       {p.similar.length > 0 && <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 18, fontWeight: '700', marginTop: 8 }}>Similar homes in {p.locality.name}</Text>}

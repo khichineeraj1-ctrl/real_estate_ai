@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { AskBox } from '@/components/AskBox';
 import { ConfidenceBadge, ConfidenceReasons } from '@/components/Confidence';
 import { EnquiryForm } from '@/components/EnquiryForm';
+import { ReportForm } from '@/components/ReportForm';
 import { CostCalculator, EmiCalculator } from '@/components/tools/Calculators';
 import { CompareToggle } from '@/components/tools/Compare';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
@@ -108,6 +109,7 @@ export default async function PropertyPage({ params }: Props) {
         <h2>Contact the seller</h2>
         <EnquiryForm slug={p.slug} />
       </section>
+      <ReportForm slug={p.slug} />
 
       <section className="section">
         <h2>About this home</h2>

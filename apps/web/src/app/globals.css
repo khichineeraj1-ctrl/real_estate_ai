@@ -246,3 +246,11 @@ h1 .conf, h2 .conf { font-size: .8rem; margin-left: 6px; }
 .trust { background: var(--soft); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; }
 .trust h2 { margin-bottom: 6px; }
 .areview-buttons { display: flex; flex-wrap: wrap; gap: 10px; }
+
+/* Reporting a listing */
+.report { margin-top: 12px; font-size: .92rem; }
+.report summary { cursor: pointer; color: var(--muted); }
+.report[open] summary { margin-bottom: 10px; }
+.areport { border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; margin: 14px 0; }
+.areport h2 { font-size: 1.05rem; margin-bottom: 6px; }
+.adecide { margin-top: 12px; max-width: none; }

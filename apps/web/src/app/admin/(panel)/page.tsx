@@ -5,7 +5,7 @@ interface BuilderProject { id: string; slug: string; name: string; leads: number
 type Overview =
   | { role: 'BUILDER'; name: string; projects: BuilderProject[] }
   | { role: 'AGENT'; name: string; enquiries: number; enquiriesNew: number; mine: { published: number; pending: number; rejected: number } }
-  | { role: 'ADMIN' | 'EDITOR'; name: string; enquiries: number; enquiriesNew: number; cities: number; localities: number; projects: number; properties: number; pending: number; questions: number; questionsWeek: number; emptyWeek: number };
+  | { role: 'ADMIN' | 'EDITOR'; name: string; enquiries: number; enquiriesNew: number; reportsNew: number; sellersWaiting: number; cities: number; localities: number; projects: number; properties: number; pending: number; questions: number; questionsWeek: number; emptyWeek: number };
 
 export default async function AdminHome({ searchParams }: { searchParams: Promise<{ welcome?: string; verified?: string }> }) {
   const [o, sp] = await Promise.all([adminGet<Overview>('/overview'), searchParams]);
@@ -52,7 +52,7 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
     );
   }
 
-  const tiles: [string, number, string][] = [['Live listings', o.properties, '/admin/properties?state=PUBLISHED'], ['Waiting for review', o.pending, '/admin/properties?state=PENDING'], ['New enquiries to follow up', o.enquiriesNew, '/admin/enquiries?status=NEW'], ['Enquiries this week', o.enquiries, '/admin/enquiries'], ['Projects', o.projects, '/admin/projects'], ['Localities', o.localities, '/admin/localities'], ['Cities', o.cities, '/admin/cities']];
+  const tiles: [string, number, string][] = [['Live listings', o.properties, '/admin/properties?state=PUBLISHED'], ['Waiting for review', o.pending, '/admin/properties?state=PENDING'], ['Buyer reports to look into', o.reportsNew, '/admin/reports?status=NEW'], ['Sellers waiting to be verified', o.sellersWaiting, '/admin/dealers?status=SUBMITTED'], ['New enquiries to follow up', o.enquiriesNew, '/admin/enquiries?status=NEW'], ['Enquiries this week', o.enquiries, '/admin/enquiries'], ['Projects', o.projects, '/admin/projects'], ['Localities', o.localities, '/admin/localities'], ['Cities', o.cities, '/admin/cities']];
   return (
     <>
       <h1>Admin</h1>

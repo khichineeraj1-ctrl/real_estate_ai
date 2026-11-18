@@ -91,6 +91,12 @@ functions with tests) and the levels are *Not yet verified*, *Basic checks only*
 - **What buyers see**: a badge on every listing card; on the property page a "How confident can you be?" section with
   each reason, ticked or not, and the seller's public page (`/dealers/[id]`, not indexed, no contact details). After
   an enquiry, the buyer is told whether the seller is verified and, if not, warned not to pay any advance.
+- **Reports from buyers**: every property page (and the app's property screen) has "Something wrong with this listing
+  or seller? Report it": a reason, what happened, and the buyer's name and phone so staff can follow up. A report
+  changes nothing by itself, because anyone can send one. Staff are emailed, look into it under **Reports**, and
+  uphold or dismiss it with a note of what they found; they can take the listing off the site in the same step, and
+  can change the decision later. An upheld report counts as a complaint: the seller is held at *Basic checks only*
+  until it is dismissed. The seller is never told who reported them. Limited to three reports a minute per visitor.
 - **Ranking**: listings, locality pages and ask-box results show higher-confidence homes first unless the buyer asks
   for a price order. Nothing is hidden. The assistant is told each home's confidence and not to overstate it.
 - **Documents are private**: stored in `apps/api/private-documents` (override with `DOCUMENT_DIR`), a folder no web
@@ -231,7 +237,7 @@ you can copy the link from the terminal running `npm run dev:api`. Sending throu
 
 ## Not done yet
 
-Buyer accounts and saved searches (the comparison shortlist lives only in the browser or the open app), stamp duty slabs and locality-level rates (one rate per city), a way for buyers to report a seller (complaints are entered by staff), encryption of verification documents at rest,
+Buyer accounts and saved searches (the comparison shortlist lives only in the browser or the open app), stamp duty slabs and locality-level rates (one rate per city), telling a buyer the outcome of their report, encryption of verification documents at rest,
 assigning a lead to a particular staff member, builders editing their own project pages,
 a project screen and lead form in the mobile app, reordering photos, object storage for
 photos, pagination beyond 48 homes per listing page, a real listings feed, native speech-to-text on phones, a

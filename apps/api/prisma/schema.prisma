@@ -136,6 +136,7 @@ model Property {
   /// Stored so listings can be ordered by it; recomputed whenever something it depends on changes, and daily.
   confidence        Int       @default(0)
   enquiries    Enquiry[]
+  reports      Report[]
 
   @@index([localityId, bhk])
   @@index([priceInr])
@@ -171,6 +172,7 @@ model User {
   emailTokens  EmailToken[]
   projects     Project[]  @relation("ProjectAccount")
   dealer       DealerProfile?
+  reportsAbout Report[]   @relation("ReportsAboutSeller")
 }
 
 model Photo {
@@ -340,4 +342,44 @@ model DealerDocument {
   createdAt DateTime      @default(now())
   userId    String
   profile   DealerProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+}
+
+enum ReportReason {
+  FAKE_LISTING /// the home does not exist or is not for sale
+  ASKED_ADVANCE /// asked for money before a visit or papers
+  NOT_THE_OWNER /// the seller has no right to sell it
+  WRONG_DETAILS /// price, size, photos or status are not as listed
+  UNREACHABLE /// never answers, or was abusive
+  OTHER
+}
+
+enum ReportStatus {
+  NEW
+  UPHELD
+  DISMISSED
+}
+
+/// A buyer telling us something is wrong with a listing or its seller. It changes nothing by itself: only a report
+/// that staff look into and uphold counts against the seller.
+model Report {
+  id            String       @id @default(cuid())
+  reason        ReportReason
+  details       String
+  reporterName  String
+  reporterPhone String
+  status        ReportStatus @default(NEW)
+  staffNote     String?
+  decidedAt     DateTime?
+  decidedBy     String?
+  createdAt     DateTime     @default(now())
+  /// Kept as text too, so the report still makes sense if the listing is later deleted.
+  listingTitle  String
+  propertyId    String?
+  property      Property?    @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  /// The seller's account, when the listing has an outside seller.
+  sellerId      String?
+  seller        User?        @relation("ReportsAboutSeller", fields: [sellerId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([sellerId, status])
 }
