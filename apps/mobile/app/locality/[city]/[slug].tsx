@@ -51,10 +51,10 @@ export default function Locality() {
         <View style={{ gap: 8 }}>
           <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 18, fontWeight: '700' }}>Projects in {l.name}</Text>
           {l.projects.map((p) => (
-            <View key={p.slug} style={{ borderWidth: 1, borderColor: t.line, backgroundColor: t.card, borderRadius: 14, padding: 12, gap: 2 }}>
+            <Pressable key={p.slug} accessibilityRole="button" onPress={() => router.push({ pathname: '/project/[slug]', params: { slug: p.slug } })} style={({ pressed }) => ({ borderWidth: 1, borderColor: pressed ? t.brand : t.line, backgroundColor: t.card, borderRadius: 14, padding: 12, gap: 2 })}>
               <Text style={{ color: t.fg, fontWeight: '600' }}>{p.name}</Text>
               <Text style={{ color: t.muted, fontSize: 13 }}>{p.builder}{p.registerSource ? ' · from the RERA register' : ''}</Text>
-            </View>
+            </Pressable>
           ))}
         </View>
       )}

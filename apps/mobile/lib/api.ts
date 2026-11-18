@@ -21,6 +21,12 @@ export interface LocalityDetail extends Place {
   bhk: { bhk: number; count: number; minPrice: number | null }[]; nearby: Place[];
   projects: (Place & { builder: string; registerSource: string | null })[];
 }
+export interface ProjectDetail extends Place {
+  builder: string; description: string; status: Status; possession: string | null; reraId: string | null; totalUnits: number | null; amenities: string[];
+  /** Set when the project came from a public RERA register and the builder has not confirmed it. */
+  registerSource: string | null; registerName: string | null; registerStatus: string | null; registerValidUntil: string | null; sourceUrl: string | null; sourceFetchedAt: string | null;
+  locality: Place; city: Place & { state: string }; properties: PropertyCard[]; stats: Stats; bhk: { bhk: number; count: number; minPrice: number | null }[];
+}
 export interface Listing { items: PropertyCard[]; total: number; stats: Stats }
 export interface PropertyDetail extends Omit<PropertyCard, 'locality' | 'project' | 'confidence'> {
   confidence: Confidence; seller: { name: string; firmName: string | null; confidence: Confidence } | null;
@@ -52,6 +58,10 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
 export const getCities = () => call<CitySummary[]>('/cities');
 export const getLocality = (city: string, slug: string) => call<LocalityDetail>(`/localities/${city}/${slug}`);
 export const getListing = (city: string, locality: string) => call<Listing>(`/properties?city=${city}&locality=${locality}&pageSize=48`);
+export const getProject = (slug: string) => call<ProjectDetail>(`/projects/${slug}`);
+/** Leaves the buyer's details for a call back about a builder's project. */
+export const sendProjectEnquiry = (slug: string, body: { name: string; phone: string; interest?: string }) =>
+  call<{ ok: true }>(`/projects/${slug}/enquiries`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
 export const getProperty = (slug: string) => call<PropertyDetail>(`/properties/${slug}`);
 export const getCompare = (slugs: string[]) => call<CompareHome[]>(`/compare?slugs=${encodeURIComponent(slugs.slice(0, 4).join(','))}`);
 export const ask = (message: string, history: Turn[], context?: string) =>
