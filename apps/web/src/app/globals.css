@@ -174,3 +174,14 @@ main.wrap { padding-top: 20px; padding-bottom: 56px; min-height: 60vh; }
 .aupload { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; max-width: 560px; }
 .aupload .afield { flex: 1 1 260px; }
 ol.bullets li { margin-bottom: 4px; }
+
+/* Enquiry form on property pages */
+.enquiry { background: var(--soft); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; }
+.enquiry .aform { margin-top: 0; max-width: none; }
+.enquiry-done p { margin: 0 0 6px; }
+.acheck { display: flex; gap: 8px; align-items: flex-start; font-size: .92rem; color: var(--muted); }
+.acheck.wide { grid-column: 1 / -1; }
+.acheck input { margin-top: 4px; }
+.hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.awrap { white-space: normal !important; min-width: 200px; }
+.gallery img, .card-photo img, .aphotos img { height: 100%; }

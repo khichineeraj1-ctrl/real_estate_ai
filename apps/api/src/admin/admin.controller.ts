@@ -18,6 +18,7 @@ export class AdminController {
   // A handful of attempts per minute per address makes password guessing and mass sign-ups impractical.
   private attempts = new Limiter(5, 100_000);
   private signups = new Limiter(3, 2_000);
+  private emails = new Limiter(2, 5_000); // emails cost money and can be used to pester someone
   constructor(private readonly admin: AdminService) {}
 
   @Post('login')
@@ -31,6 +32,23 @@ export class AdminController {
   register(@Body() body: Json, @Ip() ip: string) {
     if (!this.signups.allow(ip)) throw new HttpException('Too many sign-ups from this address. Try again later.', 429);
     return this.admin.register(body);
+  }
+
+  @Post('verify-email') @HttpCode(200) verifyEmail(@Body() b: { token?: unknown }) { return this.admin.verifyEmail(b?.token); }
+  @Post('forgot') @HttpCode(200)
+  forgot(@Body() b: { email?: unknown }, @Ip() ip: string) {
+    if (!this.emails.allow(ip)) throw new HttpException('Too many requests. Wait a minute and try again.', 429);
+    return this.admin.forgotPassword(b?.email);
+  }
+  @Post('reset') @HttpCode(200)
+  reset(@Body() b: Json, @Ip() ip: string) {
+    if (!this.attempts.allow(ip)) throw new HttpException('Too many attempts. Wait a minute and try again.', 429);
+    return this.admin.resetPassword(b);
+  }
+  @UseGuards(AdminGuard) @Post('me/resend-verification') @HttpCode(200)
+  resend(@CurrentUser() u: SessionUser) {
+    if (!this.emails.allow(u.id)) throw new HttpException('We just sent one. Wait a minute before asking again.', 429);
+    return this.admin.resendVerification(u);
   }
 
   @UseGuards(AdminGuard) @Get('me') me(@CurrentUser() u: SessionUser) { return this.admin.me(u); }
@@ -48,6 +66,7 @@ export class AdminController {
   @UseGuards(AdminGuard) @Post('properties/:id/photos')
   @UseInterceptors(FilesInterceptor('photos', MAX_PHOTOS_PER_LISTING, { limits: { fileSize: MAX_PHOTO_BYTES } }))
   addPhotos(@CurrentUser() u: SessionUser, @Param('id') id: string, @UploadedFiles() files: Upload[]) { return this.admin.addPhotos(u, id, files); }
+  @UseGuards(AdminGuard) @Get('enquiries') enquiries(@CurrentUser() u: SessionUser, @Query() q: { page?: string }) { return this.admin.enquiries(u, q); }
   @UseGuards(AdminGuard) @Delete('photos/:id') deletePhoto(@CurrentUser() u: SessionUser, @Param('id') id: string) { return this.admin.deletePhoto(u, id); }
 
   // Staff only from here.

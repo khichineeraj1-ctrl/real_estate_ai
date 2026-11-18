@@ -109,6 +109,7 @@ model Property {
   ownerId      String?
   owner        User?             @relation(fields: [ownerId], references: [id])
   photos       Photo[]
+  enquiries    Enquiry[]
 
   @@index([localityId, bhk])
   @@index([priceInr])
@@ -136,8 +137,11 @@ model User {
   passwordHash String
   role         Role
   active       Boolean    @default(true)
+  /// Null until the person has opened the link sent to their email. Owners and agents cannot post before that.
+  emailVerified DateTime?
   createdAt    DateTime   @default(now())
   properties   Property[]
+  emailTokens  EmailToken[]
 }
 
 model Photo {
@@ -146,8 +150,41 @@ model Photo {
   file       String   @unique
   position   Int
   createdAt  DateTime @default(now())
+  width      Int
+  height     Int
   propertyId String
   property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
   @@index([propertyId, position])
+}
+
+enum EmailTokenKind {
+  VERIFY
+  RESET
+}
+
+/// A one-time link sent by email. Only a hash of the secret is stored, so a copy of the database cannot be used to sign in.
+model EmailToken {
+  id        String         @id @default(cuid())
+  kind      EmailTokenKind
+  tokenHash String         @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime       @default(now())
+  userId    String
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// A buyer asking to be contacted about a listing.
+model Enquiry {
+  id         String   @id @default(cuid())
+  name       String
+  phone      String
+  email      String?
+  message    String?
+  createdAt  DateTime @default(now())
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId, createdAt])
 }

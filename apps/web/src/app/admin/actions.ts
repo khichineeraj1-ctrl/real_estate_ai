@@ -27,12 +27,12 @@ export async function login(_: FormState, form: FormData): Promise<FormState> {
   redirect('/admin');
 }
 
-/** Sign-up for owners, agents and builders; they land on the form for their first listing. */
+/** Sign-up for owners, agents and builders. They are signed in, and asked to confirm their email before posting. */
 export async function register(_: FormState, form: FormData): Promise<FormState> {
   const r = await adminFetch<{ token: string }>('/register', { method: 'POST', body: fields(form) });
   if (!r.ok) return { error: r.error };
   await startSession(r.data.token);
-  redirect('/admin/properties/new?welcome=1');
+  redirect('/admin?welcome=1');
 }
 
 export async function logout() {
@@ -74,8 +74,28 @@ export async function removePhoto(photoId: string, propertyId: string, _: FormSt
 
 export async function changePassword(_: FormState, form: FormData): Promise<FormState> {
   if (form.get('password') !== form.get('again')) return { error: 'The two new passwords do not match' };
-  const r = await adminFetch('/me/password', { method: 'POST', body: { current: String(form.get('current') ?? ''), password: String(form.get('password') ?? '') } });
-  return r.ok ? { ok: 'Password changed.' } : failed(r);
+  const r = await adminFetch<{ token: string }>('/me/password', { method: 'POST', body: { current: String(form.get('current') ?? ''), password: String(form.get('password') ?? '') } });
+  if (!r.ok) return failed(r);
+  await startSession(r.data.token); // the old session ended with the old password
+  return { ok: 'Password changed. Any other device signed in to this account has been signed out.' };
+}
+
+export async function resendVerification(_: FormState): Promise<FormState> {
+  const r = await adminFetch('/me/resend-verification', { method: 'POST' });
+  return r.ok ? { ok: 'Sent. Open the link in the email to confirm your address.' } : failed(r);
+}
+
+/** Says the same thing whether or not the email has an account, so it cannot be used to look accounts up. */
+export async function forgotPassword(_: FormState, form: FormData): Promise<FormState> {
+  const r = await adminFetch('/forgot', { method: 'POST', body: { email: String(form.get('email') ?? '') } });
+  return r.ok ? { ok: 'If that email has an account, we have sent a link to choose a new password. It works for 1 hour.' } : { error: r.error };
+}
+
+export async function resetPassword(token: string, _: FormState, form: FormData): Promise<FormState> {
+  if (form.get('password') !== form.get('again')) return { error: 'The two passwords do not match' };
+  const r = await adminFetch('/reset', { method: 'POST', body: { token, password: String(form.get('password') ?? '') } });
+  if (!r.ok) return { error: r.error };
+  redirect('/admin/login?reset=1');
 }
 
 export async function importCsv(_: FormState, form: FormData): Promise<FormState> {

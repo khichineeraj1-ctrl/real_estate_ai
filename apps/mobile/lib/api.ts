@@ -28,7 +28,11 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
   } catch {
     throw new Error(`Cannot reach the server at ${API_URL}. Check that the API is running and the phone is on the same wifi.`);
   }
-  if (!res.ok) throw new Error(res.status === 404 ? 'Not found.' : `The server answered ${res.status}.`);
+  if (!res.ok) {
+    // The API explains what was wrong (for example an invalid phone number); show that when there is one.
+    const detail = (await res.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(typeof detail?.message === 'string' ? detail.message : res.status === 404 ? 'Not found.' : `The server answered ${res.status}.`);
+  }
   return (await res.json()) as T;
 }
 
@@ -40,4 +44,9 @@ export const ask = (message: string, history: Turn[], context?: string) =>
   call<AskResult>('/ask', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ message, history, context }) });
 
 /** Address of a stored listing photo. */
-export const photoUrl = (file: string) => `${API_URL}/uploads/${file}`;
+export const photoUrl = (file: string, size: 'full' | 'card' = 'full') => `${API_URL}/uploads/${size === 'card' ? file.replace(/\.webp$/, '-card.webp') : file}`;
+
+export interface EnquiryResult { ok: true; seller: { name: string; phone: string } | null }
+/** Asks the seller to get in touch; the answer includes the seller's contact when the listing has a seller account. */
+export const sendEnquiry = (slug: string, body: { name: string; phone: string; message?: string }) =>
+  call<EnquiryResult>(`/properties/${slug}/enquiries`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });

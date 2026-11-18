@@ -10,7 +10,7 @@ export interface PropertyCard {
   locality: Place & { city: Place };
   project: (Place & { builder: string }) | null;
   /** At most one on cards (the cover); every photo on the detail page. */
-  photos: { file: string }[];
+  photos: { file: string; width?: number; height?: number }[];
 }
 export interface ProjectLink extends Place { builder: string; status: Status; locality?: { name: string } }
 

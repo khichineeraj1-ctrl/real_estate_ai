@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AskBox } from '@/components/AskBox';
+import { EnquiryForm } from '@/components/EnquiryForm';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { JsonLd } from '@/components/JsonLd';
 import { PropertyGrid } from '@/components/PropertyCard';
@@ -49,7 +50,8 @@ export default async function PropertyPage({ params }: Props) {
       {photos.length > 0 && (
         <div className={`gallery ${photos.length === 1 ? 'single' : ''}`}>
           {photos.map((ph, i) => (
-            <a key={ph.file} href={media(ph.file)}><img src={media(ph.file)} alt={`${p.title} — photo ${i + 1} of ${photos.length}`} loading={i === 0 ? 'eager' : 'lazy'} decoding="async" /></a>
+            // The first photo loads at full size; the rest load small and open the full photo when clicked.
+            <a key={ph.file} href={media(ph.file)}><img src={media(ph.file, i === 0 ? 'full' : 'card')} alt={`${p.title} — photo ${i + 1} of ${photos.length}`} width={i === 0 ? ph.width : 640} height={i === 0 ? ph.height : 480} loading={i === 0 ? 'eager' : 'lazy'} fetchPriority={i === 0 ? 'high' : undefined} decoding="async" /></a>
           ))}
         </div>
       )}
@@ -69,6 +71,11 @@ export default async function PropertyPage({ params }: Props) {
         <div><dt>Listed by</dt><dd>{p.listedBy[0] + p.listedBy.slice(1).toLowerCase()}</dd></div>
         <div><dt>Listed on</dt><dd>{day(p.postedAt)}</dd></div>
       </dl>
+
+      <section className="section enquiry" id="contact">
+        <h2>Contact the seller</h2>
+        <EnquiryForm slug={p.slug} />
+      </section>
 
       <section className="section">
         <h2>About this home</h2>

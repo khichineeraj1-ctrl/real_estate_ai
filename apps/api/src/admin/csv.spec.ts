@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { IMPORT_COLUMNS, IMPORT_SAMPLE, parseCsv } from './csv';
-import { sniffImage } from './photos';
+import sharp from 'sharp';
+import { cardFile, processPhoto, sniffImage } from './photos';
 
 test('quoted cells, embedded commas, quotes and line breaks', () => {
   assert.deepEqual(parseCsv('a,b\r\n"x, y","say ""hi"""\n"two\nlines",z\n\n'), [['a', 'b'], ['x, y', 'say "hi"'], ['two\nlines', 'z']]);
@@ -20,4 +21,16 @@ test('image type comes from the bytes, not the name', () => {
   assert.equal(sniffImage(Buffer.from('RIFF0000WEBPVP8 ', 'latin1')), 'webp');
   assert.equal(sniffImage(Buffer.from('<svg onload=alert(1)>')), null);
   assert.equal(sniffImage(Buffer.from('plain text, not an image')), null);
+});
+
+test('photos are re-encoded to two WebP sizes, and unreadable files are refused', async () => {
+  const big = await sharp({ create: { width: 3000, height: 2000, channels: 3, background: '#6080c8' } }).jpeg().toBuffer();
+  const p = await processPhoto(big);
+  assert.deepEqual([p.width, p.height], [1600, 1067]);
+  assert.equal(sniffImage(p.full), 'webp');
+  const card = await sharp(p.card).metadata();
+  assert.deepEqual([card.width, card.height, card.format], [640, 480, 'webp']);
+  assert.equal(cardFile('abc.webp'), 'abc-card.webp');
+  // Starts like a JPEG, so it passes the first check, but is not one.
+  await assert.rejects(processPhoto(Buffer.concat([Buffer.from([0xff, 0xd8, 0xff]), Buffer.from('not really an image')])));
 });

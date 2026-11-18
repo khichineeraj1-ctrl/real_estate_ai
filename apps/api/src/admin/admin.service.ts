@@ -1,22 +1,23 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException, OnModuleInit, UnauthorizedException } from '@nestjs/common';
 import { ConstructionStatus, ListedBy, ListingState, Prisma, PropertyType, Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { SessionUser, hashPassword, isStaff, issueToken, normalEmail, verifyPassword } from './auth';
+import { Mailer, SITE_URL } from '../mail/mailer';
+import { SessionUser, emailSecret, hashEmailSecret, hashPassword, isStaff, issueToken, normalEmail, verifyPassword } from './auth';
 import { IMPORT_COLUMNS, parseCsv } from './csv';
 import { Input, slugify } from './input';
-import { MAX_PHOTOS_PER_LISTING, MAX_PHOTO_BYTES, removePhoto, savePhoto, sniffImage } from './photos';
+import { MAX_PHOTOS_PER_LISTING, MAX_PHOTO_BYTES, ProcessedPhoto, processPhoto, removePhoto, savePhoto, sniffImage } from './photos';
 
 const PAGE = 25;
 const MAX_IMPORT_ROWS = 500;
 /** Questions the listings could not answer as asked: nothing found, or found only after widening the search. */
 const NO_EXACT_MATCH: Prisma.QuestionWhereInput = { OR: [{ total: 0 }, { relaxed: { not: null } }] };
 const page = (v: unknown) => Math.max(1, Number.parseInt(String(v ?? '1'), 10) || 1);
-const USER_PUBLIC = { id: true, email: true, name: true, phone: true, role: true, active: true, createdAt: true } satisfies Prisma.UserSelect;
+const USER_PUBLIC = { id: true, email: true, name: true, phone: true, role: true, active: true, emailVerified: true, createdAt: true } satisfies Prisma.UserSelect;
 
 @Injectable()
 export class AdminService implements OnModuleInit {
   private log = new Logger('Admin');
-  constructor(private readonly db: PrismaService) {}
+  constructor(private readonly db: PrismaService, private readonly mail: Mailer) {}
 
   /** The owner account comes from the environment, so there is always a way in; every other account lives in the database. */
   async onModuleInit() {
@@ -24,7 +25,7 @@ export class AdminService implements OnModuleInit {
     const password = process.env.ADMIN_PASSWORD;
     if (!email || !password) { this.log.warn('ADMIN_EMAIL / ADMIN_PASSWORD are not set: no owner account was created.'); return; }
     const passwordHash = hashPassword(password);
-    await this.db.user.upsert({ where: { email }, create: { email, name: 'Owner', role: 'ADMIN', passwordHash }, update: { role: 'ADMIN', active: true, passwordHash } });
+    await this.db.user.upsert({ where: { email }, create: { email, name: 'Owner', role: 'ADMIN', passwordHash, emailVerified: new Date() }, update: { role: 'ADMIN', active: true, passwordHash, emailVerified: new Date() } });
   }
 
   // ---- Accounts
@@ -45,7 +46,7 @@ export class AdminService implements OnModuleInit {
     // The hash is checked even for an unknown email, so the response time does not reveal which emails have accounts.
     const ok = verifyPassword(typeof password === 'string' ? password : '', user?.passwordHash ?? 'scrypt$00$00');
     if (!user || !ok || !user.active) throw new UnauthorizedException('Wrong email or password');
-    return { token: issueToken(user.id), role: user.role, name: user.name };
+    return { token: issueToken(user), role: user.role, name: user.name };
   }
 
   /** Open sign-up for owners, agents and builders. They can only manage their own listings, and staff approve each one. */
@@ -54,7 +55,58 @@ export class AdminService implements OnModuleInit {
     const data = { name: i.text('name', 'Name', 80), email: this.email(i), phone: this.phone(i, true), passwordHash: hashPassword(this.password(i)) };
     if (await this.db.user.findUnique({ where: { email: data.email }, select: { id: true } })) throw new ConflictException('An account with this email already exists. Sign in instead.');
     const user = await this.db.user.create({ data: { ...data, role: 'AGENT' } });
-    return { token: issueToken(user.id), role: user.role, name: user.name };
+    await this.sendVerification(user);
+    return { token: issueToken(user), role: user.role, name: user.name };
+  }
+
+  // ---- Links sent by email: confirm an address, reset a password. Single use, and only a hash is stored.
+
+  private isOwner(email: string) { return email === (process.env.ADMIN_EMAIL && normalEmail(process.env.ADMIN_EMAIL)); }
+
+  private async emailLink(userId: string, kind: 'VERIFY' | 'RESET', hours: number, path: string) {
+    const { secret, hash } = emailSecret();
+    await this.db.emailToken.deleteMany({ where: { userId, kind } }); // a new link replaces any earlier one
+    await this.db.emailToken.create({ data: { userId, kind, tokenHash: hash, expiresAt: new Date(Date.now() + hours * 3_600_000) } });
+    return `${SITE_URL}${path}?token=${secret}`;
+  }
+  private async redeem(secret: unknown, kind: 'VERIFY' | 'RESET') {
+    const row = typeof secret === 'string' && secret ? await this.db.emailToken.findUnique({ where: { tokenHash: hashEmailSecret(secret) } }) : null;
+    if (!row || row.kind !== kind || row.usedAt || row.expiresAt < new Date()) throw new BadRequestException('This link has expired or was already used. Ask for a new one.');
+    await this.db.emailToken.update({ where: { id: row.id }, data: { usedAt: new Date() } });
+    return row.userId;
+  }
+
+  private async sendVerification(user: { id: string; email: string; name: string }) {
+    const link = await this.emailLink(user.id, 'VERIFY', 48, '/admin/verify');
+    await this.mail.send({ to: user.email, subject: 'Confirm your email address', text: `Hello ${user.name},\n\nOpen this link to confirm your email address and start posting your property:\n${link}\n\nThe link works once and expires in 48 hours. If you did not create this account, ignore this email.` });
+  }
+  async resendVerification(user: SessionUser) {
+    if (user.emailVerified) return { ok: true, already: true };
+    await this.sendVerification(user);
+    return { ok: true };
+  }
+  async verifyEmail(secret: unknown) {
+    const userId = await this.redeem(secret, 'VERIFY');
+    await this.db.user.update({ where: { id: userId }, data: { emailVerified: new Date() } });
+    return { ok: true };
+  }
+
+  /** Always answers the same way, so this cannot be used to find out which emails have accounts. */
+  async forgotPassword(email: unknown) {
+    const user = typeof email === 'string' ? await this.db.user.findUnique({ where: { email: normalEmail(email) } }) : null;
+    // The owner account's password comes from the API's settings, so it has no reset link.
+    if (user?.active && !this.isOwner(user.email)) {
+      const link = await this.emailLink(user.id, 'RESET', 1, '/admin/reset');
+      await this.mail.send({ to: user.email, subject: 'Reset your password', text: `Hello ${user.name},\n\nOpen this link to choose a new password:\n${link}\n\nThe link works once and expires in 1 hour. If you did not ask for this, ignore this email; your password stays the same.` });
+    }
+    return { ok: true };
+  }
+  async resetPassword(body: Record<string, unknown>) {
+    const password = this.password(new Input(body), 'password', 'New password'); // checked before the link is used up
+    const userId = await this.redeem(body?.token, 'RESET');
+    // Opening a link from the mailbox also proves the address, and the new password ends every older session.
+    await this.db.user.update({ where: { id: userId }, data: { passwordHash: hashPassword(password), emailVerified: new Date() } });
+    return { ok: true };
   }
   private phone(i: Input, required: boolean) {
     const raw = required ? i.text('phone', 'Phone', 20) : i.optionalText('phone', 'Phone', 20);
@@ -70,9 +122,10 @@ export class AdminService implements OnModuleInit {
     const i = new Input(body);
     const current = await this.db.user.findUniqueOrThrow({ where: { id: user.id } });
     if (!verifyPassword(i.text('current', 'Current password'), current.passwordHash)) throw new BadRequestException('Current password is wrong');
-    if (current.email === (process.env.ADMIN_EMAIL && normalEmail(process.env.ADMIN_EMAIL))) throw new ConflictException('The owner account\'s password is set by ADMIN_PASSWORD on the API and cannot be changed here');
-    await this.db.user.update({ where: { id: user.id }, data: { passwordHash: hashPassword(this.password(i, 'password', 'New password')) } });
-    return { ok: true };
+    if (this.isOwner(current.email)) throw new ConflictException('The owner account\'s password is set by ADMIN_PASSWORD on the API and cannot be changed here');
+    const updated = await this.db.user.update({ where: { id: user.id }, data: { passwordHash: hashPassword(this.password(i, 'password', 'New password')) } });
+    // Every other session ends with the old password; this one continues with a fresh token.
+    return { ok: true, token: issueToken(updated) };
   }
 
   users() { return this.db.user.findMany({ orderBy: [{ role: 'asc' }, { name: 'asc' }], select: { ...USER_PUBLIC, _count: { select: { properties: true } } } }); }
@@ -83,7 +136,7 @@ export class AdminService implements OnModuleInit {
   }
   async createUser(body: Record<string, unknown>) {
     const i = new Input(body);
-    const data = { name: i.text('name', 'Name', 80), email: this.email(i), phone: this.phone(i, false), role: i.oneOf('role', 'Role', Object.values(Role)), passwordHash: hashPassword(this.password(i)) };
+    const data = { name: i.text('name', 'Name', 80), email: this.email(i), phone: this.phone(i, false), role: i.oneOf('role', 'Role', Object.values(Role)), passwordHash: hashPassword(this.password(i)), emailVerified: new Date() }; // an admin vouches for the address
     if (await this.db.user.findUnique({ where: { email: data.email }, select: { id: true } })) throw new ConflictException('An account with this email already exists');
     return this.db.user.create({ data, select: USER_PUBLIC });
   }
@@ -94,7 +147,7 @@ export class AdminService implements OnModuleInit {
     const active = i.oneOf('active', 'Status', ['true', 'false'] as const) === 'true';
     // Nobody can lock themselves out, and the owner account from the environment always stays an active admin.
     if (id === actor.id && (role !== 'ADMIN' || !active)) throw new ConflictException('You cannot remove your own admin access');
-    if (target.email === (process.env.ADMIN_EMAIL && normalEmail(process.env.ADMIN_EMAIL)) && (role !== 'ADMIN' || !active)) throw new ConflictException('The owner account must stay an active admin');
+    if (this.isOwner(target.email) && (role !== 'ADMIN' || !active)) throw new ConflictException('The owner account must stay an active admin');
     const newPassword = i.optionalText('password', 'New password', 200);
     return this.db.user.update({
       where: { id }, select: USER_PUBLIC,
@@ -108,14 +161,16 @@ export class AdminService implements OnModuleInit {
     if (!isStaff(user)) {
       const mine = await this.db.property.groupBy({ by: ['state'], where: { ownerId: user.id }, _count: true });
       const n = (s: ListingState) => mine.find((m) => m.state === s)?._count ?? 0;
-      return { role: user.role, name: user.name, mine: { published: n('PUBLISHED'), pending: n('PENDING'), rejected: n('REJECTED') } };
+      const enquiries = await this.db.enquiry.count({ where: { property: { ownerId: user.id } } });
+      return { role: user.role, name: user.name, enquiries, mine: { published: n('PUBLISHED'), pending: n('PENDING'), rejected: n('REJECTED') } };
     }
     const weekAgo = new Date(Date.now() - 7 * 86_400_000);
+    const enquiries = await this.db.enquiry.count({ where: { createdAt: { gte: weekAgo } } });
     const [cities, localities, projects, properties, pending, questions, questionsWeek, emptyWeek] = await Promise.all([
       this.db.city.count(), this.db.locality.count(), this.db.project.count(), this.db.property.count({ where: { state: 'PUBLISHED' } }), this.db.property.count({ where: { state: 'PENDING' } }),
       this.db.question.count(), this.db.question.count({ where: { createdAt: { gte: weekAgo } } }), this.db.question.count({ where: { createdAt: { gte: weekAgo }, ...NO_EXACT_MATCH } }),
     ]);
-    return { role: user.role, name: user.name, cities, localities, projects, properties, pending, questions, questionsWeek, emptyWeek };
+    return { role: user.role, name: user.name, enquiries, cities, localities, projects, properties, pending, questions, questionsWeek, emptyWeek };
   }
 
   /** Everything the forms need for their dropdowns. */
@@ -188,6 +243,7 @@ export class AdminService implements OnModuleInit {
   }
 
   async createProperty(user: SessionUser, body: Record<string, unknown>) {
+    if (!isStaff(user) && !user.emailVerified) throw new ForbiddenException('Confirm your email address before posting. We sent you a link; you can ask for a new one from your overview page.');
     const data = await this.propertyData(body);
     // What staff add is live at once; what an agent adds waits for approval.
     return this.db.property.create({ data: { ...data, slug: await this.freshSlug(data.title), ownerId: user.id, state: isStaff(user) ? 'PUBLISHED' : 'PENDING' } });
@@ -219,14 +275,18 @@ export class AdminService implements OnModuleInit {
     const p = await this.property(user, propertyId);
     if (!files?.length) throw new BadRequestException('Choose at least one photo');
     if (p.photos.length + files.length > MAX_PHOTOS_PER_LISTING) throw new BadRequestException(`A listing can have at most ${MAX_PHOTOS_PER_LISTING} photos; this one has ${p.photos.length}`);
-    const typed = files.map((f) => ({ f, ext: sniffImage(f.buffer) }));
-    if (typed.some((t) => !t.ext)) throw new BadRequestException('Photos must be JPEG, PNG or WebP images');
+    if (files.some((f) => !sniffImage(f.buffer))) throw new BadRequestException('Photos must be JPEG, PNG or WebP images');
     if (files.some((f) => f.size > MAX_PHOTO_BYTES)) throw new BadRequestException('Each photo must be under 5 MB');
+    // Every file is decoded and resized before anything is stored, so one bad file rejects the whole upload cleanly.
+    const processed: ProcessedPhoto[] = [];
+    for (const f of files) {
+      try { processed.push(await processPhoto(f.buffer)); } catch { throw new BadRequestException('One of the photos could not be read. Save it again as a JPEG or PNG and retry.'); }
+    }
     const last = await this.db.photo.aggregate({ where: { propertyId }, _max: { position: true } });
     let position = (last._max.position ?? -1) + 1;
-    for (const t of typed) {
-      const file = await savePhoto(t.f.buffer, t.ext!);
-      await this.db.photo.create({ data: { propertyId, file, position: position++ } });
+    for (const ph of processed) {
+      const file = await savePhoto(ph);
+      await this.db.photo.create({ data: { propertyId, file, width: ph.width, height: ph.height, position: position++ } });
     }
     if (!isStaff(user) && p.state === 'PUBLISHED') await this.db.property.update({ where: { id: propertyId }, data: { state: 'PENDING' } });
     return { ok: true, added: files.length };
@@ -238,6 +298,18 @@ export class AdminService implements OnModuleInit {
     await this.db.photo.delete({ where: { id: photoId } });
     await removePhoto(photo.file);
     return { ok: true, propertyId: photo.propertyId };
+  }
+
+  // ---- Enquiries from buyers. Staff see all; an owner or agent sees those on their own listings.
+
+  async enquiries(user: SessionUser, q: { page?: string }) {
+    const where: Prisma.EnquiryWhereInput = isStaff(user) ? {} : { property: { ownerId: user.id } };
+    const p = page(q.page);
+    const [items, total] = await Promise.all([
+      this.db.enquiry.findMany({ where, orderBy: { createdAt: 'desc' }, skip: (p - 1) * 50, take: 50, include: { property: { select: { id: true, slug: true, title: true, state: true } } } }),
+      this.db.enquiry.count({ where }),
+    ]);
+    return { items, total, page: p, pageSize: 50 };
   }
 
   // ---- Bulk import

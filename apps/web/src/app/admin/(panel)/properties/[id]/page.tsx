@@ -10,7 +10,7 @@ interface Property {
   facing: string | null; furnishing: string | null; status: string; possession: string | null; amenities: string[]; listedBy: string; localityId: string; projectId: string | null;
   state: 'PUBLISHED' | 'PENDING' | 'REJECTED'; rejectReason: string | null; photos: { id: string; file: string }[]; owner: { name: string; email: string; phone: string | null } | null;
 }
-type Search = { created?: string; photos?: string; photoDeleted?: string; error?: string; welcome?: string };
+type Search = { created?: string; photos?: string; photoDeleted?: string; error?: string };
 const MAX_PHOTOS = 12;
 
 export default async function EditProperty({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Search> }) {
@@ -18,12 +18,15 @@ export default async function EditProperty({ params, searchParams }: { params: P
   const isNew = id === 'new';
   const [me, options, p] = await Promise.all([getMe(), adminGet<Options>('/options'), isNew ? null : adminGet<Property>(`/properties/${encodeURIComponent(id)}`)]);
   const staff = isStaff(me.role);
+  if (isNew && !staff && !me.emailVerified) {
+    // The form would only be refused on save, so it is not offered until the email is confirmed (see the notice above).
+    return (<><h1>Post a property</h1><p className="lead">Confirm your email address first, using the link we sent to {me.email}. Then this page will show the form.</p></>);
+  }
   return (
     <>
       <p><Link href="/admin/properties">← {staff ? 'Listings' : 'My listings'}</Link></p>
       <h1>{p ? 'Edit listing' : staff ? 'Add a listing' : 'Post a property'}</h1>
 
-      {sp.welcome && <p role="status" className="anotice">Your account is ready. Fill in your property below; you can add photos on the next step.</p>}
       {sp.created && <p role="status" className="anotice">{staff ? 'Listing added and live.' : 'Listing saved and sent for review.'} Add photos below.</p>}
       {sp.photos && <p role="status" className="anotice">{sp.photos} {sp.photos === '1' ? 'photo' : 'photos'} added.</p>}
       {sp.photoDeleted && <p role="status" className="anotice">Photo deleted.</p>}
@@ -77,12 +80,12 @@ export default async function EditProperty({ params, searchParams }: { params: P
       {p && (
         <section className="section" id="photos">
           <h2>Photos ({p.photos.length} of {MAX_PHOTOS})</h2>
-          <p className="lead">The first photo is the cover shown in search results. JPEG, PNG or WebP, up to 5 MB each.</p>
+          <p className="lead">The first photo is the cover shown in search results. JPEG, PNG or WebP, up to 5 MB each; they are resized automatically.</p>
           {p.photos.length > 0 && (
             <ul className="aphotos">
               {p.photos.map((ph, i) => (
                 <li key={ph.id}>
-                  <img src={media(ph.file)} alt={`Photo ${i + 1}`} loading="lazy" />
+                  <img src={media(ph.file, 'card')} alt={`Photo ${i + 1}`} width={640} height={480} loading="lazy" />
                   {i === 0 && <span className="tag tag-ready">Cover</span>}
                   <ActionButton action={removePhoto.bind(null, ph.id, p.id)} label="Delete" confirm="Delete this photo?" tone="danger" />
                 </li>

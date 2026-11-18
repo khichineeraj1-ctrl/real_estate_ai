@@ -81,11 +81,19 @@ during the site build, because the home page is prerendered from it).
 - **Self-service posting**: `/post-property` is a public, indexable page where owners, agents and builders create an
   account. Their listings start as *waiting for review* and are not on the site, in answers or in the sitemap until staff
   approve them in the **Review queue**. Staff can reject with a reason the owner sees. When an owner edits a live listing
-  or adds a photo it goes back to review. Sign-up has no email verification yet.
-- **Photos**: up to 12 per listing, JPEG/PNG/WebP up to 5 MB each; the first is the cover. The type is checked from the
-  file's contents and files are stored under random names in `apps/api/uploads` (override with `UPLOAD_DIR`), served by
-  the API at `/uploads/…` and shown by the site at `/media/…`. Photos are not resized, and local disk only suits a single
-  server: `apps/api/src/admin/photos.ts` is the one place to switch to object storage.
+  or adds a photo it goes back to review.
+- **Email confirmation and password reset**: a new seller gets a one-time link (valid 48 hours) and cannot post until
+  they open it. "Forgot your password?" on the sign-in page sends a one-time link valid for 1 hour. Changing or resetting
+  a password signs out every other session of that account. Accounts created by an admin are trusted without the link.
+- **Enquiries**: every property page (and the app's property screen) has a "Contact the seller" form. The buyer gives a
+  name and phone, agrees to share them, and is then shown the seller's name and phone; the seller is emailed and sees
+  the enquiry under **Enquiries**. Listings without a seller account (seed, imported, staff-added) tell the buyer our
+  team will call, and staff see those enquiries. Limited to four a minute per visitor, with a hidden field to catch bots.
+- **Photos**: up to 12 per listing, JPEG/PNG/WebP up to 5 MB each; the first is the cover. Each upload is re-encoded
+  into two WebP files, a full size (longest side 1600px) and a 640×480 card size used in listings, which also turns
+  the photo upright and removes embedded data such as GPS position. Files get random names in `apps/api/uploads`
+  (override with `UPLOAD_DIR`), served by the API at `/uploads/…` and shown by the site at `/media/…`. Local disk only
+  suits a single server: `apps/api/src/admin/photos.ts` is the one place to switch to object storage.
 - **Bulk import**: staff upload a CSV of up to 500 listings under **Import** (a sample file is linked there). Every row is
   checked first; if any row is wrong nothing is imported and the rows to fix are listed. Imported listings go live.
 - **Listings, projects, localities, cities**: add, edit and delete. Saving refreshes the public pages straight away.
@@ -99,6 +107,13 @@ during the site build, because the home page is prerendered from it).
   and hides menus. Without `ADMIN_SECRET`, sessions end whenever the API restarts. Sign-in is limited to five attempts
   a minute and sign-up to three a minute per address; because the site calls the API on visitors' behalf, those limits
   are shared by everyone using the site. `/admin` is `noindex` and disallowed in `robots.txt`.
+
+## Email
+
+Confirmation links, password resets and new-enquiry notices are plain-text emails sent through any SMTP service: set
+`SMTP_URL` and `MAIL_FROM` in `apps/api/.env`, and `SITE_URL` to the site's public address (it goes into the links).
+Without `SMTP_URL`, as in local development, **nothing is sent**: each email is written to the API's log instead, so
+you can copy the link from the terminal running `npm run dev:api`. Sending through a real SMTP service has not been tested.
 
 ## SEO
 
@@ -121,6 +136,6 @@ during the site build, because the home page is prerendered from it).
 
 ## Not done yet
 
-Enquiry/contact forms (a seller's phone is not shown to buyers yet), buyer accounts and saved searches, email
-verification and password reset, photo resizing and object storage, reordering photos, pagination beyond 48 homes per
-listing page, a real listings feed, native speech-to-text on phones, a Content-Security-Policy header, and deployment.
+Buyer accounts and saved searches, a status on enquiries (new / contacted), reordering photos, object storage for
+photos, pagination beyond 48 homes per listing page, a real listings feed, native speech-to-text on phones, a
+Content-Security-Policy header, and deployment.

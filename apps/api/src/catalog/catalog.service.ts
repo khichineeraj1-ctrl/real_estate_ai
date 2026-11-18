@@ -1,5 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConstructionStatus, Prisma, PropertyType } from '@prisma/client';
+import { Input } from '../admin/input';
+import { Mailer, SITE_URL } from '../mail/mailer';
 import { PrismaService } from '../prisma/prisma.service';
 
 export interface PropertyFilters {
@@ -29,7 +31,7 @@ export interface Stats { count: number; minPrice: number | null; maxPrice: numbe
 
 @Injectable()
 export class CatalogService {
-  constructor(private readonly db: PrismaService) {}
+  constructor(private readonly db: PrismaService, private readonly mail: Mailer) {}
 
   private where(f: PropertyFilters): Prisma.PropertyWhereInput {
     return {
@@ -118,7 +120,7 @@ export class CatalogService {
   async property(slug: string) {
     const p = await this.db.property.findFirst({
       where: { slug, state: 'PUBLISHED' },
-      include: { locality: { include: { city: true } }, project: { select: { slug: true, name: true, builder: true, reraId: true } }, photos: { select: { file: true }, orderBy: { position: 'asc' } } },
+      include: { locality: { include: { city: true } }, project: { select: { slug: true, name: true, builder: true, reraId: true } }, photos: { select: { file: true, width: true, height: true }, orderBy: { position: 'asc' } } },
     });
     if (!p) throw new NotFoundException('Property not found');
     const similar = await this.db.property.findMany({
@@ -139,6 +141,32 @@ export class CatalogService {
   async gazetteer() {
     const cities = await this.db.city.findMany({ select: { slug: true, name: true, localities: { select: { slug: true, name: true } } } });
     return cities;
+  }
+
+  /**
+   * A buyer asks to be contacted about a listing. The enquiry is saved for the seller and our team, the seller is
+   * emailed, and the buyer gets the seller's name and phone in return (or is told our team will call, for listings
+   * that have no seller account).
+   */
+  async enquire(slug: string, body: Record<string, unknown>) {
+    const i = new Input(body);
+    const name = i.text('name', 'Your name', 80);
+    const phone = i.text('phone', 'Phone', 20).replace(/[\s()-]/g, '');
+    if (!/^\+?\d{10,13}$/.test(phone)) throw new BadRequestException('Enter a phone number with 10 to 13 digits');
+    const email = i.optionalText('email', 'Email', 160);
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new BadRequestException('Enter a valid email address, or leave it empty');
+    const message = i.optionalText('message', 'Message', 500);
+    const p = await this.db.property.findFirst({ where: { slug, state: 'PUBLISHED' }, select: { id: true, title: true, owner: { select: { name: true, phone: true, email: true, role: true, active: true } } } });
+    if (!p) throw new NotFoundException('Property not found');
+    await this.db.enquiry.create({ data: { propertyId: p.id, name, phone, email, message } });
+    const seller = p.owner?.active && p.owner.role === 'AGENT' && p.owner.phone ? p.owner : null;
+    if (seller) {
+      await this.mail.send({
+        to: seller.email, subject: `New enquiry: ${p.title}`,
+        text: `Hello ${seller.name},\n\n${name} is interested in your listing "${p.title}".\n\nPhone: ${phone}${email ? `\nEmail: ${email}` : ''}${message ? `\nMessage: ${message}` : ''}\n\nAll your enquiries: ${SITE_URL}/admin/enquiries`,
+      });
+    }
+    return { ok: true, seller: seller ? { name: seller.name, phone: seller.phone } : null };
   }
 
   logQuestion(data: { text: string; live: boolean; total: number; relaxed: string | null; page: string | null }) {

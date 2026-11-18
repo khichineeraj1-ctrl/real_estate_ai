@@ -23,4 +23,5 @@ export const faqLd = (faqs: { q: string; a: string }[]) => ({
 });
 
 /** Address of a stored listing photo on this site. */
-export const media = (file: string) => `/media/${file}`;
+/** `card` is the small 640px version used in listings; the default is the full photo (up to 1600px). */
+export const media = (file: string, size: 'full' | 'card' = 'full') => `/media/${size === 'card' ? file.replace(/\.webp$/, '-card.webp') : file}`;

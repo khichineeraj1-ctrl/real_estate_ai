@@ -3,7 +3,8 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getMe, isStaff, sessionToken } from '@/lib/admin';
 import { BRAND } from '@/lib/seo';
-import { logout } from '../actions';
+import { ActionButton } from '@/components/admin/Form';
+import { logout, resendVerification } from '../actions';
 
 export const metadata: Metadata = { title: { default: 'Admin', template: '%s | Admin' }, robots: { index: false, follow: false } };
 
@@ -24,6 +25,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <nav className="anav" aria-label="Sections">
           <Link href="/admin">Overview</Link>
           <Link href="/admin/properties">{staff ? 'Listings' : 'My listings'}</Link>
+          <Link href="/admin/enquiries">Enquiries</Link>
           {staff && <Link href="/admin/properties?state=PENDING">Review queue</Link>}
           {staff && <Link href="/admin/import">Import</Link>}
           {staff && <Link href="/admin/projects">Projects</Link>}
@@ -32,6 +34,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           {staff && <Link href="/admin/questions">Questions</Link>}
           {me.role === 'ADMIN' && <Link href="/admin/users">Users</Link>}
         </nav>
+        {!me.emailVerified && (
+          <div className="astatus">
+            <p><strong>Confirm your email to start posting.</strong> We sent a link to {me.email}. Open it, then come back here.</p>
+            <ActionButton action={resendVerification} label="Send the link again" />
+          </div>
+        )}
         {children}
       </main>
     </>

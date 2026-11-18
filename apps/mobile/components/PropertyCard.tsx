@@ -14,7 +14,7 @@ export function PropertyCard({ p }: { p: Card }) {
       onPress={() => router.push({ pathname: '/property/[slug]', params: { slug: p.slug } })}
       style={({ pressed }) => [s.card, { backgroundColor: t.card, borderColor: pressed ? t.brand : t.line }]}
     >
-      {p.photos?.[0] && <Image source={{ uri: photoUrl(p.photos[0].file) }} style={[s.photo, { backgroundColor: t.soft }]} resizeMode="cover" accessibilityIgnoresInvertColors />}
+      {p.photos?.[0] && <Image source={{ uri: photoUrl(p.photos[0].file, 'card') }} style={[s.photo, { backgroundColor: t.soft }]} resizeMode="cover" accessibilityIgnoresInvertColors />}
       <View style={s.top}>
         <Text style={[s.price, { color: t.fg }]}>{price(p.priceInr)}</Text>
         <Text style={[s.tag, { color: ready ? t.ready : t.muted, backgroundColor: ready ? t.readyBg : t.soft }]}>{statusLabel(p.status)}</Text>
