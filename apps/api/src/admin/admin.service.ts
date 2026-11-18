@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException, OnModuleInit, UnauthorizedException } from '@nestjs/common';
-import { ConstructionStatus, ListedBy, ListingState, Prisma, PropertyType, Role } from '@prisma/client';
+import { ConstructionStatus, LeadStatus, ListedBy, ListingState, Prisma, PropertyType, Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { Mailer, SITE_URL } from '../mail/mailer';
 import { SessionUser, emailSecret, hashEmailSecret, hashPassword, isStaff, issueToken, normalEmail, verifyPassword } from './auth';
@@ -171,7 +171,7 @@ export class AdminService implements OnModuleInit {
       const projects = await this.db.project.findMany({ where: { accountId: user.id }, orderBy: { name: 'asc' }, select: { id: true, slug: true, name: true, locality: { select: { name: true, city: { select: { name: true } } } } } });
       const mine = this.builderLeads(user);
       const withCounts = await Promise.all(projects.map(async (p) => ({
-        ...p, leads: await this.db.enquiry.count({ where: { AND: [mine, { projectId: p.id }] } }), leadsWeek: await this.db.enquiry.count({ where: { AND: [mine, { projectId: p.id, createdAt: { gte: weekAgo } }] } }),
+        ...p, leads: await this.db.enquiry.count({ where: { AND: [mine, { projectId: p.id }] } }), leadsNew: await this.db.enquiry.count({ where: { AND: [mine, { projectId: p.id, status: 'NEW' }] } }), leadsWeek: await this.db.enquiry.count({ where: { AND: [mine, { projectId: p.id, createdAt: { gte: weekAgo } }] } }),
       })));
       return { role: user.role, name: user.name, projects: withCounts };
     }
@@ -179,15 +179,17 @@ export class AdminService implements OnModuleInit {
       const mine = await this.db.property.groupBy({ by: ['state'], where: { ownerId: user.id }, _count: true });
       const n = (s: ListingState) => mine.find((m) => m.state === s)?._count ?? 0;
       const enquiries = await this.db.enquiry.count({ where: { property: { ownerId: user.id } } });
-      return { role: user.role, name: user.name, enquiries, mine: { published: n('PUBLISHED'), pending: n('PENDING'), rejected: n('REJECTED') } };
+      const enquiriesNew = await this.db.enquiry.count({ where: { property: { ownerId: user.id }, status: 'NEW' } });
+      return { role: user.role, name: user.name, enquiries, enquiriesNew, mine: { published: n('PUBLISHED'), pending: n('PENDING'), rejected: n('REJECTED') } };
     }
     const weekAgo = new Date(Date.now() - 7 * 86_400_000);
     const enquiries = await this.db.enquiry.count({ where: { createdAt: { gte: weekAgo } } });
+    const enquiriesNew = await this.db.enquiry.count({ where: { status: 'NEW' } });
     const [cities, localities, projects, properties, pending, questions, questionsWeek, emptyWeek] = await Promise.all([
       this.db.city.count(), this.db.locality.count(), this.db.project.count(), this.db.property.count({ where: { state: 'PUBLISHED' } }), this.db.property.count({ where: { state: 'PENDING' } }),
       this.db.question.count(), this.db.question.count({ where: { createdAt: { gte: weekAgo } } }), this.db.question.count({ where: { createdAt: { gte: weekAgo }, ...NO_EXACT_MATCH } }),
     ]);
-    return { role: user.role, name: user.name, enquiries, cities, localities, projects, properties, pending, questions, questionsWeek, emptyWeek };
+    return { role: user.role, name: user.name, enquiries, enquiriesNew, cities, localities, projects, properties, pending, questions, questionsWeek, emptyWeek };
   }
 
   /** Everything the forms need for their dropdowns. */
@@ -327,9 +329,14 @@ export class AdminService implements OnModuleInit {
     return q.kind === 'project' ? { propertyId: null } : q.kind === 'listing' ? { propertyId: { not: null } } : {};
   }
 
-  async enquiries(user: SessionUser, q: { page?: string; kind?: string; project?: string }) {
-    const where = this.enquiryWhere(user, q);
+  async enquiries(user: SessionUser, q: { page?: string; kind?: string; project?: string; status?: string }) {
+    const scope = this.enquiryWhere(user, q);
+    const status = Object.values(LeadStatus).includes(q.status as LeadStatus) ? (q.status as LeadStatus) : undefined;
+    const where: Prisma.EnquiryWhereInput = status ? { AND: [scope, { status }] } : scope;
     const p = page(q.page);
+    // How many leads are at each stage within what this person can see, for the filter tabs.
+    const grouped = await this.db.enquiry.groupBy({ by: ['status'], where: scope, _count: true });
+    const byStatus = Object.fromEntries(Object.values(LeadStatus).map((s) => [s, grouped.find((g) => g.status === s)?._count ?? 0]));
     const [items, total, project] = await Promise.all([
       this.db.enquiry.findMany({
         where, orderBy: { createdAt: 'desc' }, skip: (p - 1) * 50, take: 50,
@@ -338,7 +345,17 @@ export class AdminService implements OnModuleInit {
       this.db.enquiry.count({ where }),
       q.project && user.role !== 'AGENT' ? this.db.project.findFirst({ where: { id: q.project, ...(user.role === 'BUILDER' ? { accountId: user.id } : {}) }, select: { id: true, name: true, builder: true } }) : null,
     ]);
-    return { items, total, page: p, pageSize: 50, project };
+    return { items, total, page: p, pageSize: 50, project, byStatus };
+  }
+
+  /** Anyone who can see a lead can record where the follow-up stands and leave a short private note. */
+  async updateEnquiry(user: SessionUser, id: string, body: Record<string, unknown>) {
+    const i = new Input(body);
+    const status = i.oneOf('status', 'Status', Object.values(LeadStatus));
+    const note = i.optionalText('note', 'Note', 300);
+    const current = await this.db.enquiry.findFirst({ where: { AND: [this.enquiryWhere(user, {}), { id }] }, select: { status: true } });
+    if (!current) throw new NotFoundException('Enquiry not found');
+    return this.db.enquiry.update({ where: { id }, data: { status, note, ...(status !== current.status ? { statusAt: new Date() } : {}) }, select: { id: true, status: true, note: true, statusAt: true } });
   }
 
   /** The same leads as a spreadsheet file. Staff get everything they filter for; a builder gets their own projects' leads. */
@@ -349,8 +366,8 @@ export class AdminService implements OnModuleInit {
     });
     // Quoted throughout; a leading apostrophe stops a spreadsheet from running a cell that starts like a formula.
     const cell = (v: string | null | undefined) => { const t = v ?? ''; return `"${(/^[=+\-@\t\r]/.test(t) ? `'${t}` : t).replace(/"/g, '""')}"`; };
-    const lines = rows.map((e) => [e.createdAt.toISOString(), e.project?.name, e.property?.title, e.name, e.phone, e.email, e.interest, e.message].map(cell).join(','));
-    return ['"received","project","listing","name","phone","email","interested_in","message"', ...lines].join('\r\n') + '\r\n';
+    const lines = rows.map((e) => [e.createdAt.toISOString(), e.project?.name, e.property?.title, e.name, e.phone, e.email, e.interest, e.message, e.status, e.note].map(cell).join(','));
+    return ['"received","project","listing","name","phone","email","interested_in","message","status","note"', ...lines].join('\r\n') + '\r\n';
   }
 
   // ---- Bulk import

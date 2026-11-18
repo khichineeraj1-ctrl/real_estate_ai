@@ -101,6 +101,11 @@ during the site build, because the home page is prerendered from it).
   content, questions or other builders' leads. They see project leads and enquiries on their own stock in the project,
   but not enquiries on resale listings that an owner or agent posted there (those buyers agreed to share their details
   with that seller only). If a project has no sales email, its leads are emailed to the builder login instead.
+- **Lead status**: every enquiry starts as *New* and can be moved to *Contacted*, *Site visit planned*, *Booked* or
+  *Not interested*, with a short private note, by anyone who can see it (staff, the listing's seller, or the project's
+  builder). It is edited in place on the **Enquiries** / **Leads** screen, which has a tab with a count for each
+  status; overviews show how many are still new, and the spreadsheet includes status and note. There is one shared
+  status per lead, and no history of who changed it.
 - **Photos**: up to 12 per listing, JPEG/PNG/WebP up to 5 MB each; the first is the cover. Each upload is re-encoded
   into two WebP files, a full size (longest side 1600px) and a 640×480 card size used in listings, which also turns
   the photo upright and removes embedded data such as GPS position. Files get random names in `apps/api/uploads`
@@ -148,7 +153,7 @@ you can copy the link from the terminal running `npm run dev:api`. Sending throu
 
 ## Not done yet
 
-Buyer accounts and saved searches, a status on enquiries (new / contacted), builders editing their own project pages,
+Buyer accounts and saved searches, a history of who changed a lead's status, reminders for leads left new, builders editing their own project pages,
 a project screen and lead form in the mobile app, reordering photos, object storage for
 photos, pagination beyond 48 homes per listing page, a real listings feed, native speech-to-text on phones, a
 Content-Security-Policy header, and deployment.

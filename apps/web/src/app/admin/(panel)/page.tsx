@@ -1,11 +1,11 @@
 import Link from 'next/link';
 import { adminGet } from '@/lib/admin';
 
-interface BuilderProject { id: string; slug: string; name: string; leads: number; leadsWeek: number; locality: { name: string; city: { name: string } } }
+interface BuilderProject { id: string; slug: string; name: string; leads: number; leadsNew: number; leadsWeek: number; locality: { name: string; city: { name: string } } }
 type Overview =
   | { role: 'BUILDER'; name: string; projects: BuilderProject[] }
-  | { role: 'AGENT'; name: string; enquiries: number; mine: { published: number; pending: number; rejected: number } }
-  | { role: 'ADMIN' | 'EDITOR'; name: string; enquiries: number; cities: number; localities: number; projects: number; properties: number; pending: number; questions: number; questionsWeek: number; emptyWeek: number };
+  | { role: 'AGENT'; name: string; enquiries: number; enquiriesNew: number; mine: { published: number; pending: number; rejected: number } }
+  | { role: 'ADMIN' | 'EDITOR'; name: string; enquiries: number; enquiriesNew: number; cities: number; localities: number; projects: number; properties: number; pending: number; questions: number; questionsWeek: number; emptyWeek: number };
 
 export default async function AdminHome({ searchParams }: { searchParams: Promise<{ welcome?: string; verified?: string }> }) {
   const [o, sp] = await Promise.all([adminGet<Overview>('/overview'), searchParams]);
@@ -19,11 +19,11 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
           <>
             <p className="lead">Buyers who asked for a call back about your projects. Each lead is also emailed to you as it arrives.</p>
             <div className="atable"><table>
-              <thead><tr><th>Project</th><th>Where</th><th>Leads this week</th><th>All leads</th><th><span className="sr">Actions</span></th></tr></thead>
+              <thead><tr><th>Project</th><th>Where</th><th>New, not yet contacted</th><th>Leads this week</th><th>All leads</th><th><span className="sr">Actions</span></th></tr></thead>
               <tbody>
                 {o.projects.map((p) => (
                   <tr key={p.id}>
-                    <td><Link href={`/admin/enquiries?project=${p.id}`}>{p.name}</Link></td><td>{p.locality.name}, {p.locality.city.name}</td><td>{p.leadsWeek}</td><td>{p.leads}</td>
+                    <td><Link href={`/admin/enquiries?project=${p.id}`}>{p.name}</Link></td><td>{p.locality.name}, {p.locality.city.name}</td><td>{p.leadsNew ? <Link href={`/admin/enquiries?project=${p.id}&status=NEW`}><strong>{p.leadsNew}</strong></Link> : 0}</td><td>{p.leadsWeek}</td><td>{p.leads}</td>
                     <td><Link href={`/projects/${p.slug}`}>View page</Link></td>
                   </tr>
                 ))}
@@ -45,13 +45,14 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
         <p className="lead">Each listing is checked by our team before it appears on the site. If something needs changing we will tell you why here.</p>
         <ul className="tiles">
           {tiles.map(([label, n, state]) => <li key={state}><Link href={`/admin/properties?state=${state}`}><strong>{n}</strong><span>{label}</span></Link></li>)}
-          <li><Link href="/admin/enquiries"><strong>{o.enquiries}</strong><span>Enquiries from buyers</span></Link></li>
+          <li><Link href="/admin/enquiries?status=NEW"><strong>{o.enquiriesNew}</strong><span>New enquiries to answer</span></Link></li>
+          <li><Link href="/admin/enquiries"><strong>{o.enquiries}</strong><span>All enquiries from buyers</span></Link></li>
         </ul>
       </>
     );
   }
 
-  const tiles: [string, number, string][] = [['Live listings', o.properties, '/admin/properties?state=PUBLISHED'], ['Waiting for review', o.pending, '/admin/properties?state=PENDING'], ['Enquiries this week', o.enquiries, '/admin/enquiries'], ['Projects', o.projects, '/admin/projects'], ['Localities', o.localities, '/admin/localities'], ['Cities', o.cities, '/admin/cities']];
+  const tiles: [string, number, string][] = [['Live listings', o.properties, '/admin/properties?state=PUBLISHED'], ['Waiting for review', o.pending, '/admin/properties?state=PENDING'], ['New enquiries to follow up', o.enquiriesNew, '/admin/enquiries?status=NEW'], ['Enquiries this week', o.enquiries, '/admin/enquiries'], ['Projects', o.projects, '/admin/projects'], ['Localities', o.localities, '/admin/localities'], ['Cities', o.cities, '/admin/cities']];
   return (
     <>
       <h1>Admin</h1>

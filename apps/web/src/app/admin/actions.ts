@@ -72,6 +72,14 @@ export async function removePhoto(photoId: string, propertyId: string, _: FormSt
   redirect(`/admin/properties/${propertyId}?photoDeleted=1`);
 }
 
+/** Records where the follow-up on a lead stands. The API checks that this account is allowed to see that lead. */
+export async function updateEnquiry(id: string, _: FormState, form: FormData): Promise<FormState> {
+  const r = await adminFetch(`/enquiries/${encodeURIComponent(id)}`, { method: 'PATCH', body: { status: String(form.get('status') ?? ''), note: String(form.get('note') ?? '') } });
+  if (!r.ok) return failed(r);
+  revalidatePath('/admin', 'layout'); // counts on the tabs and the overview
+  return { ok: 'Saved' };
+}
+
 export async function changePassword(_: FormState, form: FormData): Promise<FormState> {
   if (form.get('password') !== form.get('again')) return { error: 'The two new passwords do not match' };
   const r = await adminFetch<{ token: string }>('/me/password', { method: 'POST', body: { current: String(form.get('current') ?? ''), password: String(form.get('password') ?? '') } });

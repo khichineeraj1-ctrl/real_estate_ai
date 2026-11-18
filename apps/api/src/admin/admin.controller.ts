@@ -71,7 +71,8 @@ export class AdminController {
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR', 'AGENT') @Post('properties/:id/photos')
   @UseInterceptors(FilesInterceptor('photos', MAX_PHOTOS_PER_LISTING, { limits: { fileSize: MAX_PHOTO_BYTES } }))
   addPhotos(@CurrentUser() u: SessionUser, @Param('id') id: string, @UploadedFiles() files: Upload[]) { return this.admin.addPhotos(u, id, files); }
-  @UseGuards(AdminGuard) @Get('enquiries') enquiries(@CurrentUser() u: SessionUser, @Query() q: { page?: string; kind?: string; project?: string }) { return this.admin.enquiries(u, q); }
+  @UseGuards(AdminGuard) @Get('enquiries') enquiries(@CurrentUser() u: SessionUser, @Query() q: { page?: string; kind?: string; project?: string; status?: string }) { return this.admin.enquiries(u, q); }
+  @UseGuards(AdminGuard) @Patch('enquiries/:id') updateEnquiry(@CurrentUser() u: SessionUser, @Param('id') id: string, @Body() b: Json) { return this.admin.updateEnquiry(u, id, b); }
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR', 'BUILDER') @Get('enquiries.csv') @Header('content-type', 'text/csv; charset=utf-8') enquiriesCsv(@CurrentUser() u: SessionUser, @Query() q: { kind?: string; project?: string }) { return this.admin.enquiriesCsv(u, q); }
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR', 'AGENT') @Delete('photos/:id') deletePhoto(@CurrentUser() u: SessionUser, @Param('id') id: string) { return this.admin.deletePhoto(u, id); }
 

@@ -183,6 +183,14 @@ model EmailToken {
   user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+enum LeadStatus {
+  NEW
+  CONTACTED
+  VISIT_PLANNED
+  BOOKED
+  NOT_INTERESTED
+}
+
 /// A buyer asking to be contacted about a listing.
 model Enquiry {
   id         String   @id @default(cuid())
@@ -192,6 +200,11 @@ model Enquiry {
   message    String?
   /// What the buyer said they want on a project lead, e.g. "3 BHK".
   interest   String?
+  /// Where the follow-up stands, set by whoever is handling the lead (staff, the seller or the builder).
+  status     LeadStatus @default(NEW)
+  /// A short private note from whoever is handling the lead; never shown to the buyer.
+  note       String?
+  statusAt   DateTime?
   createdAt  DateTime @default(now())
   /// Set for an enquiry about one listing.
   propertyId String?
@@ -202,4 +215,5 @@ model Enquiry {
 
   @@index([propertyId, createdAt])
   @@index([projectId, createdAt])
+  @@index([status, createdAt])
 }

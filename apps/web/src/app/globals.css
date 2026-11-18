@@ -189,3 +189,12 @@ ol.bullets li { margin-bottom: 4px; }
 .enquiry > p { color: var(--muted); margin-top: -6px; }
 .afield select { appearance: auto; }
 .atable small { color: var(--muted); }
+
+/* Lead status, edited in place in the enquiries table */
+.alead { display: grid; grid-template-columns: auto auto; gap: 6px; align-items: center; min-width: 250px; }
+.alead select, .alead input { font: inherit; font-size: .9rem; color: var(--fg); background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; min-width: 0; }
+.alead input { grid-column: 1 / -1; }
+.alead .abtn { padding: 5px 12px; font-size: .85rem; grid-row: 1; grid-column: 2; }
+.alead-msg { grid-column: 1 / -1; font-size: .82rem; color: var(--ready); }
+.alead-msg.error { color: var(--danger); white-space: normal; }
+.afilter { flex-wrap: wrap; row-gap: 4px; }
