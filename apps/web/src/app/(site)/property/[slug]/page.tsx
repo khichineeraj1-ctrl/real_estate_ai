@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AskBox } from '@/components/AskBox';
 import { EnquiryForm } from '@/components/EnquiryForm';
+import { CostCalculator, EmiCalculator } from '@/components/tools/Calculators';
+import { CompareToggle } from '@/components/tools/Compare';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { JsonLd } from '@/components/JsonLd';
 import { PropertyGrid } from '@/components/PropertyCard';
@@ -71,6 +73,22 @@ export default async function PropertyPage({ params }: Props) {
         <div><dt>Listed by</dt><dd>{p.listedBy[0] + p.listedBy.slice(1).toLowerCase()}</dd></div>
         <div><dt>Listed on</dt><dd>{day(p.postedAt)}</dd></div>
       </dl>
+
+      <p className="compare-line">
+        <CompareToggle slug={p.slug} title={p.title} />
+        {p.similar.length > 0 && <Link href={`/compare?ids=${[p.slug, ...p.similar.slice(0, 2).map((x) => x.slug)].join(',')}`} rel="nofollow">Compare with similar homes in {p.locality.name}</Link>}
+      </p>
+
+      <section className="section" id="cost">
+        <h2>What will it really cost?</h2>
+        {p.costs ? <CostCalculator price={p.priceInr} costs={p.costs} cityName={p.city.name} underConstruction={p.status === 'UNDER_CONSTRUCTION'} /> : <p>We do not have the government charges for {p.city.name} yet.</p>}
+      </section>
+
+      <section className="section" id="emi">
+        <h2>Monthly EMI for this home</h2>
+        <EmiCalculator price={p.priceInr} />
+        <p className="calc-note">Not sure about the budget? <Link href="/tools/home-affordability">Work out how much home you can afford</Link>.</p>
+      </section>
 
       <section className="section enquiry" id="contact">
         <h2>Contact the seller</h2>

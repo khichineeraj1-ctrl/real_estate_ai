@@ -8,6 +8,9 @@ export const abs = (path: string) => `${SITE_URL}${path}`;
 export const configSlug = (bhk: number) => `${bhk}-bhk-flats`;
 export const parseConfig = (slug: string) => { const m = /^([1-6])-bhk-flats$/.exec(slug); return m ? Number(m[1]) : null; };
 
+/** The one address for a comparison of two localities: the pair is always written alphabetically. */
+export const comparePath = (city: string, a: string, b: string) => `/${city}/compare/${[a, b].sort().join('-vs-')}`;
+
 export interface Crumb { name: string; path: string }
 export const breadcrumbLd = (crumbs: Crumb[]) => ({
   '@context': 'https://schema.org', '@type': 'BreadcrumbList',

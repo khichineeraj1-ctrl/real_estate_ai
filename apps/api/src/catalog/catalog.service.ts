@@ -27,6 +27,14 @@ const CARD = {
 
 export type PropertyCard = Prisma.PropertyGetPayload<{ select: typeof CARD }>;
 
+/** Government charges for a city, as sent to the site. */
+const COSTS = { stampDutyPct: true, stampDutyWomenPct: true, registrationPct: true, registrationCapInr: true, costNote: true, costReviewedAt: true } satisfies Prisma.CitySelect;
+export type CityCosts = Prisma.CityGetPayload<{ select: typeof COSTS }>;
+const costsOf = (c: CityCosts) => (c.stampDutyPct == null || c.registrationPct == null ? null : {
+  stampDutyPct: c.stampDutyPct, stampDutyWomenPct: c.stampDutyWomenPct ?? c.stampDutyPct, registrationPct: c.registrationPct, registrationCapInr: c.registrationCapInr,
+  note: c.costNote, reviewedAt: c.costReviewedAt,
+});
+
 export interface Stats { count: number; minPrice: number | null; maxPrice: number | null; avgRate: number | null }
 
 @Injectable()
@@ -72,7 +80,9 @@ export class CatalogService {
 
   async cities() {
     const cities = await this.db.city.findMany({ orderBy: { name: 'asc' }, include: { localities: { select: { slug: true, name: true }, orderBy: { name: 'asc' } } } });
-    return Promise.all(cities.map(async (c) => ({ ...c, stats: await this.stats({ city: c.slug }) })));
+    return Promise.all(cities.map(async ({ stampDutyPct, stampDutyWomenPct, registrationPct, registrationCapInr, costNote, costReviewedAt, ...c }) => ({
+      ...c, costs: costsOf({ stampDutyPct, stampDutyWomenPct, registrationPct, registrationCapInr, costNote, costReviewedAt }), stats: await this.stats({ city: c.slug }),
+    })));
   }
 
   async city(slug: string) {
@@ -84,7 +94,7 @@ export class CatalogService {
       Promise.all(city.localities.map(async (l) => ({ slug: l.slug, name: l.name, stats: await this.stats({ city: slug, locality: l.slug }) }))),
       this.db.project.findMany({ where: { locality: { city: { slug } } }, select: { slug: true, name: true, builder: true, status: true, locality: { select: { name: true } } }, orderBy: { name: 'asc' } }),
     ]);
-    return { slug: city.slug, name: city.name, state: city.state, intro: city.intro, lat: city.lat, lng: city.lng, stats, bhk, localities, projects };
+    return { slug: city.slug, name: city.name, state: city.state, intro: city.intro, lat: city.lat, lng: city.lng, costs: costsOf(city), stats, bhk, localities, projects };
   }
 
   async locality(citySlug: string, slug: string) {
@@ -132,9 +142,17 @@ export class CatalogService {
       ...rest,
       locality: { slug: locality.slug, name: locality.name, lat: locality.lat, lng: locality.lng, highlights: locality.highlights },
       city: { slug: locality.city.slug, name: locality.city.name, state: locality.city.state },
+      costs: costsOf(locality.city),
       localityStats: await this.stats({ city: locality.city.slug, locality: locality.slug }),
       similar,
     };
+  }
+
+  /** Up to four listings in full, in the order asked for, for the side-by-side comparison. Unknown or unpublished ones are left out. */
+  async compare(slugs: string[]) {
+    const wanted = [...new Set(slugs.map((s) => s.trim()).filter(Boolean))].slice(0, 4);
+    const found = await Promise.all(wanted.map((s) => this.property(s).catch(() => null)));
+    return found.filter((p): p is NonNullable<typeof p> => p !== null).map(({ similar, ...p }) => p);
   }
 
   /** Names the question parser and the assistant match against. Small enough to read on every question. */
@@ -216,11 +234,18 @@ export class CatalogService {
       this.db.project.findMany({ select: { slug: true } }),
     ]);
     const configs = await this.db.property.groupBy({ by: ['localityId', 'bhk'], where: { state: 'PUBLISHED', bhk: { gt: 0 } }, _count: true });
-    const locs = await this.db.locality.findMany({ select: { id: true, slug: true, city: { select: { slug: true } } } });
+    const locs = await this.db.locality.findMany({ select: { id: true, slug: true, lat: true, lng: true, cityId: true, city: { select: { slug: true } } } });
+    // Each locality paired with its two nearest neighbours in the same city, written alphabetically so every pair has one address.
+    const pairs = new Set<string>();
+    for (const a of locs) {
+      const near = locs.filter((b) => b.cityId === a.cityId && b.id !== a.id).map((b) => ({ b, d: (b.lat - a.lat) ** 2 + (b.lng - a.lng) ** 2 })).sort((x, y) => x.d - y.d).slice(0, 2);
+      for (const { b } of near) pairs.add(`${a.city.slug}/${[a.slug, b.slug].sort().join('-vs-')}`);
+    }
     const byId = new Map(locs.map((l) => [l.id, l]));
     return {
       cities: cities.map((c) => ({ slug: c.slug, localities: c.localities.map((l) => l.slug) })),
       configs: configs.map((c) => ({ city: byId.get(c.localityId)!.city.slug, locality: byId.get(c.localityId)!.slug, bhk: c.bhk, count: c._count })),
+      comparisons: [...pairs].sort().map((p) => { const [city, pair] = p.split('/'); return { city, pair }; }),
       properties, projects,
     };
   }

@@ -47,6 +47,17 @@ model City {
   lat        Float
   lng        Float
   localities Locality[]
+  /// Government charges on a purchase in this city, used by the "true cost" calculator. Percent of the price.
+  stampDutyPct       Float?
+  /// Rate when the sole buyer is a woman, where the state gives a concession; same as stampDutyPct otherwise.
+  stampDutyWomenPct  Float?
+  registrationPct    Float?
+  /// Upper limit on the registration fee in rupees, where the state caps it.
+  registrationCapInr Int?
+  /// Shown to buyers under the estimate: what the figures leave out or where they differ.
+  costNote           String?
+  /// When someone on our team last checked these against the official rates. Null means never checked.
+  costReviewedAt     DateTime?
 }
 
 model Locality {

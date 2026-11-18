@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { Injectable, Logger } from '@nestjs/common';
 import { CatalogService, PropertyCard, PropertyFilters, Stats } from '../catalog/catalog.service';
-import { Gazetteer, Parsed, matchPlace, parseQuestion, rupees } from './parse';
+import { Gazetteer, Parsed, comparison, matchPlace, parseQuestion, rupees } from './parse';
 
 export interface Turn { role: 'user' | 'assistant'; text: string }
 export const MAX_MESSAGE = 300;
@@ -114,7 +114,31 @@ export class AskService {
   }
 
   /** The answer written without a model: parse the question, search, and say what was found in plain words. */
+  /** The page that sets two localities side by side; the pair is written alphabetically so each comparison has one address. */
+  private comparePage(c: NonNullable<ReturnType<typeof comparison>>): NonNullable<AskResult['page']> {
+    return { path: `/${c.city.slug}/compare/${[c.a.slug, c.b.slug].sort().join('-vs-')}`, label: `${c.a.name} vs ${c.b.name} compared` };
+  }
+
+  /** "X vs Y": the two areas' asking rates and choice, with a few homes from each and a link to the full comparison. */
+  private async compareLocalities(c: NonNullable<ReturnType<typeof comparison>>): Promise<AskResult> {
+    const [a, b] = await Promise.all([c.a, c.b].map((l) => this.catalog.list({ city: c.city.slug, locality: l.slug, pageSize: 3 })));
+    const rate = (n: number | null) => (n == null ? 'no listings' : `₹${n.toLocaleString('en-IN')} per sq ft`);
+    const ra = a.stats.avgRate, rb = b.stats.avgRate;
+    let verdict = '';
+    if (ra != null && rb != null && ra !== rb) {
+      const [low, high, lowRate, highRate] = ra < rb ? [c.a, c.b, ra, rb] : [c.b, c.a, rb, ra];
+      verdict = ` ${low.name} is about ${Math.round(((highRate - lowRate) / highRate) * 100)}% cheaper per square foot than ${high.name}.`;
+    }
+    const from = (s: typeof a.stats) => (s.minPrice != null ? `, starting at ${rupees(s.minPrice)}` : '');
+    return {
+      reply: `${c.a.name} averages ${rate(ra)} with ${a.total} ${a.total === 1 ? 'home' : 'homes'} listed${from(a.stats)}. ${c.b.name} averages ${rate(rb)} with ${b.total}${from(b.stats)}.${verdict}`,
+      live: false, properties: [...a.items, ...b.items], total: a.total + b.total, page: this.comparePage(c), relaxed: null,
+    };
+  }
+
   async scripted(question: string, gazetteer: Gazetteer, context = ''): Promise<AskResult> {
+    const versus = comparison(question, gazetteer);
+    if (versus) return this.compareLocalities(versus);
     const p = parseQuestion(question, gazetteer);
     // "3 BHK under 2 crore" asked on a locality page means that locality.
     if (!p.city) Object.assign(p, matchPlace(context, gazetteer));
@@ -172,6 +196,8 @@ export class AskService {
     const withFallback = /^claude-(opus-5|fable-5|sonnet-5-5)/.test(model);
     const messages: Anthropic.Beta.BetaMessageParam[] = [...history.map((t) => ({ role: t.role, content: t.text })), { role: 'user' as const, content: context ? `${q}\n\n[The buyer is currently viewing: ${context}]` : q }];
     let last: Outcome | null = null;
+    // When the question weighs two localities, the answer links to their side-by-side page whatever the model searched last.
+    const versus = comparison(q, gazetteer);
     try {
       for (let round = 0; round < 4; round++) {
         const res = await this.client.beta.messages.create({
@@ -211,7 +237,7 @@ export class AskService {
         }
         const reply = res.content.filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === 'text').map((b) => b.text).join(' ').trim();
         if (!reply) throw new Error(`empty reply (${res.stop_reason})`);
-        return { reply: reply.slice(0, 900), live: true, properties: last?.items ?? [], total: last?.total ?? 0, page: last ? this.pageFor(last.filters, gazetteer) : null, relaxed: last?.relaxed ?? null };
+        return { reply: reply.slice(0, 900), live: true, properties: last?.items ?? [], total: last?.total ?? 0, page: versus ? this.comparePage(versus) : last ? this.pageFor(last.filters, gazetteer) : null, relaxed: last?.relaxed ?? null };
       }
       throw new Error('too many tool rounds');
     } catch (e) {

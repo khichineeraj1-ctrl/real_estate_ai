@@ -39,6 +39,29 @@ export function matchPlace(text: string | undefined, gazetteer: Gazetteer): { ci
   return city ? { city: { slug: city.slug, name: city.name } } : {};
 }
 
+/**
+ * Two localities of one city named in a question that weighs them against each other ("Whitefield vs Sarjapur Road",
+ * "is Baner or Wakad cheaper"), so the answer can compare them. Null for anything else.
+ */
+export function comparison(text: string, gazetteer: Gazetteer): { city: Place; a: Place; b: Place } | null {
+  const t = ` ${norm(text)} `;
+  if (!/\b(vs|versus|or|compare|compared|comparison|better|cheaper|difference)\b/.test(t)) return null;
+  for (const c of gazetteer) {
+    // Longest names first, each removed once found, so "Sector 57" is not also counted inside a longer name.
+    let rest = t;
+    const found: Place[] = [];
+    for (const l of [...c.localities].sort((x, y) => y.name.length - x.name.length)) {
+      const name = ` ${norm(l.name)} `;
+      if (rest.includes(name)) { found.push({ slug: l.slug, name: l.name }); rest = rest.replace(name, ' | '); }
+    }
+    if (found.length === 2) {
+      const [a, b] = found.sort((x, y) => t.indexOf(` ${norm(x.name)} `) - t.indexOf(` ${norm(y.name)} `));
+      return { city: { slug: c.slug, name: c.name }, a, b };
+    }
+  }
+  return null;
+}
+
 function budget(t: string): { minPrice?: number; maxPrice?: number } {
   const amt = (n: string, u: string) => Math.round(Number(n) * UNIT[u]);
   // "between 80 lakh and 1.2 cr", "1 to 2 crore" (the first number borrows the second's unit when it has none)

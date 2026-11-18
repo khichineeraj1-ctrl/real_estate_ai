@@ -530,6 +530,7 @@ export class AdminService implements OnModuleInit {
     const name = i.text('name', 'Name', 80);
     const slug = slugify(name);
     if (!slug) throw new BadRequestException('Name must contain letters or numbers');
+    if (slug === 'compare' || slug.includes('-vs-')) throw new BadRequestException('That name cannot be used for a locality'); // those addresses belong to the comparison pages
     if (await this.db.locality.findFirst({ where: { cityId, slug }, select: { id: true } })) throw new ConflictException('This city already has a locality with that name');
     return this.db.locality.create({ data: { cityId, name, slug, intro: i.text('intro', 'Introduction', 1000), highlights: i.list('highlights', 'Highlights', 8), ...this.placeData(i) } });
   }
@@ -558,13 +559,23 @@ export class AdminService implements OnModuleInit {
     return c;
   }
   private cityData(i: Input) {
-    return { name: i.text('name', 'Name', 80), state: i.text('state', 'State', 80), intro: i.text('intro', 'Introduction', 1000), ...this.placeData(i) };
+    const pct = (key: string, label: string) => { const v = i.optionalText(key, label); return v == null ? null : i.number(key, label, 0, 25, false); };
+    const stampDutyPct = pct('stampDutyPct', 'Stamp duty');
+    const registrationPct = pct('registrationPct', 'Registration fee');
+    if ((stampDutyPct == null) !== (registrationPct == null)) throw new BadRequestException('Fill in both stamp duty and registration fee, or leave both empty');
+    return {
+      name: i.text('name', 'Name', 80), state: i.text('state', 'State', 80), intro: i.text('intro', 'Introduction', 1000), ...this.placeData(i),
+      stampDutyPct, registrationPct, stampDutyWomenPct: pct('stampDutyWomenPct', 'Stamp duty for women buyers'),
+      registrationCapInr: i.optionalNumber('registrationCapInr', 'Registration fee limit', 0, 10_000_000), costNote: i.optionalText('costNote', 'Note shown with the estimate', 400),
+      // Ticking "I have checked these" stamps today's date; otherwise the previous review date is cleared, because the figures may have changed.
+      costReviewedAt: i.optionalText('costReviewed', 'Reviewed') ? new Date() : null,
+    };
   }
   async createCity(body: Record<string, unknown>) {
     const data = this.cityData(new Input(body));
     const slug = slugify(data.name);
     // City pages live at the top of the site (/pune), so a city cannot take the address of another section.
-    if (!slug || ['ask', 'admin', 'api', 'media', 'projects', 'property', 'post-property', 'sitemap-xml', 'robots-txt'].includes(slug)) throw new BadRequestException('That name cannot be used for a city');
+    if (!slug || ['ask', 'admin', 'api', 'media', 'projects', 'property', 'post-property', 'tools', 'compare', 'sitemap-xml', 'robots-txt'].includes(slug)) throw new BadRequestException('That name cannot be used for a city');
     if (await this.db.city.findUnique({ where: { slug }, select: { id: true } })) throw new ConflictException('A city with that name already exists');
     return this.db.city.create({ data: { ...data, slug } });
   }

@@ -1,3 +1,5 @@
+import type { CityCosts } from './finance';
+
 export type PropertyType = 'APARTMENT' | 'VILLA' | 'BUILDER_FLOOR' | 'PLOT';
 export type Status = 'READY_TO_MOVE' | 'UNDER_CONSTRUCTION';
 export interface Place { slug: string; name: string }
@@ -14,7 +16,7 @@ export interface PropertyCard {
 }
 export interface ProjectLink extends Place { builder: string; status: Status; locality?: { name: string } }
 
-export interface CitySummary extends Place { state: string; intro: string; localities: Place[]; stats: Stats }
+export interface CitySummary extends Place { state: string; intro: string; localities: Place[]; stats: Stats; costs: CityCosts | null }
 export interface CityDetail extends Place {
   state: string; intro: string; lat: number; lng: number; stats: Stats; bhk: BhkRow[];
   localities: (Place & { stats: Stats })[]; projects: ProjectLink[];
@@ -31,12 +33,15 @@ export interface PropertyDetail extends Omit<PropertyCard, 'locality' | 'project
   description: string; floor: number | null; totalFloors: number | null; facing: string | null; furnishing: string | null; amenities: string[];
   locality: Place & { lat: number; lng: number; highlights: string[] }; city: Place & { state: string };
   project: (Place & { builder: string; reraId: string | null }) | null; localityStats: Stats; similar: PropertyCard[];
+  /** Government charges for the home's city; null when we have none on record. */
+  costs: CityCosts | null;
 }
 export interface Listing { items: PropertyCard[]; total: number; page: number; pageSize: number; stats: Stats }
 export interface AskResult { reply: string; live: boolean; properties: PropertyCard[]; total: number; page: { path: string; label: string } | null; relaxed: string | null }
 export interface SitemapData {
   cities: { slug: string; localities: string[] }[];
   configs: { city: string; locality: string; bhk: number; count: number }[];
+  comparisons: { city: string; pair: string }[];
   properties: { slug: string; postedAt: string }[];
   projects: { slug: string }[];
 }

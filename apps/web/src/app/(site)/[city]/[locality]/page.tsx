@@ -10,7 +10,7 @@ import { Stats } from '@/components/Stats';
 import { api } from '@/lib/api';
 import { areaFaqs } from '@/lib/faqs';
 import { price, statusLabel } from '@/lib/format';
-import { configSlug, itemListLd } from '@/lib/seo';
+import { comparePath, configSlug, itemListLd } from '@/lib/seo';
 import type { Listing, LocalityDetail } from '@/lib/types';
 
 type Props = { params: Promise<{ city: string; locality: string }> };
@@ -69,6 +69,11 @@ export default async function LocalityPage({ params }: Props) {
       <section className="section">
         <h2>Localities near {l.name}</h2>
         <ul className="chips left">{l.nearby.map((n) => <li key={n.slug}><Link href={`/${l.city.slug}/${n.slug}`}>Property in {n.name}</Link></li>)}</ul>
+      </section>
+
+      <section className="section">
+        <h2>Compare {l.name} with</h2>
+        <ul className="chips left">{l.nearby.map((n) => <li key={n.slug}><Link href={comparePath(l.city.slug, l.slug, n.slug)}>{l.name} vs {n.name}</Link></li>)}</ul>
       </section>
 
       <Faq title={`${l.name} property: common questions`} faqs={areaFaqs(place, l.stats, l.bhk)} />

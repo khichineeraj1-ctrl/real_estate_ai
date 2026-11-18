@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { Gazetteer, matchPlace, parseQuestion, rupees } from './parse';
+import { Gazetteer, comparison, matchPlace, parseQuestion, rupees } from './parse';
 
 const G: Gazetteer = [
   { slug: 'gurgaon', name: 'Gurgaon', localities: [{ slug: 'sector-57', name: 'Sector 57' }, { slug: 'golf-course-road', name: 'Golf Course Road' }] },
@@ -34,6 +34,14 @@ test('floors, city aliases, status and price questions', () => {
   assert.equal(parseQuestion('what is the average rate in golf course road', G).intent, 'price');
   assert.equal(matchPlace('Andheri West', G).city?.slug, 'mumbai');
   assert.deepEqual(matchPlace('Noida', G), {});
+});
+
+test('questions that weigh two localities against each other', () => {
+  const c = comparison('Golf Course Road vs Sector 57, which is cheaper?', G);
+  assert.deepEqual([c?.city.slug, c?.a.slug, c?.b.slug], ['gurgaon', 'golf-course-road', 'sector-57']);
+  assert.equal(comparison('is sector 57 or golf course road better for families', G)?.a.slug, 'sector-57');
+  assert.equal(comparison('3 bhk in sector 57 under 2 crore', G), null, 'one place, no comparison');
+  assert.equal(comparison('whitefield vs andheri west', G), null, 'different cities are not compared');
 });
 
 test('amounts in words', () => {

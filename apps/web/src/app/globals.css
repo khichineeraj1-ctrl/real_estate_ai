@@ -203,3 +203,30 @@ ol.bullets li { margin-bottom: 4px; }
 .ahistory { margin-top: 6px; font-size: .82rem; color: var(--muted); max-width: 300px; }
 .ahistory summary { cursor: pointer; color: var(--brand); }
 .ahistory ol { margin: 6px 0 0; padding-left: 1.1rem; white-space: normal; display: grid; gap: 4px; }
+
+/* Buyer tools */
+.calc { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 20px; background: var(--soft); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; margin: 14px 0; }
+@media (max-width: 720px) { .calc { grid-template-columns: 1fr; } }
+.calc-inputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; align-content: start; }
+.calc-inputs .acheck { grid-column: 1 / -1; }
+.calc-result { margin: 0; display: grid; gap: 8px; align-content: start; }
+.calc-result div { display: flex; justify-content: space-between; gap: 12px; border-top: 1px solid var(--line); padding-top: 8px; }
+.calc-result dt { color: var(--muted); }
+.calc-result dd { margin: 0; font-weight: 600; text-align: right; }
+.calc-result .big { border-top: 0; padding-top: 0; flex-direction: column; gap: 0; }
+.calc-result .big dd { font-size: 2rem; font-weight: 800; text-align: left; }
+.calc-note { grid-column: 1 / -1; color: var(--muted); font-size: .88rem; margin: 0; }
+.compare-toggle { align-self: flex-start; font: inherit; font-size: .85rem; color: var(--brand); background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; cursor: pointer; }
+.compare-toggle.on { background: var(--brand); border-color: var(--brand); color: #fff; }
+.compare-toggle:disabled { color: var(--muted); cursor: not-allowed; }
+@media (prefers-color-scheme: dark) { .compare-toggle.on { color: #0e1116; } }
+.compare-line { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin: 14px 0 0; }
+.compare-bar { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 20; display: flex; align-items: center; gap: 14px; background: var(--card); border: 1.5px solid var(--brand); border-radius: 999px; padding: 8px 10px 8px 18px; box-shadow: var(--shadow); max-width: calc(100vw - 24px); white-space: nowrap; }
+.compare-hint { color: var(--muted); font-size: .9rem; }
+.atable.compare th[scope="row"] { background: var(--soft); color: var(--muted); font-weight: 600; white-space: nowrap; position: sticky; left: 0; }
+.atable.compare thead th { white-space: normal; min-width: 190px; vertical-align: bottom; font-size: .92rem; color: var(--fg); }
+.atable.compare thead img { width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 10px; display: block; margin-bottom: 8px; }
+.atable.compare td { white-space: normal; min-width: 190px; }
+.atable.compare td.best { background: var(--ready-bg); color: var(--ready); font-weight: 700; }
+.atable.compare td .bullets { margin: 0; }
+.aform h2.wide, .aform p.wide { grid-column: 1 / -1; margin: 12px 0 0; }

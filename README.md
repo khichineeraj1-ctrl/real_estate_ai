@@ -64,6 +64,35 @@ during the site build, because the home page is prerendered from it).
   works in the web build. Expo Go has no speech recognition module, so on phones the app points to the keyboard's
   dictation key; `apps/mobile/lib/voice.ts` is the one place to plug in a native recogniser in a development build.
 
+## Tools that help buyers decide
+
+All on the website (not yet in the mobile app), linked from **Tools** in the header and from each property page.
+
+- **EMI calculator** (`/tools/emi-calculator`, and on every property page filled in with that home's price): monthly
+  instalment, loan amount and total interest from price, down payment, rate and period. The starting interest rate
+  (8.75%) is an example the buyer is told to replace with their bank's; change it in `apps/web/src/lib/finance.ts`.
+- **How much can I afford?** (`/tools/home-affordability`): a budget from take-home pay, existing EMIs and savings,
+  assuming all EMIs may take 45% of pay (adjustable on the page).
+- **True cost of buying** (`/tools/cost-of-buying`, and on every property page): stamp duty, registration fee and GST on
+  top of the listed price, with a lower stamp duty where the state gives one for a woman buyer. **The rates are stored
+  per city and edited under Admin → Cities.** The seeded rates come from public guides (November 2026) that disagree
+  on details such as Haryana's registration fee and Karnataka's cess, and nobody has confirmed them against the
+  official schedules: buyers are told so until an admin ticks "I have checked these rates" on the city, which shows
+  the date instead. GST is 5% of the price for a home under construction (1% up to ₹45 lakh, without checking the size
+  limit) and none for a ready home. Everything is labelled an estimate.
+- **Compare homes** (`/compare?ids=…`): "+ Compare" on any listing adds it to a shortlist of up to four kept in the
+  buyer's browser; the bar at the bottom opens them side by side with the best figure in each row highlighted, including
+  estimated total cost and example EMI. Property pages also link to a ready-made comparison with similar homes. Not
+  indexed.
+- **Compare localities** (`/[city]/compare/[a]-vs-[b]`, e.g. `/gurgaon/compare/golf-course-road-vs-sector-57`):
+  two localities of a city side by side with a one-line verdict on which is cheaper. Indexable, with FAQ data; each
+  locality page links to comparisons with its nearest neighbours, and the sitemap lists each locality against its two
+  nearest. The pair is always written alphabetically; the other order redirects.
+- **Ask box**: "Whitefield vs Sarjapur Road" style questions are answered with both areas' figures and a link to the
+  comparison page.
+
+The figures were checked against independent calculations (EMI, affordability, and charges in three cities).
+
 ## Admin panel, accounts and self-service posting
 
 `/admin` on the site. Four kinds of account:
@@ -144,8 +173,11 @@ you can copy the link from the terminal running `npm run dev:api`. Sending throu
 | `/[city]/[locality]/[n]-bhk-flats` | One size in one locality | `BreadcrumbList`, `ItemList`, `FAQPage` |
 | `/projects/[slug]` | Builder project, its homes and a lead form | `BreadcrumbList`, `ApartmentComplex`, `ItemList` |
 | `/property/[slug]` | One home, with its photos | `BreadcrumbList`, `RealEstateListing` with `Offer` and `image` |
+| `/[city]/compare/[a]-vs-[b]` | Two localities side by side | `BreadcrumbList`, `FAQPage` |
+| `/tools`, `/tools/…` | EMI, affordability and cost-of-buying calculators | `BreadcrumbList`, `FAQPage` |
 | `/post-property` | Sign-up for owners, agents and builders | `FAQPage` |
 | `/ask?q=…` | Server-rendered answer | none; `noindex, follow` |
+| `/compare?ids=…` | Up to four homes side by side | none; `noindex, follow` |
 
 - Every page is rendered on the server with its content, title, description and canonical URL in the HTML.
 - Size pages with no homes, unknown places and removed listings return a real 404.
@@ -155,7 +187,8 @@ you can copy the link from the terminal running `npm run dev:api`. Sending throu
 
 ## Not done yet
 
-Buyer accounts and saved searches, assigning a lead to a particular staff member, builders editing their own project pages,
+Buyer accounts and saved searches (the comparison shortlist lives only in the browser), the buyer tools in the
+mobile app, stamp duty slabs and locality-level rates (one rate per city), assigning a lead to a particular staff member, builders editing their own project pages,
 a project screen and lead form in the mobile app, reordering photos, object storage for
 photos, pagination beyond 48 homes per listing page, a real listings feed, native speech-to-text on phones, a
 Content-Security-Policy header, and deployment.

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { monthYear, num, price, statusLabel, typeLabel } from '@/lib/format';
 import { media } from '@/lib/seo';
+import { CompareToggle } from './tools/Compare';
 import type { PropertyCard as Card } from '@/lib/types';
 
 /** Plain links and text only, so the same card renders on the server and inside the ask box. */
@@ -25,6 +26,7 @@ export function PropertyCard({ p }: { p: Card }) {
         <Link href={`/${p.locality.city.slug}/${p.locality.slug}`}>{p.locality.name}</Link>, {p.locality.city.name}
         {p.project && <> · <Link href={`/projects/${p.project.slug}`}>{p.project.name}</Link></>}
       </p>
+      <CompareToggle slug={p.slug} title={p.title} />
     </article>
   );
 }

@@ -15,11 +15,14 @@ const some = <T>(xs: T[], n: number): T[] => [...xs].sort(() => rnd() - 0.5).sli
 const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
 type Loc = { name: string; rate: number; lat: number; lng: number; highlights: string[] };
-type CitySeed = { name: string; state: string; lat: number; lng: number; rera: string; intro: string; localities: Loc[] };
+/** Government charges on a purchase. Taken from public guides in November 2026, which disagree on some details: nobody on the team has confirmed them, so they are seeded as unreviewed. */
+type Costs = { stampDutyPct: number; stampDutyWomenPct: number; registrationPct: number; registrationCapInr: number | null; costNote: string };
+type CitySeed = { name: string; state: string; lat: number; lng: number; rera: string; intro: string; costs: Costs; localities: Loc[] };
 
 const CITIES: CitySeed[] = [
   {
     name: 'Gurgaon', state: 'Haryana', lat: 28.4595, lng: 77.0266, rera: 'RC/REP/HARERA/GGM',
+    costs: { stampDutyPct: 7, stampDutyWomenPct: 5, registrationPct: 1, registrationCapInr: 50000, costNote: 'Rates for property inside municipal limits; joint ownership is charged 6%. Haryana\'s registration fee follows a slab table, estimated here as 1% up to ₹50,000. Duty is charged on the higher of the price and the circle rate.' },
     intro: 'Gurgaon (Gurugram) is the corporate hub of the National Capital Region, with homes clustered along Golf Course Road, Sohna Road, the Dwarka Expressway and New Gurgaon.',
     localities: [
       { name: 'Sector 57', rate: 11500, lat: 28.4229, lng: 77.0773, highlights: ['Rapid Metro at Sector 55-56, 2 km', 'Golf Course Extension Road, 5 minutes', 'Established schools and markets'] },
@@ -32,6 +35,7 @@ const CITIES: CitySeed[] = [
   },
   {
     name: 'Bengaluru', state: 'Karnataka', lat: 12.9716, lng: 77.5946, rera: 'PRM/KA/RERA/1251',
+    costs: { stampDutyPct: 5.6, stampDutyWomenPct: 5.6, registrationPct: 2, registrationCapInr: null, costNote: 'Stamp duty of 5% plus cess and surcharge, about 5.6% in all, for homes above ₹45 lakh; homes under ₹45 lakh are charged less (3%, or 2% under ₹20 lakh), so this overstates their cost. Registration is 2% since August 2025.' },
     intro: 'Bengaluru is India\'s technology capital. Buyers mostly choose between the eastern IT corridor around Whitefield and Sarjapur Road, the north near the airport, and the settled south.',
     localities: [
       { name: 'Whitefield', rate: 10200, lat: 12.9698, lng: 77.7500, highlights: ['Purple Line metro', 'ITPL and EPIP tech parks', 'International schools'] },
@@ -44,6 +48,7 @@ const CITIES: CitySeed[] = [
   },
   {
     name: 'Mumbai', state: 'Maharashtra', lat: 19.0760, lng: 72.8777, rera: 'P518000',
+    costs: { stampDutyPct: 6, stampDutyWomenPct: 5, registrationPct: 1, registrationCapInr: 30000, costNote: 'Mumbai rate including the 1% metro cess. Thane and Mira Road are charged about 1% more. Registration is 1%, limited to ₹30,000.' },
     intro: 'Mumbai is India\'s most expensive housing market. Budgets stretch furthest in Thane and the western suburbs beyond Borivali, while Powai, Andheri and Chembur balance commute and price.',
     localities: [
       { name: 'Powai', rate: 31000, lat: 19.1176, lng: 72.9060, highlights: ['Lake views and Hiranandani township', 'Close to SEEPZ and Vikhroli offices', 'Metro Line 6 under construction'] },
@@ -56,6 +61,7 @@ const CITIES: CitySeed[] = [
   },
   {
     name: 'Pune', state: 'Maharashtra', lat: 18.5204, lng: 73.8567, rera: 'P521000',
+    costs: { stampDutyPct: 7, stampDutyWomenPct: 6, registrationPct: 1, registrationCapInr: 30000, costNote: 'Includes the metro cess and local body tax. Registration is 1%, limited to ₹30,000.' },
     intro: 'Pune\'s demand follows its IT parks: Hinjewadi and Wakad in the west, Kharadi and Viman Nagar in the east, with Baner as the premium middle ground.',
     localities: [
       { name: 'Hinjewadi', rate: 8200, lat: 18.5913, lng: 73.7389, highlights: ['Rajiv Gandhi Infotech Park', 'Metro Line 3 under construction', 'Many new launches'] },
@@ -93,7 +99,7 @@ async function main() {
   const usedProjects = new Set<string>();
   let n = 0;
   for (const c of CITIES) {
-    const city = await prisma.city.create({ data: { slug: slugify(c.name), name: c.name, state: c.state, intro: c.intro, lat: c.lat, lng: c.lng } });
+    const city = await prisma.city.create({ data: { slug: slugify(c.name), name: c.name, state: c.state, intro: c.intro, lat: c.lat, lng: c.lng, ...c.costs } });
     for (const l of c.localities) {
       const locality = await prisma.locality.create({
         data: {
