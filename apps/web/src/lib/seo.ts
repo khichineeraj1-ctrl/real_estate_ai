@@ -21,3 +21,6 @@ export const faqLd = (faqs: { q: string; a: string }[]) => ({
   '@context': 'https://schema.org', '@type': 'FAQPage',
   mainEntity: faqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
 });
+
+/** Address of a stored listing photo on this site. */
+export const media = (file: string) => `/media/${file}`;

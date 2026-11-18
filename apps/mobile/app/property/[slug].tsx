@@ -1,8 +1,8 @@
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { PropertyCard } from '../../components/PropertyCard';
-import { getProperty, type PropertyDetail } from '../../lib/api';
+import { getProperty, photoUrl, type PropertyDetail } from '../../lib/api';
 import { num, price, statusLabel, typeLabel } from '../../lib/format';
 import { useTheme } from '../../lib/theme';
 
@@ -23,6 +23,13 @@ export default function Property() {
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 14 }}>
       <Stack.Screen options={{ title: p.title.split(' in ')[0] }} />
+      {(p.photos?.length ?? 0) > 0 && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -16 }} contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}>
+          {p.photos.map((ph, i) => (
+            <Image key={ph.file} source={{ uri: photoUrl(ph.file) }} accessibilityLabel={`Photo ${i + 1} of ${p.photos.length}`} style={[s.photo, { backgroundColor: t.soft }]} resizeMode="cover" accessibilityIgnoresInvertColors />
+          ))}
+        </ScrollView>
+      )}
       <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 21, fontWeight: '700', lineHeight: 27 }}>{p.title}</Text>
       <View>
         <Text style={{ color: t.fg, fontSize: 28, fontWeight: '800' }}>{price(p.priceInr)}</Text>
@@ -42,6 +49,7 @@ export default function Property() {
 }
 
 const s = StyleSheet.create({
+  photo: { width: 300, height: 210, borderRadius: 14 },
   table: { borderWidth: 1, borderRadius: 14, paddingHorizontal: 14 },
   row: { flexDirection: 'row', justifyContent: 'space-between', gap: 16, paddingVertical: 10, borderTopWidth: StyleSheet.hairlineWidth },
 });

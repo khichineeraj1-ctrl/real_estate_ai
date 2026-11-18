@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import type { PropertyCard as Card } from '../lib/api';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { photoUrl, type PropertyCard as Card } from '../lib/api';
 import { num, price, statusLabel, typeLabel } from '../lib/format';
 import { useTheme } from '../lib/theme';
 
@@ -14,6 +14,7 @@ export function PropertyCard({ p }: { p: Card }) {
       onPress={() => router.push({ pathname: '/property/[slug]', params: { slug: p.slug } })}
       style={({ pressed }) => [s.card, { backgroundColor: t.card, borderColor: pressed ? t.brand : t.line }]}
     >
+      {p.photos?.[0] && <Image source={{ uri: photoUrl(p.photos[0].file) }} style={[s.photo, { backgroundColor: t.soft }]} resizeMode="cover" accessibilityIgnoresInvertColors />}
       <View style={s.top}>
         <Text style={[s.price, { color: t.fg }]}>{price(p.priceInr)}</Text>
         <Text style={[s.tag, { color: ready ? t.ready : t.muted, backgroundColor: ready ? t.readyBg : t.soft }]}>{statusLabel(p.status)}</Text>
@@ -28,6 +29,7 @@ export function PropertyCard({ p }: { p: Card }) {
 
 const s = StyleSheet.create({
   card: { borderWidth: 1, borderRadius: 16, padding: 14, gap: 6 },
+  photo: { width: '100%', aspectRatio: 16 / 10, borderRadius: 10, marginBottom: 4 },
   top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   price: { fontSize: 19, fontWeight: '700' },
   tag: { fontSize: 12, paddingHorizontal: 9, paddingVertical: 3, borderRadius: 999, overflow: 'hidden' },

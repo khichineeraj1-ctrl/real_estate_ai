@@ -1,12 +1,15 @@
 import Link from 'next/link';
 import { monthYear, num, price, statusLabel, typeLabel } from '@/lib/format';
+import { media } from '@/lib/seo';
 import type { PropertyCard as Card } from '@/lib/types';
 
 /** Plain links and text only, so the same card renders on the server and inside the ask box. */
 export function PropertyCard({ p }: { p: Card }) {
+  const cover = p.photos?.[0]; // optional: responses cached before photos existed have no list
   const rate = Math.round(p.priceInr / p.areaSqft);
   return (
     <article className="card">
+      {cover && <Link href={`/property/${p.slug}`} className="card-photo" tabIndex={-1} aria-hidden="true"><img src={media(cover.file)} alt="" loading="lazy" decoding="async" /></Link>}
       <div className="card-top">
         <span className="card-price">{price(p.priceInr)}</span>
         <span className={`tag ${p.status === 'READY_TO_MOVE' ? 'tag-ready' : ''}`}>{p.status === 'UNDER_CONSTRUCTION' && p.possession ? `Possession ${monthYear(p.possession)}` : statusLabel(p.status)}</span>

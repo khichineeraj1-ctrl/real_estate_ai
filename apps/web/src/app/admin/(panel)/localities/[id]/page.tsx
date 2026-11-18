@@ -1,13 +1,14 @@
 import Link from 'next/link';
 import { AdminForm, DeleteForm } from '@/components/admin/Form';
 import { Area, Field, Select, type Options } from '@/components/admin/fields';
-import { adminGet } from '@/lib/admin';
+import { adminGet, requireStaff } from '@/lib/admin';
 import { remove, save } from '../../../actions';
 
 interface Locality { id: string; slug: string; name: string; intro: string; highlights: string[]; lat: number; lng: number; cityId: string }
 
 export default async function EditLocality({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  await requireStaff();
   const isNew = id === 'new';
   const [options, l] = await Promise.all([adminGet<Options>('/options'), isNew ? null : adminGet<Locality>(`/localities/${encodeURIComponent(id)}`)]);
   const city = l && options.cities.find((c) => c.id === l.cityId);

@@ -9,6 +9,8 @@ export interface PropertyCard {
   status: Status; possession: string | null; listedBy: 'OWNER' | 'BUILDER' | 'AGENT'; postedAt: string;
   locality: Place & { city: Place };
   project: (Place & { builder: string }) | null;
+  /** At most one on cards (the cover); every photo on the detail page. */
+  photos: { file: string }[];
 }
 export interface ProjectLink extends Place { builder: string; status: Status; locality?: { name: string } }
 

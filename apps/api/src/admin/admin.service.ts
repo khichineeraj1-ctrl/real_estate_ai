@@ -1,24 +1,121 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { ConstructionStatus, ListedBy, Prisma, PropertyType } from '@prisma/client';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException, OnModuleInit, UnauthorizedException } from '@nestjs/common';
+import { ConstructionStatus, ListedBy, ListingState, Prisma, PropertyType, Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { SessionUser, hashPassword, isStaff, issueToken, normalEmail, verifyPassword } from './auth';
+import { IMPORT_COLUMNS, parseCsv } from './csv';
 import { Input, slugify } from './input';
+import { MAX_PHOTOS_PER_LISTING, MAX_PHOTO_BYTES, removePhoto, savePhoto, sniffImage } from './photos';
 
 const PAGE = 25;
+const MAX_IMPORT_ROWS = 500;
 /** Questions the listings could not answer as asked: nothing found, or found only after widening the search. */
 const NO_EXACT_MATCH: Prisma.QuestionWhereInput = { OR: [{ total: 0 }, { relaxed: { not: null } }] };
 const page = (v: unknown) => Math.max(1, Number.parseInt(String(v ?? '1'), 10) || 1);
+const USER_PUBLIC = { id: true, email: true, name: true, phone: true, role: true, active: true, createdAt: true } satisfies Prisma.UserSelect;
 
 @Injectable()
-export class AdminService {
+export class AdminService implements OnModuleInit {
+  private log = new Logger('Admin');
   constructor(private readonly db: PrismaService) {}
 
-  async overview() {
+  /** The owner account comes from the environment, so there is always a way in; every other account lives in the database. */
+  async onModuleInit() {
+    const email = process.env.ADMIN_EMAIL && normalEmail(process.env.ADMIN_EMAIL);
+    const password = process.env.ADMIN_PASSWORD;
+    if (!email || !password) { this.log.warn('ADMIN_EMAIL / ADMIN_PASSWORD are not set: no owner account was created.'); return; }
+    const passwordHash = hashPassword(password);
+    await this.db.user.upsert({ where: { email }, create: { email, name: 'Owner', role: 'ADMIN', passwordHash }, update: { role: 'ADMIN', active: true, passwordHash } });
+  }
+
+  // ---- Accounts
+
+  private password(i: Input, key = 'password', label = 'Password') {
+    const p = i.text(key, label, 200);
+    if (p.length < 10) throw new BadRequestException(`${label} must be at least 10 characters`);
+    return p;
+  }
+  private email(i: Input) {
+    const e = normalEmail(i.text('email', 'Email', 160));
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) throw new BadRequestException('Enter a valid email address');
+    return e;
+  }
+
+  async login(email: unknown, password: unknown) {
+    const user = typeof email === 'string' ? await this.db.user.findUnique({ where: { email: normalEmail(email) } }) : null;
+    // The hash is checked even for an unknown email, so the response time does not reveal which emails have accounts.
+    const ok = verifyPassword(typeof password === 'string' ? password : '', user?.passwordHash ?? 'scrypt$00$00');
+    if (!user || !ok || !user.active) throw new UnauthorizedException('Wrong email or password');
+    return { token: issueToken(user.id), role: user.role, name: user.name };
+  }
+
+  /** Open sign-up for owners, agents and builders. They can only manage their own listings, and staff approve each one. */
+  async register(body: Record<string, unknown>) {
+    const i = new Input(body);
+    const data = { name: i.text('name', 'Name', 80), email: this.email(i), phone: this.phone(i, true), passwordHash: hashPassword(this.password(i)) };
+    if (await this.db.user.findUnique({ where: { email: data.email }, select: { id: true } })) throw new ConflictException('An account with this email already exists. Sign in instead.');
+    const user = await this.db.user.create({ data: { ...data, role: 'AGENT' } });
+    return { token: issueToken(user.id), role: user.role, name: user.name };
+  }
+  private phone(i: Input, required: boolean) {
+    const raw = required ? i.text('phone', 'Phone', 20) : i.optionalText('phone', 'Phone', 20);
+    if (raw == null) return null;
+    const digits = raw.replace(/[\s()-]/g, '');
+    if (!/^\+?\d{10,13}$/.test(digits)) throw new BadRequestException('Enter a phone number with 10 to 13 digits');
+    return digits;
+  }
+
+  me(user: SessionUser) { return this.db.user.findUniqueOrThrow({ where: { id: user.id }, select: USER_PUBLIC }); }
+
+  async changePassword(user: SessionUser, body: Record<string, unknown>) {
+    const i = new Input(body);
+    const current = await this.db.user.findUniqueOrThrow({ where: { id: user.id } });
+    if (!verifyPassword(i.text('current', 'Current password'), current.passwordHash)) throw new BadRequestException('Current password is wrong');
+    if (current.email === (process.env.ADMIN_EMAIL && normalEmail(process.env.ADMIN_EMAIL))) throw new ConflictException('The owner account\'s password is set by ADMIN_PASSWORD on the API and cannot be changed here');
+    await this.db.user.update({ where: { id: user.id }, data: { passwordHash: hashPassword(this.password(i, 'password', 'New password')) } });
+    return { ok: true };
+  }
+
+  users() { return this.db.user.findMany({ orderBy: [{ role: 'asc' }, { name: 'asc' }], select: { ...USER_PUBLIC, _count: { select: { properties: true } } } }); }
+  async user(id: string) {
+    const u = await this.db.user.findUnique({ where: { id }, select: USER_PUBLIC });
+    if (!u) throw new NotFoundException('User not found');
+    return u;
+  }
+  async createUser(body: Record<string, unknown>) {
+    const i = new Input(body);
+    const data = { name: i.text('name', 'Name', 80), email: this.email(i), phone: this.phone(i, false), role: i.oneOf('role', 'Role', Object.values(Role)), passwordHash: hashPassword(this.password(i)) };
+    if (await this.db.user.findUnique({ where: { email: data.email }, select: { id: true } })) throw new ConflictException('An account with this email already exists');
+    return this.db.user.create({ data, select: USER_PUBLIC });
+  }
+  async updateUser(actor: SessionUser, id: string, body: Record<string, unknown>) {
+    const target = await this.user(id);
+    const i = new Input(body);
+    const role = i.oneOf('role', 'Role', Object.values(Role));
+    const active = i.oneOf('active', 'Status', ['true', 'false'] as const) === 'true';
+    // Nobody can lock themselves out, and the owner account from the environment always stays an active admin.
+    if (id === actor.id && (role !== 'ADMIN' || !active)) throw new ConflictException('You cannot remove your own admin access');
+    if (target.email === (process.env.ADMIN_EMAIL && normalEmail(process.env.ADMIN_EMAIL)) && (role !== 'ADMIN' || !active)) throw new ConflictException('The owner account must stay an active admin');
+    const newPassword = i.optionalText('password', 'New password', 200);
+    return this.db.user.update({
+      where: { id }, select: USER_PUBLIC,
+      data: { name: i.text('name', 'Name', 80), phone: this.phone(i, false), role, active, ...(newPassword ? { passwordHash: hashPassword(this.password(i, 'password', 'New password')) } : {}) },
+    });
+  }
+
+  // ---- Overview and form options
+
+  async overview(user: SessionUser) {
+    if (!isStaff(user)) {
+      const mine = await this.db.property.groupBy({ by: ['state'], where: { ownerId: user.id }, _count: true });
+      const n = (s: ListingState) => mine.find((m) => m.state === s)?._count ?? 0;
+      return { role: user.role, name: user.name, mine: { published: n('PUBLISHED'), pending: n('PENDING'), rejected: n('REJECTED') } };
+    }
     const weekAgo = new Date(Date.now() - 7 * 86_400_000);
-    const [cities, localities, projects, properties, questions, questionsWeek, emptyWeek] = await Promise.all([
-      this.db.city.count(), this.db.locality.count(), this.db.project.count(), this.db.property.count(), this.db.question.count(),
-      this.db.question.count({ where: { createdAt: { gte: weekAgo } } }), this.db.question.count({ where: { createdAt: { gte: weekAgo }, ...NO_EXACT_MATCH } }),
+    const [cities, localities, projects, properties, pending, questions, questionsWeek, emptyWeek] = await Promise.all([
+      this.db.city.count(), this.db.locality.count(), this.db.project.count(), this.db.property.count({ where: { state: 'PUBLISHED' } }), this.db.property.count({ where: { state: 'PENDING' } }),
+      this.db.question.count(), this.db.question.count({ where: { createdAt: { gte: weekAgo } } }), this.db.question.count({ where: { createdAt: { gte: weekAgo }, ...NO_EXACT_MATCH } }),
     ]);
-    return { cities, localities, projects, properties, questions, questionsWeek, emptyWeek };
+    return { role: user.role, name: user.name, cities, localities, projects, properties, pending, questions, questionsWeek, emptyWeek };
   }
 
   /** Everything the forms need for their dropdowns. */
@@ -29,26 +126,29 @@ export class AdminService {
     return { cities };
   }
 
-  // ---- Properties
+  // ---- Properties. Staff see every listing; an agent sees and changes only their own.
 
-  async properties(q: { q?: string; city?: string; page?: string }) {
+  private scope(user: SessionUser): Prisma.PropertyWhereInput { return isStaff(user) ? {} : { ownerId: user.id }; }
+
+  async properties(user: SessionUser, q: { q?: string; state?: string; page?: string }) {
+    const state = Object.values(ListingState).includes(q.state as ListingState) ? (q.state as ListingState) : undefined;
     const where: Prisma.PropertyWhereInput = {
+      ...this.scope(user), ...(state ? { state } : {}),
       ...(q.q ? { OR: [{ title: { contains: q.q, mode: 'insensitive' } }, { slug: { contains: q.q, mode: 'insensitive' } }] } : {}),
-      ...(q.city ? { locality: { cityId: q.city } } : {}),
     };
     const p = page(q.page);
-    const [items, total] = await Promise.all([
+    const [items, total, pending] = await Promise.all([
       this.db.property.findMany({
         where, orderBy: [{ postedAt: 'desc' }, { slug: 'asc' }], skip: (p - 1) * PAGE, take: PAGE,
-        select: { id: true, slug: true, title: true, priceInr: true, areaSqft: true, status: true, postedAt: true, locality: { select: { name: true, city: { select: { name: true } } } } },
+        select: { id: true, slug: true, title: true, priceInr: true, status: true, state: true, postedAt: true, owner: { select: { name: true } }, _count: { select: { photos: true } } },
       }),
-      this.db.property.count({ where }),
+      this.db.property.count({ where }), this.db.property.count({ where: { ...this.scope(user), state: 'PENDING' } }),
     ]);
-    return { items, total, page: p, pageSize: PAGE };
+    return { items, total, pending, page: p, pageSize: PAGE };
   }
 
-  async property(id: string) {
-    const p = await this.db.property.findUnique({ where: { id } });
+  async property(user: SessionUser, id: string) {
+    const p = await this.db.property.findFirst({ where: { id, ...this.scope(user) }, include: { photos: { orderBy: { position: 'asc' }, select: { id: true, file: true } }, owner: { select: { name: true, email: true, phone: true } } } });
     if (!p) throw new NotFoundException('Property not found');
     return p;
   }
@@ -78,23 +178,109 @@ export class AdminService {
     };
   }
 
-  async createProperty(body: Record<string, unknown>) {
-    const data = await this.propertyData(body);
-    // The address of a listing never changes after this, so links and search results keep working when the title is edited.
-    for (let attempt = 0; attempt < 5; attempt++) {
-      const slug = `${slugify(data.title)}-${Math.floor(10_000 + Math.random() * 90_000)}`;
-      if (!(await this.db.property.findUnique({ where: { slug }, select: { id: true } }))) return this.db.property.create({ data: { ...data, slug } });
+  /** The address of a listing never changes after this, so links and search results keep working when the title is edited. */
+  private async freshSlug(title: string, taken = new Set<string>()) {
+    for (let attempt = 0; attempt < 8; attempt++) {
+      const slug = `${slugify(title)}-${Math.floor(10_000 + Math.random() * 90_000)}`;
+      if (!taken.has(slug) && !(await this.db.property.findUnique({ where: { slug }, select: { id: true } }))) { taken.add(slug); return slug; }
     }
     throw new ConflictException('Could not create a unique address for this listing; try again');
   }
-  async updateProperty(id: string, body: Record<string, unknown>) {
-    await this.property(id);
-    return this.db.property.update({ where: { id }, data: await this.propertyData(body) });
+
+  async createProperty(user: SessionUser, body: Record<string, unknown>) {
+    const data = await this.propertyData(body);
+    // What staff add is live at once; what an agent adds waits for approval.
+    return this.db.property.create({ data: { ...data, slug: await this.freshSlug(data.title), ownerId: user.id, state: isStaff(user) ? 'PUBLISHED' : 'PENDING' } });
   }
-  async deleteProperty(id: string) {
-    await this.property(id);
+  async updateProperty(user: SessionUser, id: string, body: Record<string, unknown>) {
+    await this.property(user, id);
+    const data = await this.propertyData(body);
+    // An agent's edit goes back for review, so changed text or price is never live unchecked.
+    return this.db.property.update({ where: { id }, data: { ...data, ...(isStaff(user) ? {} : { state: 'PENDING' as const, rejectReason: null }) } });
+  }
+  async deleteProperty(user: SessionUser, id: string) {
+    const p = await this.property(user, id);
     await this.db.property.delete({ where: { id } });
+    await Promise.all(p.photos.map((ph) => removePhoto(ph.file)));
     return { ok: true };
+  }
+
+  async review(id: string, body: Record<string, unknown>) {
+    const i = new Input(body);
+    const decision = i.oneOf('decision', 'Decision', ['approve', 'reject'] as const);
+    if (!(await this.db.property.findUnique({ where: { id }, select: { id: true } }))) throw new NotFoundException('Property not found');
+    if (decision === 'approve') return this.db.property.update({ where: { id }, data: { state: 'PUBLISHED', rejectReason: null, postedAt: new Date() } });
+    return this.db.property.update({ where: { id }, data: { state: 'REJECTED', rejectReason: i.text('reason', 'Reason for rejecting', 300) } });
+  }
+
+  // ---- Photos
+
+  async addPhotos(user: SessionUser, propertyId: string, files: { buffer: Buffer; size: number }[]) {
+    const p = await this.property(user, propertyId);
+    if (!files?.length) throw new BadRequestException('Choose at least one photo');
+    if (p.photos.length + files.length > MAX_PHOTOS_PER_LISTING) throw new BadRequestException(`A listing can have at most ${MAX_PHOTOS_PER_LISTING} photos; this one has ${p.photos.length}`);
+    const typed = files.map((f) => ({ f, ext: sniffImage(f.buffer) }));
+    if (typed.some((t) => !t.ext)) throw new BadRequestException('Photos must be JPEG, PNG or WebP images');
+    if (files.some((f) => f.size > MAX_PHOTO_BYTES)) throw new BadRequestException('Each photo must be under 5 MB');
+    const last = await this.db.photo.aggregate({ where: { propertyId }, _max: { position: true } });
+    let position = (last._max.position ?? -1) + 1;
+    for (const t of typed) {
+      const file = await savePhoto(t.f.buffer, t.ext!);
+      await this.db.photo.create({ data: { propertyId, file, position: position++ } });
+    }
+    if (!isStaff(user) && p.state === 'PUBLISHED') await this.db.property.update({ where: { id: propertyId }, data: { state: 'PENDING' } });
+    return { ok: true, added: files.length };
+  }
+
+  async deletePhoto(user: SessionUser, photoId: string) {
+    const photo = await this.db.photo.findFirst({ where: { id: photoId, property: this.scope(user) } });
+    if (!photo) throw new NotFoundException('Photo not found');
+    await this.db.photo.delete({ where: { id: photoId } });
+    await removePhoto(photo.file);
+    return { ok: true, propertyId: photo.propertyId };
+  }
+
+  // ---- Bulk import
+
+  /** Checks every row first. Nothing is saved unless every row is valid, so a file is never half imported. */
+  async importProperties(user: SessionUser, csv: unknown) {
+    if (typeof csv !== 'string' || !csv.trim()) throw new BadRequestException('The file is empty');
+    const rows = parseCsv(csv);
+    const header = rows[0].map((h) => h.trim().toLowerCase());
+    const missing = IMPORT_COLUMNS.filter((c) => !header.includes(c));
+    if (missing.length) throw new BadRequestException(`The first row must name the columns. Missing: ${missing.join(', ')}`);
+    const body = rows.slice(1);
+    if (!body.length) throw new BadRequestException('The file has a header but no listings');
+    if (body.length > MAX_IMPORT_ROWS) throw new BadRequestException(`A file can hold at most ${MAX_IMPORT_ROWS} listings; this one has ${body.length}`);
+
+    const cities = await this.db.city.findMany({ select: { name: true, localities: { select: { id: true, name: true, projects: { select: { id: true, name: true } } } } } });
+    const key = (s: string) => s.trim().toLowerCase();
+    const errors: { row: number; error: string }[] = [];
+    const valid: Awaited<ReturnType<AdminService['propertyData']>>[] = [];
+    for (const [n, cells] of body.entries()) {
+      const cell = (c: (typeof IMPORT_COLUMNS)[number]) => (cells[header.indexOf(c)] ?? '').trim();
+      try {
+        const city = cities.find((c) => key(c.name) === key(cell('city')));
+        if (!city) throw new BadRequestException(`City “${cell('city')}” is not one of: ${cities.map((c) => c.name).join(', ')}`);
+        const locality = city.localities.find((l) => key(l.name) === key(cell('locality')));
+        if (!locality) throw new BadRequestException(`Locality “${cell('locality')}” was not found in ${city.name}`);
+        const project = cell('project') ? locality.projects.find((p) => key(p.name) === key(cell('project'))) : undefined;
+        if (cell('project') && !project) throw new BadRequestException(`Project “${cell('project')}” was not found in ${locality.name}`);
+        valid.push(await this.propertyData({
+          title: cell('title'), description: cell('description'), type: cell('type').toUpperCase(), bhk: cell('bhk'), bathrooms: cell('bathrooms'), priceInr: cell('price_inr'), areaSqft: cell('area_sqft'),
+          status: cell('status').toUpperCase(), possession: cell('possession'), floor: cell('floor'), totalFloors: cell('total_floors'), facing: cell('facing'), furnishing: cell('furnishing'),
+          listedBy: cell('listed_by').toUpperCase(), amenities: cell('amenities').replace(/;/g, ','), localityId: locality.id, projectId: project?.id ?? '',
+        }));
+      } catch (e) {
+        errors.push({ row: n + 2, error: e instanceof BadRequestException ? e.message : 'Could not read this row' }); // +2: the header is row 1
+      }
+    }
+    if (errors.length) return { imported: 0, errors };
+    const taken = new Set<string>();
+    const data = [];
+    for (const v of valid) data.push({ ...v, slug: await this.freshSlug(v.title, taken), ownerId: user.id, state: 'PUBLISHED' as const });
+    await this.db.property.createMany({ data });
+    return { imported: data.length, errors: [] };
   }
 
   // ---- Projects
@@ -201,7 +387,7 @@ export class AdminService {
     const data = this.cityData(new Input(body));
     const slug = slugify(data.name);
     // City pages live at the top of the site (/pune), so a city cannot take the address of another section.
-    if (!slug || ['ask', 'admin', 'api', 'projects', 'property', 'sitemap-xml', 'robots-txt'].includes(slug)) throw new BadRequestException('That name cannot be used for a city');
+    if (!slug || ['ask', 'admin', 'api', 'media', 'projects', 'property', 'post-property', 'sitemap-xml', 'robots-txt'].includes(slug)) throw new BadRequestException('That name cannot be used for a city');
     if (await this.db.city.findUnique({ where: { slug }, select: { id: true } })) throw new ConflictException('A city with that name already exists');
     return this.db.city.create({ data: { ...data, slug } });
   }

@@ -7,6 +7,8 @@ export interface Stats { count: number; minPrice: number | null; maxPrice: numbe
 export interface PropertyCard {
   slug: string; title: string; type: PropertyType; bhk: number; bathrooms: number; priceInr: number; areaSqft: number; status: Status; possession: string | null;
   locality: Place & { city: Place }; project: (Place & { builder: string }) | null;
+  /** The cover only on cards; every photo on the detail screen. */
+  photos: { file: string }[];
 }
 export interface CitySummary extends Place { state: string; localities: Place[]; stats: Stats }
 export interface LocalityDetail extends Place { intro: string; highlights: string[]; city: Place & { state: string }; stats: Stats }
@@ -36,3 +38,6 @@ export const getListing = (city: string, locality: string) => call<Listing>(`/pr
 export const getProperty = (slug: string) => call<PropertyDetail>(`/properties/${slug}`);
 export const ask = (message: string, history: Turn[], context?: string) =>
   call<AskResult>('/ask', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ message, history, context }) });
+
+/** Address of a stored listing photo. */
+export const photoUrl = (file: string) => `${API_URL}/uploads/${file}`;

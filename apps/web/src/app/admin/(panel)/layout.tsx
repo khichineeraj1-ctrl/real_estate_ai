@@ -1,27 +1,39 @@
 import type { Metadata } from 'next';
-import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { ADMIN_COOKIE } from '@/lib/admin';
+import { getMe, isStaff, sessionToken } from '@/lib/admin';
+import { BRAND } from '@/lib/seo';
 import { logout } from '../actions';
 
 export const metadata: Metadata = { title: { default: 'Admin', template: '%s | Admin' }, robots: { index: false, follow: false } };
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  // A quick check to avoid drawing the panel for signed-out visitors; the API verifies the session on every request.
-  if (!(await cookies()).get(ADMIN_COOKIE)) redirect('/admin/login');
+  if (!(await sessionToken())) redirect('/admin/login');
+  const me = await getMe(); // the API confirms the session and the role; the menu below only reflects it
+  const staff = isStaff(me.role);
   return (
-    <div className="admin">
-      <nav className="anav" aria-label="Admin">
-        <Link href="/admin">Overview</Link>
-        <Link href="/admin/properties">Listings</Link>
-        <Link href="/admin/projects">Projects</Link>
-        <Link href="/admin/localities">Localities</Link>
-        <Link href="/admin/cities">Cities</Link>
-        <Link href="/admin/questions">Questions</Link>
-        <form action={logout}><button type="submit" className="alink">Sign out</button></form>
-      </nav>
-      {children}
-    </div>
+    <>
+      <header className="site-header">
+        <div className="wrap">
+          <Link href="/admin" className="logo"><span className="orb" aria-hidden="true" />{BRAND} <small>{staff ? 'admin' : 'my listings'}</small></Link>
+          <nav aria-label="Account"><Link href="/">View site</Link><Link href="/admin/account">{me.name}</Link></nav>
+          <form action={logout}><button type="submit" className="alink">Sign out</button></form>
+        </div>
+      </header>
+      <main className="wrap admin">
+        <nav className="anav" aria-label="Sections">
+          <Link href="/admin">Overview</Link>
+          <Link href="/admin/properties">{staff ? 'Listings' : 'My listings'}</Link>
+          {staff && <Link href="/admin/properties?state=PENDING">Review queue</Link>}
+          {staff && <Link href="/admin/import">Import</Link>}
+          {staff && <Link href="/admin/projects">Projects</Link>}
+          {staff && <Link href="/admin/localities">Localities</Link>}
+          {staff && <Link href="/admin/cities">Cities</Link>}
+          {staff && <Link href="/admin/questions">Questions</Link>}
+          {me.role === 'ADMIN' && <Link href="/admin/users">Users</Link>}
+        </nav>
+        {children}
+      </main>
+    </>
   );
 }

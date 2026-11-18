@@ -8,7 +8,7 @@ The brand name is a placeholder. To rename, change `brand.json` (web and structu
 `apps/api/.env` (the assistant's name) and `name`/`slug`/`scheme` in `apps/mobile/app.json`.
 
 **All listings are generated sample data** (`apps/api/prisma/seed.ts`): project names, builders, RERA numbers and prices
-are made up. There are no photos yet.
+are made up. Seed listings have no photos; photos are added in the admin panel.
 
 ## Layout
 
@@ -64,22 +64,41 @@ during the site build, because the home page is prerendered from it).
   works in the web build. Expo Go has no speech recognition module, so on phones the app points to the keyboard's
   dictation key; `apps/mobile/lib/voice.ts` is the one place to plug in a native recogniser in a development build.
 
-## Admin panel
+## Admin panel, accounts and self-service posting
 
-`/admin` on the site, for one shared admin login. Sign in with `ADMIN_EMAIL` and `ADMIN_PASSWORD` from `apps/api/.env`
-(`.env.example` has local development values; change both, and set a long random `ADMIN_SECRET`, anywhere public).
+`/admin` on the site. Three kinds of account:
 
+| Role | Can do |
+|---|---|
+| **Admin** | Everything, including managing users |
+| **Editor** | All content (listings, projects, localities, cities), approvals, import and the questions log; not users |
+| **Owner / agent** | Signs up at `/post-property`; adds, edits and deletes only their own listings |
+
+- **Owner account**: `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `apps/api/.env` create (and on every start reset) one admin, so
+  there is always a way in. `.env.example` has local development values; change both, and set a long random
+  `ADMIN_SECRET`, anywhere public. Admins add editors and other admins under **Users**. Accounts are deactivated, not
+  deleted; deactivation and role changes take effect on the next request.
+- **Self-service posting**: `/post-property` is a public, indexable page where owners, agents and builders create an
+  account. Their listings start as *waiting for review* and are not on the site, in answers or in the sitemap until staff
+  approve them in the **Review queue**. Staff can reject with a reason the owner sees. When an owner edits a live listing
+  or adds a photo it goes back to review. Sign-up has no email verification yet.
+- **Photos**: up to 12 per listing, JPEG/PNG/WebP up to 5 MB each; the first is the cover. The type is checked from the
+  file's contents and files are stored under random names in `apps/api/uploads` (override with `UPLOAD_DIR`), served by
+  the API at `/uploads/…` and shown by the site at `/media/…`. Photos are not resized, and local disk only suits a single
+  server: `apps/api/src/admin/photos.ts` is the one place to switch to object storage.
+- **Bulk import**: staff upload a CSV of up to 500 listings under **Import** (a sample file is linked there). Every row is
+  checked first; if any row is wrong nothing is imported and the rows to fix are listed. Imported listings go live.
 - **Listings, projects, localities, cities**: add, edit and delete. Saving refreshes the public pages straight away.
   Page addresses never change after creation, so renaming a listing or city does not break links. A locality or city
   that still has content cannot be deleted; deleting a project keeps its listings and unlinks them.
 - **Questions**: what buyers asked, whether Claude or the parser answered, and which had no exact match (nothing found,
   or found only after dropping the budget, locality or status). Only the words and outcome are stored, not who asked.
   A question about a city that is not covered is logged as answered when the assistant offers a covered city instead.
-- The API checks a signed 12-hour session on every admin request (`apps/api/src/admin/auth.ts`); the site only carries
-  it in an http-only cookie. Without `ADMIN_SECRET`, sessions end whenever the API restarts. Sign-in is limited to
-  five attempts a minute per address; because the site signs in on the admin's behalf, that limit is shared by
-  everyone signing in through the site.
-- `/admin` is `noindex` and disallowed in `robots.txt`.
+- **Security**: passwords are stored as salted scrypt hashes. The API checks a signed 12-hour session and the account's
+  role on every admin request (`apps/api/src/admin/auth.ts`); the site only carries the session in an http-only cookie
+  and hides menus. Without `ADMIN_SECRET`, sessions end whenever the API restarts. Sign-in is limited to five attempts
+  a minute and sign-up to three a minute per address; because the site calls the API on visitors' behalf, those limits
+  are shared by everyone using the site. `/admin` is `noindex` and disallowed in `robots.txt`.
 
 ## SEO
 
@@ -90,7 +109,8 @@ during the site build, because the home page is prerendered from it).
 | `/[city]/[locality]` | Locality facts and all its homes | `BreadcrumbList`, `ItemList`, `FAQPage`, `Place` |
 | `/[city]/[locality]/[n]-bhk-flats` | One size in one locality | `BreadcrumbList`, `ItemList`, `FAQPage` |
 | `/projects/[slug]` | Builder project and its homes | `BreadcrumbList`, `ApartmentComplex`, `ItemList` |
-| `/property/[slug]` | One home | `BreadcrumbList`, `RealEstateListing` with `Offer` |
+| `/property/[slug]` | One home, with its photos | `BreadcrumbList`, `RealEstateListing` with `Offer` and `image` |
+| `/post-property` | Sign-up for owners, agents and builders | `FAQPage` |
 | `/ask?q=…` | Server-rendered answer | none; `noindex, follow` |
 
 - Every page is rendered on the server with its content, title, description and canonical URL in the HTML.
@@ -101,5 +121,6 @@ during the site build, because the home page is prerendered from it).
 
 ## Not done yet
 
-Photos, enquiry/contact forms, buyer accounts and saved searches, separate admin users with roles, bulk import, pagination beyond 48 homes per listing page, a real
-listings feed, native speech-to-text on phones, a Content-Security-Policy header, and deployment.
+Enquiry/contact forms (a seller's phone is not shown to buyers yet), buyer accounts and saved searches, email
+verification and password reset, photo resizing and object storage, reordering photos, pagination beyond 48 homes per
+listing page, a real listings feed, native speech-to-text on phones, a Content-Security-Policy header, and deployment.

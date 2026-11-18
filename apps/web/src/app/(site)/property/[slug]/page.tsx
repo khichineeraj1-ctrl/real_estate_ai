@@ -7,7 +7,7 @@ import { JsonLd } from '@/components/JsonLd';
 import { PropertyGrid } from '@/components/PropertyCard';
 import { api } from '@/lib/api';
 import { day, monthYear, num, price, rate, statusLabel, typeLabel } from '@/lib/format';
-import { abs, configSlug } from '@/lib/seo';
+import { abs, configSlug, media } from '@/lib/seo';
 import type { PropertyDetail } from '@/lib/types';
 
 type Props = { params: Promise<{ slug: string }> };
@@ -19,13 +19,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!p) return {};
   const title = `${p.title} — ${price(p.priceInr)}, ${num(p.areaSqft)} sq ft`;
   const description = `${p.description} Price ${price(p.priceInr)} (${rate(Math.round(p.priceInr / p.areaSqft))}).`.slice(0, 300);
-  return { title, description, alternates: { canonical: `/property/${p.slug}` }, openGraph: { title, description, url: `/property/${p.slug}`, type: 'article' } };
+  return { title, description, alternates: { canonical: `/property/${p.slug}` }, openGraph: { title, description, url: `/property/${p.slug}`, type: 'article', ...(p.photos?.[0] ? { images: [media(p.photos[0].file)] } : {}) } };
 }
 
 export default async function PropertyPage({ params }: Props) {
   const p = await api<PropertyDetail>(`/properties/${(await params).slug}`);
   if (!p) notFound();
   const localityPath = `/${p.city.slug}/${p.locality.slug}`;
+  const photos = p.photos ?? [];
   const perSqft = Math.round(p.priceInr / p.areaSqft);
   const vsArea = p.localityStats.avgRate ? Math.round(((perSqft - p.localityStats.avgRate) / p.localityStats.avgRate) * 100) : null;
   const address = { '@type': 'PostalAddress', addressLocality: `${p.locality.name}, ${p.city.name}`, addressRegion: p.city.state, addressCountry: 'IN' };
@@ -43,6 +44,14 @@ export default async function PropertyPage({ params }: Props) {
         <p className="lead">
           {vsArea === 0 ? 'Priced at' : `${Math.abs(vsArea)}% ${vsArea > 0 ? 'above' : 'below'}`} the average asking rate in <Link href={localityPath}>{p.locality.name}</Link> ({rate(p.localityStats.avgRate)}).
         </p>
+      )}
+
+      {photos.length > 0 && (
+        <div className={`gallery ${photos.length === 1 ? 'single' : ''}`}>
+          {photos.map((ph, i) => (
+            <a key={ph.file} href={media(ph.file)}><img src={media(ph.file)} alt={`${p.title} — photo ${i + 1} of ${photos.length}`} loading={i === 0 ? 'eager' : 'lazy'} decoding="async" /></a>
+          ))}
+        </div>
       )}
 
       <dl className="detail">
@@ -87,6 +96,7 @@ export default async function PropertyPage({ params }: Props) {
 
       <JsonLd data={{
         '@context': 'https://schema.org', '@type': 'RealEstateListing', name: p.title, description: p.description, url: abs(`/property/${p.slug}`), datePosted: p.postedAt,
+        ...(photos.length ? { image: photos.map((ph) => abs(media(ph.file))) } : {}),
         mainEntity: {
           '@type': SCHEMA_TYPE[p.type], name: p.title, address, geo: { '@type': 'GeoCoordinates', latitude: p.locality.lat, longitude: p.locality.lng },
           ...(p.type !== 'PLOT' ? {

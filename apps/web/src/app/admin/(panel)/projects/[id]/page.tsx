@@ -1,13 +1,14 @@
 import Link from 'next/link';
 import { AdminForm, DeleteForm } from '@/components/admin/Form';
 import { Area, Field, STATUS, Select, localityGroups, month, type Options } from '@/components/admin/fields';
-import { adminGet } from '@/lib/admin';
+import { adminGet, requireStaff } from '@/lib/admin';
 import { remove, save } from '../../../actions';
 
 interface Project { id: string; slug: string; name: string; builder: string; description: string; status: string; possession: string | null; reraId: string | null; totalUnits: number; amenities: string[]; localityId: string }
 
 export default async function EditProject({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  await requireStaff();
   const isNew = id === 'new';
   const [options, p] = await Promise.all([adminGet<Options>('/options'), isNew ? null : adminGet<Project>(`/projects/${encodeURIComponent(id)}`)]);
   return (

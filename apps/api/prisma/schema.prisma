@@ -19,6 +19,18 @@ enum ConstructionStatus {
   UNDER_CONSTRUCTION
 }
 
+enum Role {
+  ADMIN /// everything, including managing users
+  EDITOR /// all content and approvals, but not users
+  AGENT /// an owner, agent or builder posting their own listings, which staff approve
+}
+
+enum ListingState {
+  PUBLISHED
+  PENDING
+  REJECTED
+}
+
 enum ListedBy {
   OWNER
   BUILDER
@@ -91,6 +103,12 @@ model Property {
   locality    Locality           @relation(fields: [localityId], references: [id])
   projectId   String?
   project     Project?           @relation(fields: [projectId], references: [id])
+  /// Only PUBLISHED listings appear on the site, in answers and in the sitemap.
+  state        ListingState      @default(PUBLISHED)
+  rejectReason String?
+  ownerId      String?
+  owner        User?             @relation(fields: [ownerId], references: [id])
+  photos       Photo[]
 
   @@index([localityId, bhk])
   @@index([priceInr])
@@ -108,4 +126,28 @@ model Question {
   createdAt DateTime @default(now())
 
   @@index([createdAt])
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  name         String
+  phone        String?
+  passwordHash String
+  role         Role
+  active       Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  properties   Property[]
+}
+
+model Photo {
+  id         String   @id @default(cuid())
+  /// File name inside the upload folder; the first photo by position is the cover.
+  file       String   @unique
+  position   Int
+  createdAt  DateTime @default(now())
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId, position])
 }

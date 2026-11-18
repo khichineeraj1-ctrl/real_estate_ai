@@ -20,6 +20,7 @@ const CARD = {
   slug: true, title: true, type: true, bhk: true, bathrooms: true, priceInr: true, areaSqft: true, status: true, possession: true, listedBy: true, postedAt: true,
   locality: { select: { slug: true, name: true, city: { select: { slug: true, name: true } } } },
   project: { select: { slug: true, name: true, builder: true } },
+  photos: { select: { file: true }, orderBy: { position: 'asc' }, take: 1 }, // the cover photo
 } satisfies Prisma.PropertySelect;
 
 export type PropertyCard = Prisma.PropertyGetPayload<{ select: typeof CARD }>;
@@ -32,6 +33,7 @@ export class CatalogService {
 
   private where(f: PropertyFilters): Prisma.PropertyWhereInput {
     return {
+      state: 'PUBLISHED', // listings waiting for approval, or rejected, never reach the public site
       ...(f.bhk != null ? { bhk: f.bhk } : {}),
       ...(f.type ? { type: f.type } : {}),
       ...(f.status ? { status: f.status } : {}),
@@ -105,7 +107,7 @@ export class CatalogService {
     const project = await this.db.project.findUnique({ where: { slug }, include: { locality: { include: { city: true } } } });
     if (!project) throw new NotFoundException('Project not found');
     const [properties, stats, bhk] = await Promise.all([
-      this.db.property.findMany({ where: { projectId: project.id }, select: CARD, orderBy: { priceInr: 'asc' } }),
+      this.db.property.findMany({ where: { projectId: project.id, state: 'PUBLISHED' }, select: CARD, orderBy: { priceInr: 'asc' } }),
       this.stats({ project: slug }),
       this.bhkBreakdown({ project: slug }),
     ]);
@@ -114,13 +116,16 @@ export class CatalogService {
   }
 
   async property(slug: string) {
-    const p = await this.db.property.findUnique({ where: { slug }, include: { locality: { include: { city: true } }, project: { select: { slug: true, name: true, builder: true, reraId: true } } } });
+    const p = await this.db.property.findFirst({
+      where: { slug, state: 'PUBLISHED' },
+      include: { locality: { include: { city: true } }, project: { select: { slug: true, name: true, builder: true, reraId: true } }, photos: { select: { file: true }, orderBy: { position: 'asc' } } },
+    });
     if (!p) throw new NotFoundException('Property not found');
     const similar = await this.db.property.findMany({
-      where: { localityId: p.localityId, NOT: { id: p.id }, ...(p.bhk ? { bhk: { in: [p.bhk - 1, p.bhk, p.bhk + 1] } } : {}) },
+      where: { state: 'PUBLISHED', localityId: p.localityId, NOT: { id: p.id }, ...(p.bhk ? { bhk: { in: [p.bhk - 1, p.bhk, p.bhk + 1] } } : {}) },
       select: CARD, orderBy: { postedAt: 'desc' }, take: 4,
     });
-    const { locality, localityId, projectId, id, ...rest } = p;
+    const { locality, localityId, projectId, id, ownerId, state, rejectReason, ...rest } = p;
     return {
       ...rest,
       locality: { slug: locality.slug, name: locality.name, lat: locality.lat, lng: locality.lng, highlights: locality.highlights },
@@ -143,10 +148,10 @@ export class CatalogService {
   async sitemap() {
     const [cities, properties, projects] = await Promise.all([
       this.db.city.findMany({ select: { slug: true, localities: { select: { slug: true } } } }),
-      this.db.property.findMany({ select: { slug: true, postedAt: true } }),
+      this.db.property.findMany({ where: { state: 'PUBLISHED' }, select: { slug: true, postedAt: true } }),
       this.db.project.findMany({ select: { slug: true } }),
     ]);
-    const configs = await this.db.property.groupBy({ by: ['localityId', 'bhk'], where: { bhk: { gt: 0 } }, _count: true });
+    const configs = await this.db.property.groupBy({ by: ['localityId', 'bhk'], where: { state: 'PUBLISHED', bhk: { gt: 0 } }, _count: true });
     const locs = await this.db.locality.findMany({ select: { id: true, slug: true, city: { select: { slug: true } } } });
     const byId = new Map(locs.map((l) => [l.id, l]));
     return {

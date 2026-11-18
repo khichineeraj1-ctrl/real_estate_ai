@@ -10,6 +10,7 @@ export async function Header() {
       <div className="wrap">
         <Link href="/" className="logo"><span className="orb" aria-hidden="true" />{BRAND}</Link>
         <nav aria-label="Cities">{cities.map((c) => <Link key={c.slug} href={`/${c.slug}`}>{c.name}</Link>)}</nav>
+        <Link href="/post-property" className="post-link">Post property</Link>
         <Link href="/ask" className="ask-link">Ask</Link>
       </div>
     </header>
@@ -30,6 +31,7 @@ export async function Footer() {
             </div>
           ))}
         </div>
+        <p className="fine"><Link href="/post-property">Post your property</Link> · <Link href="/admin/login" rel="nofollow">Sign in</Link></p>
         <p className="fine">{BRAND} — {TAGLINE}. Listings shown here are sample data for development.</p>
       </div>
     </footer>

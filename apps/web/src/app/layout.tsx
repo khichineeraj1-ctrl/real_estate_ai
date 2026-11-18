@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from 'next';
-import { Footer, Header } from '@/components/Chrome';
 import { BRAND, SITE_URL, TAGLINE } from '@/lib/seo';
 import './globals.css';
 
@@ -12,14 +11,11 @@ export const metadata: Metadata = {
 };
 export const viewport: Viewport = { width: 'device-width', initialScale: 1, themeColor: [{ media: '(prefers-color-scheme: dark)', color: '#0e1116' }, { color: '#ffffff' }] };
 
+// The public site and the admin panel each add their own header inside this shell.
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en-IN">
-      <body>
-        <Header />
-        <main className="wrap">{children}</main>
-        <Footer />
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

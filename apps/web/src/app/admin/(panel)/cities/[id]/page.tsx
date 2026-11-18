@@ -1,13 +1,14 @@
 import Link from 'next/link';
 import { AdminForm, DeleteForm } from '@/components/admin/Form';
 import { Area, Field } from '@/components/admin/fields';
-import { adminGet } from '@/lib/admin';
+import { adminGet, requireStaff } from '@/lib/admin';
 import { remove, save } from '../../../actions';
 
 interface City { id: string; slug: string; name: string; state: string; intro: string; lat: number; lng: number }
 
 export default async function EditCity({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  await requireStaff();
   const c = id === 'new' ? null : await adminGet<City>(`/cities/${encodeURIComponent(id)}`);
   return (
     <>

@@ -17,6 +17,11 @@ export default {
   poweredByHeader: false,
   outputFileTracingRoot: root,
   turbopack: { root },
+  experimental: { serverActions: { bodySizeLimit: '2mb' } }, // room for a bulk-import file
+  // Listing photos are stored by the API; showing them from this site's own address keeps them same-origin for browsers and crawlers.
+  async rewrites() {
+    return [{ source: '/media/:file', destination: `${process.env.API_URL || 'http://localhost:4100'}/uploads/:file` }];
+  },
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];
   },
