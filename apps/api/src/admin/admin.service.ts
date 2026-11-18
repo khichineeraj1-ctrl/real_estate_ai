@@ -128,7 +128,7 @@ export class AdminService implements OnModuleInit {
     return { ok: true, token: issueToken(updated) };
   }
 
-  users() { return this.db.user.findMany({ orderBy: [{ role: 'asc' }, { name: 'asc' }], select: { ...USER_PUBLIC, _count: { select: { properties: true } } } }); }
+  users() { return this.db.user.findMany({ orderBy: [{ role: 'asc' }, { name: 'asc' }], select: { ...USER_PUBLIC, _count: { select: { properties: true, projects: true } } } }); }
   async user(id: string) {
     const u = await this.db.user.findUnique({ where: { id }, select: USER_PUBLIC });
     if (!u) throw new NotFoundException('User not found');
@@ -157,7 +157,24 @@ export class AdminService implements OnModuleInit {
 
   // ---- Overview and form options
 
+  /**
+   * What a builder login may see: leads on its assigned projects, and enquiries on those projects' listings unless
+   * the listing was posted by an owner or agent (that buyer agreed to share their details with that seller only).
+   */
+  private builderLeads(user: SessionUser): Prisma.EnquiryWhereInput {
+    return { project: { accountId: user.id }, OR: [{ propertyId: null }, { property: { NOT: { owner: { is: { role: 'AGENT' } } } } }] };
+  }
+
   async overview(user: SessionUser) {
+    if (user.role === 'BUILDER') {
+      const weekAgo = new Date(Date.now() - 7 * 86_400_000);
+      const projects = await this.db.project.findMany({ where: { accountId: user.id }, orderBy: { name: 'asc' }, select: { id: true, slug: true, name: true, locality: { select: { name: true, city: { select: { name: true } } } } } });
+      const mine = this.builderLeads(user);
+      const withCounts = await Promise.all(projects.map(async (p) => ({
+        ...p, leads: await this.db.enquiry.count({ where: { AND: [mine, { projectId: p.id }] } }), leadsWeek: await this.db.enquiry.count({ where: { AND: [mine, { projectId: p.id, createdAt: { gte: weekAgo } }] } }),
+      })));
+      return { role: user.role, name: user.name, projects: withCounts };
+    }
     if (!isStaff(user)) {
       const mine = await this.db.property.groupBy({ by: ['state'], where: { ownerId: user.id }, _count: true });
       const n = (s: ListingState) => mine.find((m) => m.state === s)?._count ?? 0;
@@ -304,6 +321,7 @@ export class AdminService implements OnModuleInit {
 
   /** Staff may narrow to leads on projects, enquiries on single listings, or one project; an owner or agent only ever sees their own listings' enquiries. */
   private enquiryWhere(user: SessionUser, q: { kind?: string; project?: string }): Prisma.EnquiryWhereInput {
+    if (user.role === 'BUILDER') return q.project ? { AND: [this.builderLeads(user), { projectId: q.project }] } : this.builderLeads(user);
     if (!isStaff(user)) return { property: { ownerId: user.id } };
     if (q.project) return { projectId: q.project };
     return q.kind === 'project' ? { propertyId: null } : q.kind === 'listing' ? { propertyId: { not: null } } : {};
@@ -318,12 +336,12 @@ export class AdminService implements OnModuleInit {
         include: { property: { select: { id: true, slug: true, title: true, state: true } }, project: { select: { id: true, slug: true, name: true } } },
       }),
       this.db.enquiry.count({ where }),
-      isStaff(user) && q.project ? this.db.project.findUnique({ where: { id: q.project }, select: { id: true, name: true, builder: true } }) : null,
+      q.project && user.role !== 'AGENT' ? this.db.project.findFirst({ where: { id: q.project, ...(user.role === 'BUILDER' ? { accountId: user.id } : {}) }, select: { id: true, name: true, builder: true } }) : null,
     ]);
     return { items, total, page: p, pageSize: 50, project };
   }
 
-  /** The same leads as a spreadsheet file, for handing a project's leads to its builder. Staff only. */
+  /** The same leads as a spreadsheet file. Staff get everything they filter for; a builder gets their own projects' leads. */
   async enquiriesCsv(user: SessionUser, q: { kind?: string; project?: string }) {
     const rows = await this.db.enquiry.findMany({
       where: this.enquiryWhere(user, q), orderBy: { createdAt: 'desc' }, take: 5000,
@@ -383,7 +401,7 @@ export class AdminService implements OnModuleInit {
   projects() {
     return this.db.project.findMany({
       orderBy: { name: 'asc' },
-      select: { id: true, slug: true, name: true, builder: true, status: true, locality: { select: { name: true, city: { select: { name: true } } } }, _count: { select: { properties: true, enquiries: true } } },
+      select: { id: true, slug: true, name: true, builder: true, status: true, account: { select: { name: true } }, locality: { select: { name: true, city: { select: { name: true } } } }, _count: { select: { properties: true, enquiries: true } } },
     });
   }
   async project(id: string) {
@@ -397,6 +415,8 @@ export class AdminService implements OnModuleInit {
     const locality = await this.db.locality.findUnique({ where: { id: localityId }, select: { name: true, city: { select: { name: true } } } });
     if (!locality) throw new BadRequestException('Choose a locality from the list');
     const status = i.oneOf('status', 'Status', Object.values(ConstructionStatus));
+    const accountId = i.optionalText('accountId', 'Builder login');
+    if (accountId && !(await this.db.user.findFirst({ where: { id: accountId, role: 'BUILDER' }, select: { id: true } }))) throw new BadRequestException('Choose a builder login from the list');
     const leadEmail = i.optionalText('leadEmail', 'Sales email for leads', 160);
     if (leadEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(leadEmail)) throw new BadRequestException('Enter a valid sales email, or leave it empty');
     return {
@@ -404,7 +424,7 @@ export class AdminService implements OnModuleInit {
       data: {
         name: i.text('name', 'Name', 120), builder: i.text('builder', 'Builder', 120), description: i.text('description', 'Description', 2000), status,
         possession: status === 'UNDER_CONSTRUCTION' ? i.optionalMonth('possession', 'Possession') : null, reraId: i.optionalText('reraId', 'RERA number', 80),
-        totalUnits: i.number('totalUnits', 'Total units', 1, 50_000), amenities: i.list('amenities', 'Amenities'), leadEmail: leadEmail ? normalEmail(leadEmail) : null, localityId,
+        totalUnits: i.number('totalUnits', 'Total units', 1, 50_000), amenities: i.list('amenities', 'Amenities'), leadEmail: leadEmail ? normalEmail(leadEmail) : null, accountId, localityId,
       },
     };
   }
@@ -420,6 +440,9 @@ export class AdminService implements OnModuleInit {
     if (data.localityId !== current.localityId && (await this.db.property.count({ where: { projectId: id } }))) throw new ConflictException('This project has listings, so it cannot be moved to another locality');
     return this.db.project.update({ where: { id }, data });
   }
+  /** Builder logins, for the "Builder login" choice on a project. */
+  builders() { return this.db.user.findMany({ where: { role: 'BUILDER' }, orderBy: { name: 'asc' }, select: { id: true, name: true, email: true, active: true } }); }
+
   /** Listings in the project are kept and simply stop being linked to it. */
   async deleteProject(id: string) {
     await this.project(id);

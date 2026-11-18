@@ -66,13 +66,14 @@ during the site build, because the home page is prerendered from it).
 
 ## Admin panel, accounts and self-service posting
 
-`/admin` on the site. Three kinds of account:
+`/admin` on the site. Four kinds of account:
 
 | Role | Can do |
 |---|---|
 | **Admin** | Everything, including managing users |
 | **Editor** | All content (listings, projects, localities, cities), approvals, import and the questions log; not users |
 | **Owner / agent** | Signs up at `/post-property`; adds, edits and deletes only their own listings |
+| **Builder** | Created by an admin and linked to projects; sees only the leads on those projects |
 
 - **Owner account**: `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `apps/api/.env` create (and on every start reset) one admin, so
   there is always a way in. `.env.example` has local development values; change both, and set a long random
@@ -93,7 +94,13 @@ during the site build, because the home page is prerendered from it).
   No phone number is shown to the buyer; the lead is kept for staff under **Enquiries → Builder projects**. A project
   can have a **sales email** (set on its admin page, never shown publicly): each lead on the project, and on the
   builder's own listings in it, is emailed there as it arrives. Staff can download a project's leads, or all
-  enquiries, as a spreadsheet (CSV). Builders do not have their own login to see leads yet.
+  enquiries, as a spreadsheet (CSV).
+- **Builder logins**: an admin adds a user with the role *Builder* under **Users**, then picks that login on each of
+  the builder's projects (**Projects → project → Builder login**). The builder signs in at `/admin/login` and sees an
+  overview of their projects and a **Leads** screen with a spreadsheet download, and nothing else: no listings,
+  content, questions or other builders' leads. They see project leads and enquiries on their own stock in the project,
+  but not enquiries on resale listings that an owner or agent posted there (those buyers agreed to share their details
+  with that seller only). If a project has no sales email, its leads are emailed to the builder login instead.
 - **Photos**: up to 12 per listing, JPEG/PNG/WebP up to 5 MB each; the first is the cover. Each upload is re-encoded
   into two WebP files, a full size (longest side 1600px) and a 640×480 card size used in listings, which also turns
   the photo upright and removes embedded data such as GPS position. Files get random names in `apps/api/uploads`
@@ -110,8 +117,8 @@ during the site build, because the home page is prerendered from it).
 - **Security**: passwords are stored as salted scrypt hashes. The API checks a signed 12-hour session and the account's
   role on every admin request (`apps/api/src/admin/auth.ts`); the site only carries the session in an http-only cookie
   and hides menus. Without `ADMIN_SECRET`, sessions end whenever the API restarts. Sign-in is limited to five attempts
-  a minute and sign-up to three a minute per address; because the site calls the API on visitors' behalf, those limits
-  are shared by everyone using the site. `/admin` is `noindex` and disallowed in `robots.txt`.
+  a minute per account, with looser per-address ceilings on sign-in and sign-up as flood protection (the site calls
+  the API on visitors' behalf, so a strict per-address limit would lock ordinary users out). `/admin` is `noindex` and disallowed in `robots.txt`.
 
 ## Email
 
@@ -141,7 +148,7 @@ you can copy the link from the terminal running `npm run dev:api`. Sending throu
 
 ## Not done yet
 
-Buyer accounts and saved searches, a status on enquiries (new / contacted), builder logins for viewing their own leads,
+Buyer accounts and saved searches, a status on enquiries (new / contacted), builders editing their own project pages,
 a project screen and lead form in the mobile app, reordering photos, object storage for
 photos, pagination beyond 48 homes per listing page, a real listings feed, native speech-to-text on phones, a
 Content-Security-Policy header, and deployment.

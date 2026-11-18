@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { ActionButton, AdminForm, DeleteForm } from '@/components/admin/Form';
 import { Area, Field, STATUS, Select, localityGroups, month, projectGroups, type Options } from '@/components/admin/fields';
 import { adminGet, getMe, isStaff } from '@/lib/admin';
@@ -18,6 +19,7 @@ export default async function EditProperty({ params, searchParams }: { params: P
   const isNew = id === 'new';
   const [me, options, p] = await Promise.all([getMe(), adminGet<Options>('/options'), isNew ? null : adminGet<Property>(`/properties/${encodeURIComponent(id)}`)]);
   const staff = isStaff(me.role);
+  if (me.role === 'BUILDER') redirect('/admin'); // builder logins see leads only; the API refuses listing changes from them too
   if (isNew && !staff && !me.emailVerified) {
     // The form would only be refused on save, so it is not offered until the email is confirmed (see the notice above).
     return (<><h1>Post a property</h1><p className="lead">Confirm your email address first, using the link we sent to {me.email}. Then this page will show the form.</p></>);

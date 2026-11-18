@@ -10,21 +10,26 @@ type Json = Record<string, unknown>;
 type Upload = { buffer: Buffer; size: number };
 
 /**
- * Three roles. ADMIN: everything. EDITOR: all content and approvals, not users. AGENT: only their own listings.
- * Routes without @Roles are open to any signed-in user and narrow what an agent can reach inside the service.
+ * Four roles. ADMIN: everything. EDITOR: all content and approvals, not users. AGENT: only their own listings.
+ * BUILDER: only the leads on projects assigned to them. Routes without @Roles are open to any signed-in user and
+ * narrow what each role can reach inside the service.
  */
 @Controller('admin')
 export class AdminController {
-  // A handful of attempts per minute per address makes password guessing and mass sign-ups impractical.
-  private attempts = new Limiter(5, 100_000);
-  private signups = new Limiter(3, 2_000);
-  private emails = new Limiter(2, 5_000); // emails cost money and can be used to pester someone
+  // Password guessing is limited per account (five tries a minute for one email), so it stays impractical however many
+  // addresses are used. The site signs in on everyone's behalf from one address, so the per-address caps are only a
+  // loose ceiling against floods and never lock ordinary users out.
+  private attempts = new Limiter(5, 200_000);
+  private perAddress = new Limiter(60, 200_000);
+  private signups = new Limiter(20, 5_000);
+  private emails = new Limiter(2, 10_000); // per account or email: emails cost money and can be used to pester someone
+  private key = (v: unknown) => (typeof v === 'string' ? v.trim().toLowerCase().slice(0, 160) : '');
   constructor(private readonly admin: AdminService) {}
 
   @Post('login')
   @HttpCode(200)
   login(@Body() body: { email?: unknown; password?: unknown }, @Ip() ip: string) {
-    if (!this.attempts.allow(ip)) throw new HttpException('Too many sign-in attempts. Wait a minute and try again.', 429);
+    if (!this.perAddress.allow(ip) || !this.attempts.allow(`login:${this.key(body?.email)}`)) throw new HttpException('Too many sign-in attempts. Wait a minute and try again.', 429);
     return this.admin.login(body?.email, body?.password);
   }
 
@@ -37,13 +42,13 @@ export class AdminController {
   @Post('verify-email') @HttpCode(200) verifyEmail(@Body() b: { token?: unknown }) { return this.admin.verifyEmail(b?.token); }
   @Post('forgot') @HttpCode(200)
   forgot(@Body() b: { email?: unknown }, @Ip() ip: string) {
-    if (!this.emails.allow(ip)) throw new HttpException('Too many requests. Wait a minute and try again.', 429);
+    if (!this.perAddress.allow(ip) || !this.emails.allow(`forgot:${this.key(b?.email)}`)) throw new HttpException('Too many requests. Wait a minute and try again.', 429);
     return this.admin.forgotPassword(b?.email);
   }
   @Post('reset') @HttpCode(200)
   reset(@Body() b: Json, @Ip() ip: string) {
-    if (!this.attempts.allow(ip)) throw new HttpException('Too many attempts. Wait a minute and try again.', 429);
-    return this.admin.resetPassword(b);
+    if (!this.perAddress.allow(ip)) throw new HttpException('Too many attempts. Wait a minute and try again.', 429);
+    return this.admin.resetPassword(b); // the link's secret is 256 random bits, so it cannot be guessed
   }
   @UseGuards(AdminGuard) @Post('me/resend-verification') @HttpCode(200)
   resend(@CurrentUser() u: SessionUser) {
@@ -56,19 +61,19 @@ export class AdminController {
   @UseGuards(AdminGuard) @Get('overview') overview(@CurrentUser() u: SessionUser) { return this.admin.overview(u); }
   @UseGuards(AdminGuard) @Get('options') options() { return this.admin.options(); }
 
-  // Listings: any signed-in user, limited to their own for agents.
-  @UseGuards(AdminGuard) @Get('properties') properties(@CurrentUser() u: SessionUser, @Query() q: { q?: string; state?: string; page?: string }) { return this.admin.properties(u, q); }
-  @UseGuards(AdminGuard) @Get('properties/:id') property(@CurrentUser() u: SessionUser, @Param('id') id: string) { return this.admin.property(u, id); }
-  @UseGuards(AdminGuard) @Post('properties') createProperty(@CurrentUser() u: SessionUser, @Body() b: Json) { return this.admin.createProperty(u, b); }
-  @UseGuards(AdminGuard) @Patch('properties/:id') updateProperty(@CurrentUser() u: SessionUser, @Param('id') id: string, @Body() b: Json) { return this.admin.updateProperty(u, id, b); }
-  @UseGuards(AdminGuard) @Delete('properties/:id') deleteProperty(@CurrentUser() u: SessionUser, @Param('id') id: string) { return this.admin.deleteProperty(u, id); }
+  // Listings: staff, and owners/agents limited to their own. Builder logins have no listings.
+  @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR', 'AGENT') @Get('properties') properties(@CurrentUser() u: SessionUser, @Query() q: { q?: string; state?: string; page?: string }) { return this.admin.properties(u, q); }
+  @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR', 'AGENT') @Get('properties/:id') property(@CurrentUser() u: SessionUser, @Param('id') id: string) { return this.admin.property(u, id); }
+  @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR', 'AGENT') @Post('properties') createProperty(@CurrentUser() u: SessionUser, @Body() b: Json) { return this.admin.createProperty(u, b); }
+  @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR', 'AGENT') @Patch('properties/:id') updateProperty(@CurrentUser() u: SessionUser, @Param('id') id: string, @Body() b: Json) { return this.admin.updateProperty(u, id, b); }
+  @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR', 'AGENT') @Delete('properties/:id') deleteProperty(@CurrentUser() u: SessionUser, @Param('id') id: string) { return this.admin.deleteProperty(u, id); }
 
-  @UseGuards(AdminGuard) @Post('properties/:id/photos')
+  @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR', 'AGENT') @Post('properties/:id/photos')
   @UseInterceptors(FilesInterceptor('photos', MAX_PHOTOS_PER_LISTING, { limits: { fileSize: MAX_PHOTO_BYTES } }))
   addPhotos(@CurrentUser() u: SessionUser, @Param('id') id: string, @UploadedFiles() files: Upload[]) { return this.admin.addPhotos(u, id, files); }
   @UseGuards(AdminGuard) @Get('enquiries') enquiries(@CurrentUser() u: SessionUser, @Query() q: { page?: string; kind?: string; project?: string }) { return this.admin.enquiries(u, q); }
-  @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Get('enquiries.csv') @Header('content-type', 'text/csv; charset=utf-8') enquiriesCsv(@CurrentUser() u: SessionUser, @Query() q: { kind?: string; project?: string }) { return this.admin.enquiriesCsv(u, q); }
-  @UseGuards(AdminGuard) @Delete('photos/:id') deletePhoto(@CurrentUser() u: SessionUser, @Param('id') id: string) { return this.admin.deletePhoto(u, id); }
+  @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR', 'BUILDER') @Get('enquiries.csv') @Header('content-type', 'text/csv; charset=utf-8') enquiriesCsv(@CurrentUser() u: SessionUser, @Query() q: { kind?: string; project?: string }) { return this.admin.enquiriesCsv(u, q); }
+  @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR', 'AGENT') @Delete('photos/:id') deletePhoto(@CurrentUser() u: SessionUser, @Param('id') id: string) { return this.admin.deletePhoto(u, id); }
 
   // Staff only from here.
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Post('properties/:id/review') @HttpCode(200) review(@Param('id') id: string, @Body() b: Json) { return this.admin.review(id, b); }
@@ -76,6 +81,7 @@ export class AdminController {
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Get('import/sample.csv') @Header('content-type', 'text/csv; charset=utf-8') sample() { return IMPORT_SAMPLE; }
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Get('questions') questions(@Query() q: { only?: string; page?: string }) { return this.admin.questions(q); }
 
+  @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Get('builders') builders() { return this.admin.builders(); }
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Get('projects') projects() { return this.admin.projects(); }
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Get('projects/:id') project(@Param('id') id: string) { return this.admin.project(id); }
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Post('projects') createProject(@Body() b: Json) { return this.admin.createProject(b); }

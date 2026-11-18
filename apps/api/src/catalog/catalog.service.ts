@@ -113,7 +113,7 @@ export class CatalogService {
       this.stats({ project: slug }),
       this.bhkBreakdown({ project: slug }),
     ]);
-    const { locality, localityId, id, leadEmail, ...rest } = project; // the builder's sales address is for our use only
+    const { locality, localityId, id, leadEmail, accountId, ...rest } = project; // the builder's sales address and login are for our use only
     return { ...rest, locality: { slug: locality.slug, name: locality.name, lat: locality.lat, lng: locality.lng }, city: { slug: locality.city.slug, name: locality.city.name, state: locality.city.state }, properties, stats, bhk };
   }
 
@@ -148,6 +148,11 @@ export class CatalogService {
    * emailed, and the buyer gets the seller's name and phone in return (or is told our team will call, for listings
    * that have no seller account).
    */
+  /** Where a project's leads are emailed: its sales address, or failing that the builder login assigned to it. */
+  private leadAddress(project: { leadEmail: string | null; account: { email: string; active: boolean } | null }) {
+    return project.leadEmail ?? (project.account?.active ? project.account.email : null);
+  }
+
   private buyer(body: Record<string, unknown>) {
     const i = new Input(body);
     const name = i.text('name', 'Your name', 80);
@@ -164,12 +169,13 @@ export class CatalogService {
    */
   async enquireProject(slug: string, body: Record<string, unknown>) {
     const b = this.buyer(body);
-    const project = await this.db.project.findUnique({ where: { slug }, select: { id: true, name: true, leadEmail: true, locality: { select: { name: true, city: { select: { name: true } } } } } });
+    const project = await this.db.project.findUnique({ where: { slug }, select: { id: true, name: true, leadEmail: true, account: { select: { email: true, active: true } }, locality: { select: { name: true, city: { select: { name: true } } } } } });
     if (!project) throw new NotFoundException('Project not found');
     await this.db.enquiry.create({ data: { projectId: project.id, ...b } });
-    if (project.leadEmail) {
+    const to = this.leadAddress(project);
+    if (to) {
       await this.mail.send({
-        to: project.leadEmail, subject: `New lead: ${project.name}, ${project.locality.name}`,
+        to, subject: `New lead: ${project.name}, ${project.locality.name}`,
         text: `A buyer asked about ${project.name} in ${project.locality.name}, ${project.locality.city.name}.\n\nName: ${b.name}\nPhone: ${b.phone}${b.email ? `\nEmail: ${b.email}` : ''}${b.interest ? `\nInterested in: ${b.interest}` : ''}${b.message ? `\nMessage: ${b.message}` : ''}\n\nThe buyer agreed to be contacted about this project.`,
       });
     }
@@ -178,7 +184,7 @@ export class CatalogService {
 
   async enquire(slug: string, body: Record<string, unknown>) {
     const { name, phone, email, message } = this.buyer(body);
-    const p = await this.db.property.findFirst({ where: { slug, state: 'PUBLISHED' }, select: { id: true, title: true, projectId: true, project: { select: { name: true, leadEmail: true } }, owner: { select: { name: true, phone: true, email: true, role: true, active: true } } } });
+    const p = await this.db.property.findFirst({ where: { slug, state: 'PUBLISHED' }, select: { id: true, title: true, projectId: true, project: { select: { name: true, leadEmail: true, account: { select: { email: true, active: true } } } }, owner: { select: { name: true, phone: true, email: true, role: true, active: true } } } });
     if (!p) throw new NotFoundException('Property not found');
     await this.db.enquiry.create({ data: { propertyId: p.id, projectId: p.projectId, name, phone, email, message } });
     const seller = p.owner?.active && p.owner.role === 'AGENT' && p.owner.phone ? p.owner : null;
@@ -189,9 +195,10 @@ export class CatalogService {
       });
     }
     // A listing with no seller account that belongs to a builder project is the builder's own stock: the lead goes to their sales address.
-    if (!seller && p.project?.leadEmail) {
+    const builderAddress = p.project ? this.leadAddress(p.project) : null;
+    if (!seller && builderAddress) {
       await this.mail.send({
-        to: p.project.leadEmail, subject: `New lead: ${p.project.name}`,
+        to: builderAddress, subject: `New lead: ${p.project?.name ?? p.title}`,
         text: `A buyer asked about "${p.title}".\n\nName: ${name}\nPhone: ${phone}${email ? `\nEmail: ${email}` : ''}${message ? `\nMessage: ${message}` : ''}\n\nThe buyer agreed to be contacted about this home.`,
       });
     }

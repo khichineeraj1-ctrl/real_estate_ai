@@ -5,7 +5,7 @@ import { adminGet } from '@/lib/admin';
 import { save } from '../../../actions';
 
 interface User { id: string; email: string; name: string; phone: string | null; role: string; active: boolean }
-const ROLES = [{ value: 'ADMIN', label: 'Admin: everything, including users' }, { value: 'EDITOR', label: 'Editor: all content and approvals' }, { value: 'AGENT', label: 'Owner / agent: only their own listings' }];
+const ROLES = [{ value: 'ADMIN', label: 'Admin: everything, including users' }, { value: 'EDITOR', label: 'Editor: all content and approvals' }, { value: 'AGENT', label: 'Owner / agent: only their own listings' }, { value: 'BUILDER', label: 'Builder: only leads on projects linked to them' }];
 
 export default async function EditUser({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

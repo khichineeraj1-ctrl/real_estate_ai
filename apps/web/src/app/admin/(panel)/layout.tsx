@@ -12,11 +12,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!(await sessionToken())) redirect('/admin/login');
   const me = await getMe(); // the API confirms the session and the role; the menu below only reflects it
   const staff = isStaff(me.role);
+  const builder = me.role === 'BUILDER';
   return (
     <>
       <header className="site-header">
         <div className="wrap">
-          <Link href="/admin" className="logo"><span className="orb" aria-hidden="true" />{BRAND} <small>{staff ? 'admin' : 'my listings'}</small></Link>
+          <Link href="/admin" className="logo"><span className="orb" aria-hidden="true" />{BRAND} <small>{staff ? 'admin' : builder ? 'builder leads' : 'my listings'}</small></Link>
           <nav aria-label="Account"><Link href="/">View site</Link><Link href="/admin/account">{me.name}</Link></nav>
           <form action={logout}><button type="submit" className="alink">Sign out</button></form>
         </div>
@@ -24,8 +25,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <main className="wrap admin">
         <nav className="anav" aria-label="Sections">
           <Link href="/admin">Overview</Link>
-          <Link href="/admin/properties">{staff ? 'Listings' : 'My listings'}</Link>
-          <Link href="/admin/enquiries">Enquiries</Link>
+          {!builder && <Link href="/admin/properties">{staff ? 'Listings' : 'My listings'}</Link>}
+          <Link href="/admin/enquiries">{builder ? 'Leads' : 'Enquiries'}</Link>
           {staff && <Link href="/admin/properties?state=PENDING">Review queue</Link>}
           {staff && <Link href="/admin/import">Import</Link>}
           {staff && <Link href="/admin/projects">Projects</Link>}

@@ -14,16 +14,18 @@ export default async function Enquiries({ searchParams }: { searchParams: Promis
   const query = new URLSearchParams({ ...(sp.project ? { project: sp.project } : kind ? { kind } : {}) });
   const [me, d] = await Promise.all([getMe(), adminGet<Data>(`/enquiries?${query}&page=${encodeURIComponent(sp.page ?? '1')}`)]);
   const staff = isStaff(me.role);
+  const builder = me.role === 'BUILDER';
   const pages = Math.max(1, Math.ceil(d.total / d.pageSize));
   const link = (p: number) => `/admin/enquiries?${new URLSearchParams({ ...Object.fromEntries(query), page: String(p) })}`;
   return (
     <>
       <div className="ahead">
-        <h1>{d.project ? `Leads for ${d.project.name}` : 'Enquiries from buyers'}</h1>
-        {staff && d.total > 0 && <a className="abtn quiet" href={`/admin/enquiries/export?${query}`}>Download as a spreadsheet</a>}
+        <h1>{d.project ? `Leads for ${d.project.name}` : builder ? 'Your leads' : 'Enquiries from buyers'}</h1>
+        {(staff || builder) && d.total > 0 && <a className="abtn quiet" href={`/admin/enquiries/export?${query}`}>Download as a spreadsheet</a>}
       </div>
       <p className="lead">
-        {d.project ? <>Buyers who asked about this {d.project.builder} project or one of its listings. <Link href="/admin/enquiries">See all enquiries</Link>.</>
+        {d.project ? <>Buyers who asked about this {d.project.builder} project or one of its listings. <Link href="/admin/enquiries">See all {builder ? 'leads' : 'enquiries'}</Link>.</>
+          : builder ? 'Buyers who asked for a call back about your projects or the homes you are selling in them. They agreed to be contacted by you.'
           : staff ? 'Every buyer who asked to be contacted. Leads on builder projects, and enquiries on listings without a seller account, are yours to follow up or pass to the builder.'
             : 'Buyers who asked to be contacted about your listings. They were shown your name and phone number, and you were emailed each time.'}
       </p>
@@ -34,14 +36,14 @@ export default async function Enquiries({ searchParams }: { searchParams: Promis
           <Link href="/admin/enquiries?kind=listing" aria-current={kind === 'listing' ? 'page' : undefined}>Single listings</Link>
         </p>
       )}
-      {d.items.length === 0 ? <p>No enquiries yet.</p> : (
+      {d.items.length === 0 ? <p>{builder ? 'No leads yet.' : 'No enquiries yet.'}</p> : (
         <div className="atable"><table>
           <thead><tr><th>About</th><th>Buyer</th><th>Phone</th><th>Email</th><th>Interested in</th><th>Message</th><th>When</th></tr></thead>
           <tbody>
             {d.items.map((e) => (
               <tr key={e.id}>
                 <td>
-                  {e.property ? <Link href={`/admin/properties/${e.property.id}`}>{e.property.title}</Link> : e.project ? <Link href={`/admin/projects/${e.project.id}`}>{e.project.name}</Link> : 'A project that was since deleted'}
+                  {builder ? (e.property?.title ?? e.project?.name) : e.property ? <Link href={`/admin/properties/${e.property.id}`}>{e.property.title}</Link> : e.project ? <Link href={`/admin/projects/${e.project.id}`}>{e.project.name}</Link> : 'A project that was since deleted'}
                   {e.property && e.project && staff && <><br /><small>in <Link href={`/admin/enquiries?project=${e.project.id}`}>{e.project.name}</Link></small></>}
                   {!e.property && e.project && <><br /><small>Project lead</small></>}
                 </td>

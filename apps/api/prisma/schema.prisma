@@ -22,7 +22,8 @@ enum ConstructionStatus {
 enum Role {
   ADMIN /// everything, including managing users
   EDITOR /// all content and approvals, but not users
-  AGENT /// an owner, agent or builder posting their own listings, which staff approve
+  AGENT /// an owner or agent posting their own listings, which staff approve
+  BUILDER /// a builder's sales team: sees the leads on the projects staff have assigned to them, nothing else
 }
 
 enum ListingState {
@@ -77,6 +78,9 @@ model Project {
   amenities   String[]
   /// The builder's sales address. When set, each lead on this project is emailed there as it arrives.
   leadEmail   String?
+  /// The builder login that may see this project's leads.
+  accountId   String?
+  account     User?              @relation("ProjectAccount", fields: [accountId], references: [id], onDelete: SetNull)
   localityId  String
   locality    Locality           @relation(fields: [localityId], references: [id])
   properties  Property[]
@@ -145,6 +149,7 @@ model User {
   createdAt    DateTime   @default(now())
   properties   Property[]
   emailTokens  EmailToken[]
+  projects     Project[]  @relation("ProjectAccount")
 }
 
 model Photo {
