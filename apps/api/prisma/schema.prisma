@@ -122,6 +122,7 @@ model Project {
   locality    Locality           @relation(fields: [localityId], references: [id])
   properties  Property[]
   enquiries   Enquiry[]
+  sellers     ProjectSeller[]
 
   @@index([brandId])
 }
@@ -201,6 +202,37 @@ model User {
   projects     Project[]  @relation("ProjectAccount")
   dealer       DealerProfile?
   reportsAbout Report[]   @relation("ReportsAboutSeller")
+  /// Projects this agent sells, and the leads passed to them from those projects.
+  selling      ProjectSeller[]
+  assignedLeads Enquiry[]  @relation("AssignedLeads")
+}
+
+enum ProjectSellerStatus {
+  REQUESTED /// the agent asked to be listed for the project
+  APPROVED  /// staff confirmed it: buyers can be connected to this agent for the project
+  REJECTED
+}
+
+/// A verified agent who sells a builder's project. Buyers who press "Connect with a verified agent" on that project
+/// are passed to one of its approved agents.
+model ProjectSeller {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status    ProjectSellerStatus @default(REQUESTED)
+  /// What the agent told us about how they sell this project (e.g. an authorised channel partner).
+  note      String?
+  /// Shown to the agent when the request is turned down.
+  decisionNote String?
+  decidedBy String?
+  decidedAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, userId])
+  @@index([userId])
+  @@index([projectId, status])
 }
 
 model Photo {
@@ -273,6 +305,9 @@ model Enquiry {
   partnerStatus   LeadStatus @default(NEW)
   partnerNote     String?
   partnerStatusAt DateTime?
+  /// The verified agent this lead was passed to, when the buyer asked to be connected to one.
+  assignedToId String?
+  assignedTo   User?    @relation("AssignedLeads", fields: [assignedToId], references: [id], onDelete: SetNull)
   events     LeadEvent[]
   createdAt  DateTime @default(now())
   /// Set for an enquiry about one listing.
@@ -287,6 +322,7 @@ model Enquiry {
   @@index([status, createdAt])
   @@index([partnerStatus, createdAt])
   @@index([score])
+  @@index([assignedToId, createdAt])
   @@index([phone, createdAt])
 }
 

@@ -21,6 +21,23 @@ locality pages show no price figures until then.
 - Everything else takes a **lead** ("Request a call back") and shows no number: builder projects, a home posted by a
   builder, and a home our own team added. The lead goes to the builder's sales address or login, or to our team.
 
+**Buttons on cards, and verified agents**
+
+Every project tile and listing card has a button that opens a short form over the page (name, phone, when they plan
+to buy, site visit), so a buyer can ask without leaving the list.
+
+- A listing card says "Contact seller" (an owner's or agent's home) or "Request a call back".
+- A project tile says "Request a call back", unless the project has agents we have verified: then it says
+  **"Connect with a verified agent"**. The buyer is shown one agent's name and number, and that agent gets the lead.
+- An agent gets onto a project in two steps. Their profile must be verified (Admin → Sellers). Then they ask under
+  **Projects I sell**, and staff approve each project under **Agents on projects**, ideally after seeing the
+  builder's channel-partner letter. Approval can be withdrawn.
+- Where several agents sell one project, each lead goes to whoever was passed the fewest in the last thirty days;
+  between equals, the one verified most fully.
+- A lead passed to an agent is theirs to follow up: it appears in their leads with its score, they are reminded
+  about it, and the project's builder login does not see it. Our team sees every lead and who it went to.
+- An agent's phone number is never on a public page; it is shown only to a buyer who has just asked to be connected.
+
 **Lead score** (`apps/api/src/leads/score.ts`, with tests)
 
 Every enquiry gets a score from 0 to 100 and a band: **Hot** (50+, call today), **Warm** (25 to 49, this week),

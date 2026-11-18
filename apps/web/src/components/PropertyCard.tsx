@@ -1,3 +1,4 @@
+import { ConnectButton } from './ConnectButton';
 import Link from 'next/link';
 import { monthYear, num, price, statusLabel, typeLabel } from '@/lib/format';
 import { media, projectPath } from '@/lib/seo';
@@ -28,7 +29,10 @@ export function PropertyCard({ p }: { p: Card }) {
         <Link href={`/${p.locality.city.slug}/${p.locality.slug}`}>{p.locality.name}</Link>, {p.locality.city.name}
         {p.project && <> · <Link href={projectPath(p.locality.city.slug, p.project)}>{p.project.name}</Link></>}
       </p>
-      <CompareToggle slug={p.slug} title={p.title} />
+      <div className="card-actions">
+        <ConnectButton kind="property" slug={p.slug} name={p.title} mode={p.listedBy === 'BUILDER' ? 'callback' : 'seller'} />
+        <CompareToggle slug={p.slug} title={p.title} />
+      </div>
     </article>
   );
 }

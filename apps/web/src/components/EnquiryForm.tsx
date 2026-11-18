@@ -21,6 +21,10 @@ interface Props {
   projectName?: string;
   /** A project page made from a RERA register, whose builder has not joined us: our own team answers, not the builder's. */
   unclaimed?: boolean;
+  /** 'agent': the buyer asked to be connected to a verified agent selling the project, who is shown to them afterwards. */
+  via?: 'agent';
+  /** The short form used on cards: name, phone, when they plan to buy and a site visit. */
+  compact?: boolean;
 }
 
 /** One question answered with a tap. Tapping the chosen answer again clears it; every question is optional. */
@@ -37,8 +41,8 @@ function Taps({ name, label, options }: { name: string; label: string; options: 
   );
 }
 
-export function EnquiryForm({ slug, kind = 'property', reveal = true, interests, projectName, unclaimed }: Props) {
-  const [state, run, pending] = useActionState<EnquiryState, FormData>(enquire.bind(null, kind, slug), {});
+export function EnquiryForm({ slug, kind = 'property', reveal = true, interests, projectName, unclaimed, via, compact }: Props) {
+  const [state, run, pending] = useActionState<EnquiryState, FormData>(enquire.bind(null, kind, slug, via ?? null), {});
   const path = usePathname();
   const opened = useRef(Date.now());
   const signals = useRef<HTMLInputElement>(null);
@@ -47,6 +51,15 @@ export function EnquiryForm({ slug, kind = 'property', reveal = true, interests,
   const callback = project || !reveal;
   const about = projectName ?? (project ? 'this project' : 'this home');
 
+  if (state.sent && state.agent) {
+    return (
+      <div className="enquiry-done" role="status">
+        <p><strong>You are connected.</strong></p>
+        <p>Your agent for {about} is {state.agent.name}{state.agent.firmName ? ` of ${state.agent.firmName}` : ''}: <a href={`tel:${state.agent.phone}`}>{state.agent.phone}</a>. They have your details and will call you.</p>
+        <p>We have verified this agent ({state.agent.label.toLowerCase()}). Even so, do not pay a booking amount before you have seen the site and checked the project’s RERA registration.</p>
+      </div>
+    );
+  }
   if (state.sent) {
     return (
       <div className="enquiry-done" role="status">
@@ -71,29 +84,29 @@ export function EnquiryForm({ slug, kind = 'property', reveal = true, interests,
       {state.error && <p role="alert" className="aerror">{state.error}</p>}
       <label className="afield"><span>Your name</span><input name="name" required maxLength={80} autoComplete="name" /></label>
       <label className="afield"><span>Phone</span><input name="phone" type="tel" required autoComplete="tel" inputMode="tel" /></label>
-      <label className="afield"><span>Email <em>(optional)</em></span><input name="email" type="email" autoComplete="email" /></label>
-      {project && interests && interests.length > 0 && (
+      {!compact && <label className="afield"><span>Email <em>(optional)</em></span><input name="email" type="email" autoComplete="email" /></label>}
+      {!compact && project && interests && interests.length > 0 && (
         <label className="afield"><span>Interested in <em>(optional)</em></span>
           <select name="interest" defaultValue=""><option value="">Any size</option>{interests.map((x) => <option key={x} value={x}>{x}</option>)}</select>
         </label>
       )}
 
-      <p className="wide taps-intro"><strong>A little about your plans</strong> <em>(optional)</em>. It helps the right person call you, with the right answers.</p>
-      <Taps name="timeline" label="When do you plan to buy?" options={TIMELINES} />
-      <Taps name="budget" label="Your budget" options={BUDGETS} />
-      <Taps name="loan" label="How will you pay?" options={LOANS} />
-      <Taps name="purpose" label="The home is" options={PURPOSES} />
+      {!compact && <p className="wide taps-intro"><strong>A little about your plans</strong> <em>(optional)</em>. It helps the right person call you, with the right answers.</p>}
+      <Taps name="timeline" label={compact ? 'When do you plan to buy? (optional)' : 'When do you plan to buy?'} options={TIMELINES} />
+      {!compact && <Taps name="budget" label="Your budget" options={BUDGETS} />}
+      {!compact && <Taps name="loan" label="How will you pay?" options={LOANS} />}
+      {!compact && <Taps name="purpose" label="The home is" options={PURPOSES} />}
       <label className="acheck wide"><input type="checkbox" name="wantsVisit" /> <span>I would like to arrange a site visit.</span></label>
 
-      <label className="afield wide"><span>Message <em>(optional)</em></span><textarea name="message" rows={2} maxLength={500} placeholder={callback ? 'e.g. I would like to visit this weekend' : 'e.g. Is the price negotiable? When can I visit?'} /></label>
+      {!compact && <label className="afield wide"><span>Message <em>(optional)</em></span><textarea name="message" rows={2} maxLength={500} placeholder={callback ? 'e.g. I would like to visit this weekend' : 'e.g. Is the price negotiable? When can I visit?'} /></label>}
       <label className="hp" aria-hidden="true">Website<input name="website" tabIndex={-1} autoComplete="off" /></label>
       <input type="hidden" name="signals" ref={signals} />
-      <label className="acheck wide"><input type="checkbox" name="consent" required /> <span>{project
+      <label className="acheck wide"><input type="checkbox" name="consent" required /> <span>{via === 'agent' ? `Share my name and phone number with a verified agent selling ${about}, and with this site’s team, so they can contact me.` : project
         ? unclaimed ? `I agree to be contacted by phone or email about ${about} by this site’s team, who may pass my enquiry to the builder.` : `I agree to be contacted by phone or email about ${about} by the builder and this site’s team.`
         : callback ? 'I agree to be contacted by phone or email about this home by its builder or this site’s team.'
           : 'Share my name and phone number with the seller so they can contact me about this home.'}</span></label>
-      <p className="wide calc-note">With your enquiry we pass on your answers above and a short note of how you used this site (pages opened, calculators used), so you are called by someone who knows what you are looking for.</p>
-      <div className="aactions"><button type="submit" className="abtn" disabled={pending}>{pending ? 'Sending…' : callback ? 'Request a call back' : 'Get seller’s contact'}</button></div>
+      <p className="wide calc-note">{compact ? 'We also pass on a short note of how you used this site (pages opened, calculators used).' : 'With your enquiry we pass on your answers above and a short note of how you used this site (pages opened, calculators used), so you are called by someone who knows what you are looking for.'}</p>
+      <div className="aactions"><button type="submit" className="abtn" disabled={pending}>{pending ? 'Sending…' : via === 'agent' ? 'Connect me' : callback ? 'Request a call back' : 'Get seller’s contact'}</button></div>
     </form>
   );
 }

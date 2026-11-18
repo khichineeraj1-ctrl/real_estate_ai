@@ -167,7 +167,8 @@ export class AdminService implements OnModuleInit {
    * the listing was posted by an owner or agent (that buyer agreed to share their details with that seller only).
    */
   private builderLeads(user: SessionUser): Prisma.EnquiryWhereInput {
-    return { project: { accountId: user.id }, OR: [{ propertyId: null }, { property: { NOT: { owner: { is: { role: 'AGENT' } } } } }] };
+    // A lead the buyer asked to have passed to a verified agent is that agent's, not the builder's.
+    return { project: { accountId: user.id }, assignedToId: null, OR: [{ propertyId: null }, { property: { NOT: { owner: { is: { role: 'AGENT' } } } } }] };
   }
 
   async overview(user: SessionUser) {
@@ -345,7 +346,8 @@ export class AdminService implements OnModuleInit {
   /** Staff may narrow to leads on projects, enquiries on single listings, or one project; an owner or agent only ever sees their own listings' enquiries. */
   private enquiryWhere(user: SessionUser, q: { kind?: string; project?: string }): Prisma.EnquiryWhereInput {
     if (user.role === 'BUILDER') return q.project ? { AND: [this.builderLeads(user), { projectId: q.project }] } : this.builderLeads(user);
-    if (!isStaff(user)) return { property: { ownerId: user.id } };
+    // An owner or agent sees enquiries on their own listings, and leads passed to them from projects they sell.
+    if (!isStaff(user)) return { OR: [{ property: { ownerId: user.id } }, { assignedToId: user.id }] };
     if (q.project) return { projectId: q.project };
     return q.kind === 'project' ? { propertyId: null } : q.kind === 'listing' ? { propertyId: { not: null } } : {};
   }
@@ -380,6 +382,7 @@ export class AdminService implements OnModuleInit {
         include: {
           property: { select: { id: true, slug: true, title: true, state: true, owner: { select: { name: true, role: true } } } },
           project: { select: { id: true, slug: true, name: true, account: { select: { name: true } } } },
+          assignedTo: { select: { name: true } },
           // A partner sees only their own trail; staff see both.
           events: { where: staff ? {} : { party: 'PARTNER' }, orderBy: { createdAt: 'desc' }, take: 20, select: { id: true, party: true, fromStatus: true, toStatus: true, note: true, byName: true, createdAt: true } },
         },
@@ -390,7 +393,8 @@ export class AdminService implements OnModuleInit {
     const items = rows.map((e) => {
       // Who the outside party is for this lead: a seller with their own account, else the project's builder login.
       const seller = e.property?.owner?.role === 'AGENT' ? e.property.owner.name : null;
-      const partnerName = seller ?? e.project?.account?.name ?? null;
+      const agent = e.assignedTo?.name ?? null;
+      const partnerName = agent ?? seller ?? e.project?.account?.name ?? null;
       return {
         id: e.id, name: e.name, phone: e.phone, email: e.email, message: e.message, interest: e.interest, createdAt: e.createdAt,
         // How strong the lead looks and why, and what the buyer said about their plans. Shown to whoever follows it up.
@@ -398,8 +402,10 @@ export class AdminService implements OnModuleInit {
         property: e.property && { id: e.property.id, slug: e.property.slug, title: e.property.title, state: e.property.state },
         project: e.project && { id: e.project.id, slug: e.project.slug, name: e.project.name },
         status: e[t.status], note: e[t.note], events: e.events,
+        // True for a lead passed to this agent from a project they sell (rather than an enquiry on their own listing).
+        passedOn: !!e.assignedToId,
         // Staff also see how the seller or builder is getting on; the reverse is never sent.
-        partner: staff && partnerName ? { kind: seller ? 'Seller' : 'Builder', name: partnerName, status: e.partnerStatus, note: e.partnerNote, at: e.partnerStatusAt } : null,
+        partner: staff && partnerName ? { kind: agent ? 'Agent' : seller ? 'Seller' : 'Builder', name: partnerName, status: e.partnerStatus, note: e.partnerNote, at: e.partnerStatusAt } : null,
       };
     });
     return { items, total, page: p, pageSize: 50, project, byStatus, byBand };
@@ -526,6 +532,59 @@ export class AdminService implements OnModuleInit {
     if (data.localityId !== current.localityId && (await this.db.property.count({ where: { projectId: id } }))) throw new ConflictException('This project has listings, so it cannot be moved to another locality');
     // A changed builder name moves the project to that builder's page; an unchanged one stays where a person may have merged it.
     return this.db.project.update({ where: { id }, data: { ...data, ...(data.builder !== current.builder || !current.brandId ? { brandId: await ensureBuilder(this.db, data.builder) } : {}) } });
+  }
+
+  // ---- Verified agents and the projects they sell
+
+  /** An agent's own list: the projects they asked to sell and where each request stands. */
+  async mySelling(user: SessionUser) {
+    const profile = await this.db.dealerProfile.findUnique({ where: { userId: user.id }, select: { status: true, kind: true } });
+    const items = await this.db.projectSeller.findMany({ where: { userId: user.id }, orderBy: { createdAt: 'desc' }, select: { id: true, status: true, note: true, decisionNote: true, createdAt: true, project: { select: { id: true, slug: true, name: true, builder: true, locality: { select: { name: true, city: { select: { name: true } } } } } } } });
+    const leads = await this.db.enquiry.groupBy({ by: ['projectId'], where: { assignedToId: user.id }, _count: true });
+    return { verified: profile?.status === 'APPROVED', kind: profile?.kind ?? null, items: items.map((x) => ({ ...x, leads: leads.find((l) => l.projectId === x.project.id)?._count ?? 0 })) };
+  }
+  /** Projects matching a name, for an agent choosing one to sell. */
+  async findProjects(q: unknown) {
+    const text = typeof q === 'string' ? q.trim().slice(0, 60) : '';
+    if (text.length < 2) return [];
+    return this.db.project.findMany({ where: { OR: [{ name: { contains: text, mode: 'insensitive' } }, { builder: { contains: text, mode: 'insensitive' } }] }, orderBy: { name: 'asc' }, take: 25, select: { id: true, name: true, builder: true, locality: { select: { name: true, city: { select: { name: true } } } } } });
+  }
+  /** An agent asks to be offered to buyers for a project. Only a profile our team has verified may ask. */
+  async requestSelling(user: SessionUser, body: Record<string, unknown>) {
+    if (user.role !== 'AGENT') throw new ForbiddenException('Only agents can be listed as selling a project');
+    const profile = await this.db.dealerProfile.findUnique({ where: { userId: user.id }, select: { status: true, kind: true } });
+    if (profile?.status !== 'APPROVED') throw new ForbiddenException('Get verified first: buyers are only connected to agents our team has verified');
+    if (profile.kind === 'OWNER') throw new ForbiddenException('This is for agents and dealers. As an owner you can post your own home instead.');
+    const i = new Input(body);
+    const projectId = i.text('projectId', 'Project');
+    if (!(await this.db.project.findUnique({ where: { id: projectId }, select: { id: true } }))) throw new BadRequestException('Choose a project from the list');
+    if (await this.db.projectSeller.findUnique({ where: { projectId_userId: { projectId, userId: user.id } }, select: { id: true } })) throw new ConflictException('You have already asked to sell this project');
+    return this.db.projectSeller.create({ data: { projectId, userId: user.id, note: i.optionalText('note', 'How you sell this project', 300) }, select: { id: true } });
+  }
+  /** An agent withdraws from a project. Leads already passed to them stay theirs. */
+  async stopSelling(user: SessionUser, id: string) {
+    const row = await this.db.projectSeller.findFirst({ where: { id, userId: user.id }, select: { id: true } });
+    if (!row) throw new NotFoundException('Not found');
+    await this.db.projectSeller.delete({ where: { id } });
+    return { ok: true };
+  }
+  /** Staff: requests from agents to sell projects, newest first, with how far each agent is verified. */
+  projectSellers(q: { status?: string }) {
+    const status = (['REQUESTED', 'APPROVED', 'REJECTED'] as const).find((x) => x === q.status);
+    return this.db.projectSeller.findMany({
+      where: status ? { status } : {}, orderBy: { createdAt: 'desc' }, take: 200,
+      select: { id: true, status: true, note: true, decisionNote: true, createdAt: true, decidedAt: true, decidedBy: true, project: { select: { id: true, slug: true, name: true, builder: true, locality: { select: { name: true, city: { select: { name: true } } } } } }, user: { select: { id: true, name: true, phone: true, email: true, active: true, dealer: { select: { firmName: true, reraNumber: true, status: true, level: true, kind: true } } } } },
+    });
+  }
+  /** Staff approve or turn down a request. Approving makes the agent available to buyers for that project. */
+  async decideProjectSeller(user: SessionUser, id: string, body: Record<string, unknown>) {
+    const i = new Input(body);
+    const approve = i.oneOf('decision', 'Decision', ['APPROVED', 'REJECTED']) === 'APPROVED';
+    const row = await this.db.projectSeller.findUnique({ where: { id }, select: { id: true, user: { select: { dealer: { select: { status: true } } } } } });
+    if (!row) throw new NotFoundException('Request not found');
+    if (approve && row.user.dealer?.status !== 'APPROVED') throw new ConflictException('This agent is not verified yet. Approve their profile under Sellers first.');
+    await this.db.projectSeller.update({ where: { id }, data: { status: approve ? 'APPROVED' : 'REJECTED', decisionNote: i.optionalText('note', 'Note', 300), decidedBy: user.name, decidedAt: new Date() } });
+    return { ok: true };
   }
 
   // ---- Builder pages (the public /builders/<builder> pages; not the builder logins)

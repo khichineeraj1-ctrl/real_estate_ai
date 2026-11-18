@@ -207,3 +207,26 @@ export async function mergeBuilderPage(id: string, _: FormState, form: FormData)
   revalidatePath('/', 'layout');
   redirect('/admin/builder-pages?merged=1');
 }
+
+/** A verified agent asks to be offered to buyers for a project. */
+export async function requestSelling(_: FormState, form: FormData): Promise<FormState> {
+  const r = await adminFetch('/selling', { method: 'POST', body: fields(form) });
+  if (!r.ok) return failed(r);
+  redirect('/admin/selling?asked=1');
+}
+
+/** An agent withdraws from a project they sell (or a request they made). */
+export async function stopSelling(id: string, _: FormState): Promise<FormState> {
+  const r = await adminFetch(`/selling/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  if (!r.ok) return failed(r);
+  revalidatePath('/', 'layout'); // the project's "verified agent" button may change
+  redirect('/admin/selling?removed=1');
+}
+
+/** Staff approve or turn down an agent's request to sell a project. */
+export async function decideProjectSeller(id: string, decision: 'APPROVED' | 'REJECTED', _: FormState, form: FormData): Promise<FormState> {
+  const r = await adminFetch(`/project-sellers/${encodeURIComponent(id)}/decide`, { method: 'POST', body: { decision, note: String(form.get('note') ?? '') } });
+  if (!r.ok) return failed(r);
+  revalidatePath('/', 'layout');
+  redirect('/admin/project-sellers?decided=1');
+}

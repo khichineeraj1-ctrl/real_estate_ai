@@ -28,7 +28,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           {!builder && <Link href="/admin/properties">{staff ? 'Listings' : 'My listings'}</Link>}
           <Link href="/admin/enquiries">{builder ? 'Leads' : 'Enquiries'}</Link>
           {me.role === 'AGENT' && <Link href="/admin/verification">Get verified</Link>}
+          {me.role === 'AGENT' && <Link href="/admin/selling">Projects I sell</Link>}
           {staff && <Link href="/admin/dealers?status=SUBMITTED">Sellers</Link>}
+          {staff && <Link href="/admin/project-sellers">Agents on projects</Link>}
           {staff && <Link href="/admin/reports?status=NEW">Reports</Link>}
           {staff && <Link href="/admin/properties?state=PENDING">Review queue</Link>}
           {staff && <Link href="/admin/import">Import</Link>}

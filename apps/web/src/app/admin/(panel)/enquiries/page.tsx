@@ -11,7 +11,9 @@ interface Row {
   /** How strong the lead looks (0 to 100), its band, why, and what the buyer said about their plans. */
   score: number; band: 'HOT' | 'WARM' | 'COLD'; reasons: { points: number; text: string }[]; plans: string[];
   /** Staff only: how the seller or builder this lead belongs to is getting on. */
-  partner: { kind: 'Seller' | 'Builder'; name: string; status: string; note: string | null; at: string | null } | null;
+  /** True for a lead passed to this agent from a project they sell. */
+  passedOn?: boolean;
+  partner: { kind: 'Agent' | 'Seller' | 'Builder'; name: string; status: string; note: string | null; at: string | null } | null;
   events: Event[];
   property: { id: string; slug: string; title: string; state: string } | null; project: { id: string; slug: string; name: string } | null;
 }
@@ -45,7 +47,7 @@ export default async function Enquiries({ searchParams }: { searchParams: Promis
         {d.project ? <>Buyers who asked about this {d.project.builder} project or one of its listings. <Link href="/admin/enquiries">See all {builder ? 'leads' : 'enquiries'}</Link>.</>
           : builder ? 'Buyers who asked for a call back about your projects or the homes you are selling in them. They agreed to be contacted by you.'
             : staff ? 'Every buyer who asked to be contacted. Leads on builder projects, and enquiries on listings without a seller account, are yours to follow up or pass to the builder.'
-              : 'Buyers who asked to be contacted about your listings. They were shown your name and phone number, and you were emailed each time.'}
+              : 'Buyers who asked to be contacted about your listings, and buyers passed to you from projects you sell. They were shown your name and phone number, and you were emailed each time.'}
         {' '}Set a status as you follow up; notes are private and never shown to the buyer.
         {staff ? ' Your team’s status is separate from the seller’s or builder’s, which is shown beneath it.' : ''}
       </p>
@@ -86,7 +88,7 @@ export default async function Enquiries({ searchParams }: { searchParams: Promis
                 <td>
                   {builder ? (e.property?.title ?? e.project?.name) : e.property ? <Link href={`/admin/properties/${e.property.id}`}>{e.property.title}</Link> : e.project ? <Link href={`/admin/projects/${e.project.id}`}>{e.project.name}</Link> : 'A project that was since deleted'}
                   {e.property && e.project && staff && <><br /><small>in <Link href={`/admin/enquiries?project=${e.project.id}`}>{e.project.name}</Link></small></>}
-                  {!e.property && e.project && <><br /><small>Project lead</small></>}
+                  {!e.property && e.project && <><br /><small>{e.passedOn && !staff ? 'Passed to you as a verified agent' : e.passedOn ? 'Project lead, passed to an agent' : 'Project lead'}</small></>}
                 </td>
                 <td>{e.name}</td>
                 <td><a href={`tel:${e.phone}`}>{e.phone}</a>{e.email && <><br /><a href={`mailto:${e.email}`}>{e.email}</a></>}</td>

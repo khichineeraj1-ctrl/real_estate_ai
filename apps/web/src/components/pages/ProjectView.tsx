@@ -1,3 +1,5 @@
+import { ConnectButton } from '@/components/ConnectButton';
+import { ProjectTile } from '@/components/ProjectTile';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { AskBox } from '@/components/AskBox';
@@ -49,6 +51,21 @@ export function ProjectView({ p }: { p: ProjectDetail }) {
         <div><dt>Locality</dt><dd><Link href={localityPath}>{p.locality.name}</Link>, <Link href={`/${p.city.slug}`}>{p.city.name}</Link></dd></div>
       </dl>
 
+      {p.agents.length > 0 && (
+        <section className="section" id="agents">
+          <h2>Verified agents selling {p.name}</h2>
+          <p className="lead">We have checked these agents’ identity and registration. Ask to be connected and you will be shown one agent’s number; they will call you as well.</p>
+          <ul className="tiles">
+            {p.agents.map((a) => (
+              <li className="ptile" key={a.id}>
+                <Link href={`/dealers/${a.id}`}><strong>{a.name}</strong>{a.firmName && <span>{a.firmName}</span>}<span className="ptile-agents">✓ {a.label}{a.yearsInBusiness ? ` · ${a.yearsInBusiness} years in business` : ''}</span></Link>
+              </li>
+            ))}
+          </ul>
+          <p><ConnectButton kind="project" slug={p.slug} name={p.name} mode="agent" agents={p.agents.length} unclaimed={!!p.registerSource} /></p>
+        </section>
+      )}
+
       <section className="section enquiry" id="contact">
         <h2>{p.registerSource ? 'Interested in this project?' : 'Get prices, floor plans and a site visit'}</h2>
         <p>{p.registerSource ? `Leave your details and our team will call you. ${p.builder} has not joined us yet, so we will find out prices and availability for you.` : `Leave your details and the sales team for ${p.name} will call you back.`}</p>
@@ -65,7 +82,7 @@ export function ProjectView({ p }: { p: ProjectDetail }) {
         <section className="section">
           <h2>More {p.brand.name} projects in {p.city.name}</h2>
           <ul className="tiles">
-            {p.more.byBuilder.map((x) => <li key={x.slug}><Link href={projectPath(p.city.slug, x)}><strong>{x.name}</strong><span>{x.locality?.name}, {p.city.name}</span></Link></li>)}
+            {p.more.byBuilder.map((x) => <ProjectTile key={x.slug} city={p.city.slug} p={x} lines={[`${x.locality?.name}, ${p.city.name}`]} />)}
           </ul>
           {builderHere && <p><Link href={builderHere}>All {p.brand.name} projects in {p.city.name}</Link></p>}
         </section>
@@ -74,7 +91,7 @@ export function ProjectView({ p }: { p: ProjectDetail }) {
         <section className="section">
           <h2>Other projects in {p.locality.name}</h2>
           <ul className="tiles">
-            {p.more.inLocality.map((x) => <li key={x.slug}><Link href={projectPath(p.city.slug, x)}><strong>{x.name}</strong><span>{x.brand?.name ?? x.builder}</span></Link></li>)}
+            {p.more.inLocality.map((x) => <ProjectTile key={x.slug} city={p.city.slug} p={x} lines={[x.brand?.name ?? x.builder]} />)}
           </ul>
           <p><Link href={localityPath}>All projects and property in {p.locality.name}</Link></p>
         </section>

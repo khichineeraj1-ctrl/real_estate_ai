@@ -44,6 +44,12 @@ const costsOf = (c: CityCosts) => (c.stampDutyPct == null || c.registrationPct =
 
 export interface Stats { count: number; minPrice: number | null; maxPrice: number | null; avgRate: number | null }
 
+/** An agent who may be offered to buyers for a project: approved for it, with an account in good standing and a profile our team has verified. */
+export const VERIFIED_SELLER = { status: 'APPROVED', user: { active: true, role: 'AGENT', phone: { not: null }, dealer: { status: 'APPROVED' } } } satisfies Prisma.ProjectSellerWhereInput;
+/** Added to a project query to count its verified agents; `withAgents` turns the count into `agents`. */
+const AGENT_COUNT = { select: { sellers: { where: VERIFIED_SELLER } } } as const;
+const withAgents = <T extends { _count: { sellers: number } }>({ _count, ...p }: T) => ({ ...p, agents: _count.sellers });
+
 @Injectable()
 export class CatalogService {
   constructor(private readonly db: PrismaService, private readonly mail: Mailer, private readonly trust: TrustService) {}
@@ -102,9 +108,9 @@ export class CatalogService {
       this.bhkBreakdown({ city: slug }),
       Promise.all(city.localities.map(async (l) => ({ slug: l.slug, name: l.name, stats: await this.stats({ city: slug, locality: l.slug }) }))),
       // Projects entered by our team or builders first, then register entries; a city can have hundreds, so only the first few dozen are listed here.
-      this.db.project.findMany({ where: { locality: { city: { slug } } }, select: { slug: true, name: true, builder: true, brand: { select: { slug: true, name: true } }, status: true, registerSource: true, locality: { select: { name: true } } }, orderBy: [{ registerSource: { sort: 'asc', nulls: 'first' } }, { name: 'asc' }], take: 36 }),
+      this.db.project.findMany({ where: { locality: { city: { slug } } }, select: { slug: true, name: true, builder: true, brand: { select: { slug: true, name: true } }, status: true, registerSource: true, locality: { select: { name: true } }, _count: AGENT_COUNT }, orderBy: [{ registerSource: { sort: 'asc', nulls: 'first' } }, { name: 'asc' }], take: 36 }),
     ]);
-    return { slug: city.slug, name: city.name, state: city.state, intro: city.intro, lat: city.lat, lng: city.lng, costs: costsOf(city), stats, bhk, localities, projects, builders: await this.buildersIn(slug) };
+    return { slug: city.slug, name: city.name, state: city.state, intro: city.intro, lat: city.lat, lng: city.lng, costs: costsOf(city), stats, bhk, localities, projects: projects.map(withAgents), builders: await this.buildersIn(slug) };
   }
 
   /** The builders with projects in a city, busiest first: the links from a city page to each builder's page there. */
@@ -122,14 +128,14 @@ export class CatalogService {
     const [stats, bhk, projects, siblings] = await Promise.all([
       this.stats(f),
       this.bhkBreakdown(f),
-      this.db.project.findMany({ where: { localityId: locality.id }, select: { slug: true, name: true, builder: true, brand: { select: { slug: true, name: true } }, status: true, registerSource: true }, orderBy: [{ registerSource: { sort: 'asc', nulls: 'first' } }, { name: 'asc' }], take: 60 }),
+      this.db.project.findMany({ where: { localityId: locality.id }, select: { slug: true, name: true, builder: true, brand: { select: { slug: true, name: true } }, status: true, registerSource: true, _count: AGENT_COUNT }, orderBy: [{ registerSource: { sort: 'asc', nulls: 'first' } }, { name: 'asc' }], take: 60 }),
       this.db.locality.findMany({ where: { cityId: locality.cityId, NOT: { id: locality.id } }, select: { slug: true, name: true, lat: true, lng: true } }),
     ]);
     // Nearest first, so "nearby localities" links are the ones a buyer would actually compare.
     const nearby = siblings.map((s) => ({ slug: s.slug, name: s.name, d: (s.lat - locality.lat) ** 2 + (s.lng - locality.lng) ** 2 })).sort((a, b) => a.d - b.d).slice(0, 4).map(({ slug, name }) => ({ slug, name }));
     return {
       slug: locality.slug, name: locality.name, intro: locality.intro, highlights: locality.highlights, lat: locality.lat, lng: locality.lng,
-      city: { slug: locality.city.slug, name: locality.city.name, state: locality.city.state }, stats, bhk, projects, nearby,
+      city: { slug: locality.city.slug, name: locality.city.name, state: locality.city.state }, stats, bhk, projects: projects.map(withAgents), nearby,
     };
   }
 
@@ -143,13 +149,13 @@ export class CatalogService {
     ]);
     const { locality, localityId, id, leadEmail, accountId, brandId, ...rest } = project;
     // Other projects a reader of this one is likely to want next: the same builder in this city, and the same locality.
-    const link = { slug: true, name: true, builder: true, brand: { select: { slug: true, name: true } }, locality: { select: { name: true } } } as const;
+    const link = { slug: true, name: true, builder: true, brand: { select: { slug: true, name: true } }, locality: { select: { name: true } }, _count: AGENT_COUNT } as const;
     const [byBuilder, inLocality] = await Promise.all([
       brandId ? this.db.project.findMany({ where: { brandId, id: { not: id }, locality: { cityId: locality.cityId } }, select: link, orderBy: { name: 'asc' }, take: 8 }) : [],
       this.db.project.findMany({ where: { localityId, id: { not: id }, ...(brandId ? { NOT: { brandId } } : {}) }, select: link, orderBy: { name: 'asc' }, take: 8 }),
     ]);
     const registerName = project.registerSource ? SOURCE_NAME[project.registerSource] : null; // the builder's sales address and login are for our use only
-    return { ...rest, registerName, locality: { slug: locality.slug, name: locality.name, lat: locality.lat, lng: locality.lng }, city: { slug: locality.city.slug, name: locality.city.name, state: locality.city.state }, properties, stats, bhk, more: { byBuilder, inLocality } };
+    return { ...rest, registerName, locality: { slug: locality.slug, name: locality.name, lat: locality.lat, lng: locality.lng }, city: { slug: locality.city.slug, name: locality.city.name, state: locality.city.state }, properties, stats, bhk, more: { byBuilder: byBuilder.map(withAgents), inLocality: inLocality.map(withAgents) }, agents: await this.projectAgents(id) };
   }
 
   async property(slug: string) {
@@ -224,6 +230,34 @@ export class CatalogService {
     return !!owner && owner.active && owner.role === 'AGENT' && !!owner.phone && owner.dealer?.kind !== 'BUILDER';
   }
 
+  /** The verified agents selling a project, as buyers see them: name, firm and how far we have verified them. Never a phone number. */
+  private async projectAgents(projectId: string) {
+    const rows = await this.db.projectSeller.findMany({ where: { projectId, ...VERIFIED_SELLER }, select: { user: { select: { id: true, name: true, dealer: { select: { firmName: true, yearsInBusiness: true, level: true, kind: true } } } } }, orderBy: { decidedAt: 'asc' } });
+    return rows.map(({ user: u }) => ({ id: u.id, name: u.name, firmName: u.dealer?.firmName ?? null, yearsInBusiness: u.dealer?.yearsInBusiness ?? null, level: u.dealer?.level ?? 0, label: LEVEL_LABEL[(u.dealer?.level ?? 0) as Level] }))
+      .sort((a, b) => b.level - a.level);
+  }
+
+  /**
+   * Which of a project's verified agents the next lead goes to: the one who has been passed the fewest in the last
+   * thirty days, so leads are shared out; between equals, the one we have verified most fully.
+   */
+  private async nextAgent(projectId: string) {
+    const sellers = await this.db.projectSeller.findMany({ where: { projectId, ...VERIFIED_SELLER }, select: { user: { select: { id: true, name: true, phone: true, email: true, dealer: { select: { firmName: true, level: true } } } } } });
+    if (!sellers.length) return null;
+    const recent = await this.db.enquiry.groupBy({ by: ['assignedToId'], where: { assignedToId: { in: sellers.map((x) => x.user.id) }, createdAt: { gt: new Date(Date.now() - 30 * 86_400_000) } }, _count: true });
+    const had = new Map(recent.map((r) => [r.assignedToId, r._count]));
+    return sellers.map((x) => x.user).sort((a, b) => (had.get(a.id) ?? 0) - (had.get(b.id) ?? 0) || (b.dealer?.level ?? 0) - (a.dealer?.level ?? 0) || a.name.localeCompare(b.name))[0];
+  }
+  /** Tells the agent about a lead passed to them, and gives what the buyer is shown in return. */
+  private async handOver(agent: NonNullable<Awaited<ReturnType<CatalogService['nextAgent']>>>, about: string, b: { name: string; phone: string; email: string | null; message: string | null }, summary: string) {
+    await this.mail.send({
+      to: agent.email, subject: `New lead: ${about}`,
+      text: `Hello ${agent.name},\n\nA buyer asked to be connected to a verified agent for ${about}, and the lead is yours.\n\nName: ${b.name}\nPhone: ${b.phone}${b.email ? `\nEmail: ${b.email}` : ''}${b.message ? `\nMessage: ${b.message}` : ''}${summary}\n\nThe buyer has been shown your name and phone number. Please call them today, and record how it goes: ${SITE_URL}/admin/enquiries`,
+    });
+    const level = agent.dealer?.level ?? 0;
+    return { name: agent.name, phone: agent.phone!, firmName: agent.dealer?.firmName ?? null, level, label: LEVEL_LABEL[level as Level] };
+  }
+
   /** The buyer's stated plans and site use, and the score they add up to, ready to store with the enquiry. */
   private async intent(body: Record<string, unknown>, b: { name: string; phone: string; email: string | null; message: string | null }, about: { projectId?: string | null; propertyId?: string }) {
     const i = readIntent(body);
@@ -243,7 +277,10 @@ export class CatalogService {
     const project = await this.db.project.findUnique({ where: { slug }, select: { id: true, name: true, leadEmail: true, account: { select: { email: true, active: true } }, locality: { select: { name: true, city: { select: { name: true } } } } } });
     if (!project) throw new NotFoundException('Project not found');
     const intent = await this.intent(body, b, { projectId: project.id });
-    await this.db.enquiry.create({ data: { projectId: project.id, ...b, ...intent.data } });
+    // "Connect with a verified agent": the lead goes to one of the project's agents, who is shown to the buyer.
+    const agent = body.via === 'agent' ? await this.nextAgent(project.id) : null;
+    await this.db.enquiry.create({ data: { projectId: project.id, ...b, ...intent.data, assignedToId: agent?.id ?? null } });
+    if (agent) return { ok: true, agent: await this.handOver(agent, `${project.name}, ${project.locality.name}`, b, intent.summary) };
     const to = this.leadAddress(project);
     if (to) {
       await this.mail.send({
@@ -260,7 +297,7 @@ export class CatalogService {
     const p = await this.db.property.findFirst({ where: { slug, state: 'PUBLISHED' }, select: { id: true, title: true, projectId: true, ownerId: true, project: { select: { name: true, leadEmail: true, account: { select: { email: true, active: true } } } }, owner: { select: { name: true, phone: true, email: true, role: true, active: true, dealer: { select: { kind: true } } } } } });
     if (!p) throw new NotFoundException('Property not found');
     const intent = await this.intent(body, b, { propertyId: p.id });
-    await this.db.enquiry.create({ data: { propertyId: p.id, projectId: p.projectId, name, phone, email, message, ...intent.data } });
+    const enquiry = await this.db.enquiry.create({ data: { propertyId: p.id, projectId: p.projectId, name, phone, email, message, ...intent.data }, select: { id: true } });
     // An owner's or agent's contact is shown to the buyer; a builder who posted the home gets the lead without being shown.
     const seller = this.revealsSeller(p.owner) ? p.owner : null;
     const builderOwner = !seller && p.owner?.active && p.owner.dealer?.kind === 'BUILDER' ? p.owner : null;
@@ -274,6 +311,12 @@ export class CatalogService {
       });
     }
     // A listing with no seller account that belongs to a builder project is the builder's own stock: the lead goes to their sales address.
+    // A builder's or our own listing inside a project, when the buyer asked for a verified agent: pass it to one.
+    const agent = !seller && !builderOwner && body.via === 'agent' && p.projectId ? await this.nextAgent(p.projectId) : null;
+    if (agent) {
+      await this.db.enquiry.update({ where: { id: enquiry.id }, data: { assignedToId: agent.id } });
+      return { ok: true, seller: null, agent: await this.handOver(agent, `"${p.title}"`, b, intent.summary) };
+    }
     const builderAddress = p.project ? this.leadAddress(p.project) : null;
     if (!seller && !builderOwner && builderAddress) {
       await this.mail.send({
@@ -326,13 +369,13 @@ export class CatalogService {
         slug: true, name: true, mergedInto: { select: { slug: true } },
         projects: {
           orderBy: [{ name: 'asc' }],
-          select: { slug: true, name: true, builder: true, status: true, reraId: true, registerSource: true, registerStatus: true, registerValidUntil: true, locality: { select: { slug: true, name: true, city: { select: { slug: true, name: true } } } }, _count: { select: { properties: { where: { state: 'PUBLISHED' } } } } },
+          select: { slug: true, name: true, builder: true, status: true, reraId: true, registerSource: true, registerStatus: true, registerValidUntil: true, locality: { select: { slug: true, name: true, city: { select: { slug: true, name: true } } } }, _count: { select: { properties: { where: { state: 'PUBLISHED' } }, sellers: { where: VERIFIED_SELLER } } } },
         },
       },
     });
     if (b?.mergedInto) return { movedTo: b.mergedInto.slug }; // merged into another builder: the page sends people there
     if (!b || !b.projects.length) throw new NotFoundException('Builder not found');
-    const projects = b.projects.map(({ _count, locality, ...p }) => ({ ...p, homes: _count.properties, locality: { slug: locality.slug, name: locality.name }, city: locality.city }));
+    const projects = b.projects.map(({ _count, locality, ...p }) => ({ ...p, homes: _count.properties, agents: _count.sellers, locality: { slug: locality.slug, name: locality.name }, city: locality.city }));
     const cities = [...new Map(projects.map((p) => [p.city.slug, p.city])).values()].sort((x, y) => x.name.localeCompare(y.name));
     // In one city: only that city's projects, and a 404 if the builder has none there.
     const shown = city ? projects.filter((p) => p.city.slug === city) : projects;

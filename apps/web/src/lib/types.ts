@@ -17,7 +17,7 @@ export interface PropertyCard {
   /** How far the home and its seller are verified, 0 (not yet) to 3 (high). */
   confidence?: number;
 }
-export interface ProjectLink extends Place { builder: string; brand: Place | null; status: Status; locality?: { name: string }; registerSource?: string | null }
+export interface ProjectLink extends Place { builder: string; brand: Place | null; /** Verified agents selling it. */ agents?: number; status: Status; locality?: { name: string }; registerSource?: string | null }
 
 export interface CitySummary extends Place { state: string; intro: string; localities: Place[]; stats: Stats; costs: CityCosts | null }
 export interface CityDetail extends Place {
@@ -34,7 +34,7 @@ export interface LocalityDetail extends Place {
 export interface BuilderSummary extends Place { projects: number; cities: Place[] }
 export interface BuilderDetail extends Place {
   registeredAs: string[]; cities: Place[];
-  projects: (Place & { builder: string; status: Status; reraId: string | null; registerSource: string | null; registerStatus: string | null; registerValidUntil: string | null; homes: number; locality: Place; city: Place })[];
+  projects: (Place & { builder: string; status: Status; reraId: string | null; registerSource: string | null; registerStatus: string | null; registerValidUntil: string | null; homes: number; agents?: number; locality: Place; city: Place })[];
   /** Projects the register lists for this builder in the city that we have no page for (outside the localities we cover). */
   alsoRegistered: { name: string; location: string; regNo: string; status: string | null; validUntil: string | null; sourceUrl: string; registerName: string }[];
   alsoRegisteredTotal: number;
@@ -50,6 +50,8 @@ export interface ProjectDetail extends Place {
   locality: Place & { lat: number; lng: number }; city: Place & { state: string }; properties: PropertyCard[]; stats: Stats; bhk: BhkRow[];
   /** Other projects by the same builder in this city, and by other builders in the same locality. */
   more: { byBuilder: ProjectLink[]; inLocality: ProjectLink[] };
+  /** Agents our team has verified who sell this project. Their phone number is shown only to a buyer who asks to be connected. */
+  agents: { id: string; name: string; firmName: string | null; yearsInBusiness: number | null; level: number; label: string }[];
 }
 export interface PropertyDetail extends Omit<PropertyCard, 'locality' | 'project' | 'confidence'> {
   /** The level with what it rests on, and the seller's public card when the home has an outside seller. */

@@ -83,6 +83,13 @@ export class AdminController {
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Get('import/sample.csv') @Header('content-type', 'text/csv; charset=utf-8') sample() { return IMPORT_SAMPLE; }
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Get('questions') questions(@Query() q: { only?: string; page?: string }) { return this.admin.questions(q); }
 
+  // Agents and the projects they sell. The first four are for the agent; the last two for our team.
+  @UseGuards(AdminGuard) @Get('selling') mySelling(@CurrentUser() u: SessionUser) { return this.admin.mySelling(u); }
+  @UseGuards(AdminGuard) @Get('selling/projects') findProjects(@Query('q') q: string) { return this.admin.findProjects(q); }
+  @UseGuards(AdminGuard) @Post('selling') requestSelling(@CurrentUser() u: SessionUser, @Body() b: Json) { return this.admin.requestSelling(u, b); }
+  @UseGuards(AdminGuard) @Delete('selling/:id') stopSelling(@CurrentUser() u: SessionUser, @Param('id') id: string) { return this.admin.stopSelling(u, id); }
+  @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Get('project-sellers') projectSellers(@Query() q: { status?: string }) { return this.admin.projectSellers(q); }
+  @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Post('project-sellers/:id/decide') @HttpCode(200) decideProjectSeller(@CurrentUser() u: SessionUser, @Param('id') id: string, @Body() b: Json) { return this.admin.decideProjectSeller(u, id, b); }
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Get('builder-pages') builderPages() { return this.admin.builderPages(); }
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Get('builder-pages/:id') builderPage(@Param('id') id: string) { return this.admin.builderPage(id); }
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Patch('builder-pages/:id') renameBuilderPage(@Param('id') id: string, @Body() b: Json) { return this.admin.renameBuilderPage(id, b); }

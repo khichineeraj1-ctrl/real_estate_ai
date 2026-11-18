@@ -63,7 +63,7 @@ export class Reminders implements OnModuleInit, OnModuleDestroy {
   /** Works out who is due a reminder and, when `send` is true, emails them. Also used by the admin "run now" endpoint. */
   async run(send: boolean, now = new Date()): Promise<ReminderSummary[]> {
     const waiting: Prisma.EnquiryWhereInput = { createdAt: { lt: new Date(now.getTime() - WAIT_HOURS * 3_600_000), gte: new Date(now.getTime() - LOOK_BACK_DAYS * 86_400_000) } };
-    const include = { property: { select: { title: true, owner: { select: { id: true, name: true, email: true, role: true, active: true } } } }, project: { select: { name: true, account: { select: { id: true, name: true, email: true, active: true } } } } };
+    const include = { assignedTo: { select: { id: true, name: true, email: true, active: true } }, property: { select: { title: true, owner: { select: { id: true, name: true, email: true, role: true, active: true } } } }, project: { select: { name: true, account: { select: { id: true, name: true, email: true, active: true } } } } };
     const [partnerLeads, staffLeads, staff] = await Promise.all([
       this.db.enquiry.findMany({ where: { ...waiting, partnerStatus: 'NEW' }, include, orderBy: { createdAt: 'asc' } }),
       this.db.enquiry.findMany({ where: { ...waiting, status: 'NEW' }, include, orderBy: { createdAt: 'asc' } }),
@@ -71,8 +71,9 @@ export class Reminders implements OnModuleInit, OnModuleDestroy {
     ]);
 
     // The outside party a lead belongs to: a seller with their own account, else the project's builder login, else nobody.
-    const seller = (e: (typeof partnerLeads)[number]) => (e.property?.owner?.role === 'AGENT' && e.property.owner.active ? e.property.owner : null);
-    const builder = (e: (typeof partnerLeads)[number]) => (e.property?.owner?.role === 'AGENT' ? null : e.project?.account?.active ? e.project.account : null);
+    // A lead passed to a verified agent is that agent's to follow up, like an enquiry on their own listing.
+    const seller = (e: (typeof partnerLeads)[number]) => (e.assignedTo?.active ? e.assignedTo : e.property?.owner?.role === 'AGENT' && e.property.owner.active ? e.property.owner : null);
+    const builder = (e: (typeof partnerLeads)[number]) => (e.assignedTo || e.property?.owner?.role === 'AGENT' ? null : e.project?.account?.active ? e.project.account : null);
 
     const groups = new Map<string, { to: string; name: string; who: 'seller' | 'builder'; leads: Lead[] }>();
     for (const e of partnerLeads) {

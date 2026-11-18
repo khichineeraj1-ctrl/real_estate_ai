@@ -1,3 +1,4 @@
+import { ProjectTile } from '@/components/ProjectTile';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
@@ -76,15 +77,7 @@ export function BuilderCityView({ b, city, others = [] }: { b: BuilderDetail; ci
         <section className="section" key={locality.slug}>
           <h2>{b.name} in <Link href={`/${city.slug}/${locality.slug}`}>{locality.name}</Link></h2>
           <ul className="tiles">
-            {projects.map((p) => (
-              <li key={p.slug}>
-                <Link href={projectPath(city.slug, { slug: p.slug, brand: b })}>
-                  <strong>{p.name}</strong>
-                  <span>{locality.name}, {city.name}</span>
-                  <span>{/lapsed/i.test(p.registerStatus ?? '') ? 'RERA registration lapsed' : p.registerValidUntil ? `RERA registration to ${monthYear(p.registerValidUntil)}` : p.reraId ? 'RERA registered' : ''}{p.homes > 0 ? ` · ${p.homes} ${p.homes === 1 ? 'home' : 'homes'} for sale` : ''}</span>
-                </Link>
-              </li>
-            ))}
+            {projects.map((p) => <ProjectTile key={p.slug} city={city.slug} p={{ ...p, brand: b }} lines={[`${locality.name}, ${city.name}`, [/lapsed/i.test(p.registerStatus ?? '') ? 'RERA registration lapsed' : p.registerValidUntil ? `RERA registration to ${monthYear(p.registerValidUntil)}` : p.reraId ? 'RERA registered' : '', p.homes > 0 ? `${p.homes} ${p.homes === 1 ? 'home' : 'homes'} for sale` : ''].filter(Boolean).join(' · ')]} />)}
           </ul>
         </section>
       ))}

@@ -1,3 +1,4 @@
+import { ProjectTile } from '@/components/ProjectTile';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -81,7 +82,7 @@ export default async function CityPage({ params }: Props) {
         <h2>Projects in {city.name}</h2>
         <ul className="tiles">
           {city.projects.map((p) => (
-            <li key={p.slug}><Link href={projectPath(city.slug, p)}><strong>{p.name}</strong><span>{p.locality?.name} · {p.builder}</span><span>{p.registerSource ? 'From the RERA register' : statusLabel(p.status)}</span></Link></li>
+            <ProjectTile key={p.slug} city={city.slug} p={p} lines={[`${p.locality?.name} · ${p.brand?.name ?? p.builder}`, p.registerSource ? 'From the RERA register' : statusLabel(p.status)]} />
           ))}
         </ul>
       </section>

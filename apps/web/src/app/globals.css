@@ -74,10 +74,10 @@ main.wrap { padding-top: 20px; padding-bottom: 56px; min-height: 60vh; }
 .card-foot { margin: auto 0 0; font-size: .88rem; color: var(--muted); }
 
 .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; list-style: none; padding: 0; margin: 0; }
-.tiles a { display: block; border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; color: var(--fg); background: var(--card); height: 100%; }
-.tiles a:hover { border-color: var(--brand); text-decoration: none; }
-.tiles strong { display: block; font-size: 1.05rem; }
-.tiles span { color: var(--muted); font-size: .9rem; display: block; }
+.tiles > li > a { display: block; border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; color: var(--fg); background: var(--card); height: 100%; }
+.tiles > li > a:hover { border-color: var(--brand); text-decoration: none; }
+.tiles > li > a strong { display: block; font-size: 1.05rem; }
+.tiles > li > a span { color: var(--muted); font-size: .9rem; display: block; }
 
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 18px 0; }
 .stats div { background: var(--soft); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 16px; }
@@ -439,3 +439,23 @@ body:has(> .auth-page) { display: grid; place-items: center; min-height: 100vh; 
 .ascore { font-size: .82rem; color: var(--muted); max-width: 280px; white-space: normal; }
 .ascore summary { cursor: pointer; color: var(--brand); }
 .ascore ul { margin: 6px 0 0; padding-left: 1.1rem; display: grid; gap: 3px; }
+
+/* Project tiles with a button, and the quick form that opens from a card */
+.ptile { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); overflow: hidden; transition: border-color .15s; }
+.ptile:hover { border-color: var(--brand); }
+.tiles .ptile > a { border: 0; border-radius: 0; flex: 1; height: auto; }
+.ptile-agents { color: var(--ready) !important; font-weight: 600; }
+.connect { display: inline-flex; align-items: center; justify-content: center; text-align: center; font: inherit; font-size: .9rem; font-weight: 600; cursor: pointer; margin: 0 12px 12px; padding: 8px 12px; border-radius: 999px; border: 1px solid var(--brand); background: transparent; color: var(--brand); transition: background .15s, color .15s; }
+.connect:hover, .connect:focus-visible { background: var(--brand); color: #fff; }
+.connect.is-verified { background: var(--brand); color: #fff; }
+.connect .tick { margin-right: 6px; }
+@media (prefers-color-scheme: dark) { .connect:hover, .connect:focus-visible, .connect.is-verified { color: #0e1116; } }
+p > .connect { margin: 0; }
+.card-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.card-actions .connect { margin: 0; }
+.connect-dialog { border: 0; padding: 0; border-radius: 18px; width: min(520px, calc(100vw - 24px)); max-height: calc(100vh - 24px); background: var(--bg); color: var(--fg); box-shadow: 0 24px 60px -20px rgba(0, 0, 0, .5); }
+.connect-dialog::backdrop { background: rgba(10, 12, 16, .55); }
+.connect-body { position: relative; padding: 22px; }
+.connect-body h2 { margin: 0 34px 6px 0; font-size: 1.25rem; }
+.connect-about { color: var(--muted); margin: 0 0 14px; } .connect-about strong { color: var(--fg); }
+.connect-close { position: absolute; top: 12px; right: 12px; width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line); background: var(--soft); color: var(--fg); font-size: 1.3rem; line-height: 1; cursor: pointer; }
