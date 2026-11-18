@@ -2,6 +2,8 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { PropertyCard } from '../../components/PropertyCard';
+import { CostCalculator, EmiCalculator } from '../../components/tools/Calculators';
+import { CompareToggle } from '../../components/tools/Compare';
 import { getProperty, photoUrl, sendEnquiry, type EnquiryResult, type PropertyDetail } from '../../lib/api';
 import { num, price, statusLabel, typeLabel } from '../../lib/format';
 import { useTheme, type Theme } from '../../lib/theme';
@@ -86,6 +88,11 @@ export default function Property() {
           <View key={k} style={[s.row, { borderColor: t.line }]}><Text style={{ color: t.muted }}>{k}</Text><Text style={{ color: t.fg, fontWeight: '600', flexShrink: 1, textAlign: 'right' }}>{v}</Text></View>
         ))}
       </View>
+      <CompareToggle slug={p.slug} title={p.title} />
+      <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 18, fontWeight: '700', marginTop: 8 }}>What will it really cost?</Text>
+      {p.costs ? <CostCalculator key={`cost-${p.slug}`} price={p.priceInr} costs={p.costs} cityName={p.city.name} underConstruction={p.status === 'UNDER_CONSTRUCTION'} /> : <Text style={{ color: t.muted }}>We do not have the government charges for {p.city.name} yet.</Text>}
+      <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 18, fontWeight: '700', marginTop: 8 }}>Monthly EMI for this home</Text>
+      <EmiCalculator key={`emi-${p.slug}`} price={p.priceInr} />
       <Enquiry key={p.slug} slug={p.slug} t={t} />
       <Text style={{ color: t.fg, fontSize: 16, lineHeight: 23 }}>{p.description}</Text>
       {p.amenities.length > 0 && <Text style={{ color: t.muted }}>{p.amenities.join(' · ')}</Text>}

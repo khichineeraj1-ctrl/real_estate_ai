@@ -1,4 +1,5 @@
 import { API_URL } from './config';
+import type { CityCosts } from './finance';
 
 export type PropertyType = 'APARTMENT' | 'VILLA' | 'BUILDER_FLOOR' | 'PLOT';
 export type Status = 'READY_TO_MOVE' | 'UNDER_CONSTRUCTION';
@@ -10,14 +11,20 @@ export interface PropertyCard {
   /** The cover only on cards; every photo on the detail screen. */
   photos: { file: string }[];
 }
-export interface CitySummary extends Place { state: string; localities: Place[]; stats: Stats }
-export interface LocalityDetail extends Place { intro: string; highlights: string[]; city: Place & { state: string }; stats: Stats }
+export interface CitySummary extends Place { state: string; localities: Place[]; stats: Stats; costs: CityCosts | null }
+export interface LocalityDetail extends Place {
+  intro: string; highlights: string[]; city: Place & { state: string }; stats: Stats;
+  bhk: { bhk: number; count: number; minPrice: number | null }[]; nearby: Place[];
+}
 export interface Listing { items: PropertyCard[]; total: number; stats: Stats }
 export interface PropertyDetail extends Omit<PropertyCard, 'locality' | 'project'> {
   description: string; floor: number | null; totalFloors: number | null; facing: string | null; furnishing: string | null; amenities: string[]; listedBy: string;
   locality: Place & { highlights: string[] }; city: Place & { state: string }; project: (Place & { builder: string; reraId: string | null }) | null;
   localityStats: Stats; similar: PropertyCard[];
+  /** Government charges for the home's city; null when there are none on record. */
+  costs: CityCosts | null;
 }
+export type CompareHome = Omit<PropertyDetail, 'similar'>;
 export interface AskResult { reply: string; live: boolean; properties: PropertyCard[]; total: number; page: { path: string; label: string } | null; relaxed: string | null }
 export interface Turn { role: 'user' | 'assistant'; text: string }
 
@@ -40,6 +47,7 @@ export const getCities = () => call<CitySummary[]>('/cities');
 export const getLocality = (city: string, slug: string) => call<LocalityDetail>(`/localities/${city}/${slug}`);
 export const getListing = (city: string, locality: string) => call<Listing>(`/properties?city=${city}&locality=${locality}&pageSize=48`);
 export const getProperty = (slug: string) => call<PropertyDetail>(`/properties/${slug}`);
+export const getCompare = (slugs: string[]) => call<CompareHome[]>(`/compare?slugs=${encodeURIComponent(slugs.slice(0, 4).join(','))}`);
 export const ask = (message: string, history: Turn[], context?: string) =>
   call<AskResult>('/ask', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ message, history, context }) });
 

@@ -1,6 +1,6 @@
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { PropertyCard } from '../../../components/PropertyCard';
 import { getListing, getLocality, type Listing, type LocalityDetail } from '../../../lib/api';
 import { num, price } from '../../../lib/format';
@@ -8,6 +8,7 @@ import { useTheme } from '../../../lib/theme';
 
 export default function Locality() {
   const t = useTheme();
+  const router = useRouter();
   const { city, slug } = useLocalSearchParams<{ city: string; slug: string }>();
   const [data, setData] = useState<{ l: LocalityDetail; listing: Listing } | null>(null);
   const [error, setError] = useState('');
@@ -26,6 +27,18 @@ export default function Locality() {
         {l.stats.count} homes · {price(l.stats.minPrice)} – {price(l.stats.maxPrice)} · avg ₹{num(l.stats.avgRate)}/sq ft
       </Text>
       <View style={{ gap: 2 }}>{l.highlights.map((h) => <Text key={h} style={{ color: t.fg }}>• {h}</Text>)}</View>
+      {l.nearby?.length > 0 && (
+        <View style={{ gap: 6 }}>
+          <Text style={{ color: t.muted, fontWeight: '600' }}>Compare {l.name} with</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {l.nearby.map((n) => (
+              <Pressable key={n.slug} accessibilityRole="button" accessibilityLabel={`Compare ${l.name} with ${n.name}`} onPress={() => router.push({ pathname: '/compare-localities/[city]/[pair]', params: { city, pair: [l.slug, n.slug].sort().join('-vs-') } })} style={{ borderWidth: 1, borderColor: t.line, backgroundColor: t.soft, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8 }}>
+                <Text style={{ color: t.fg }}>{n.name}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      )}
       {listing.items.map((p) => <PropertyCard key={p.slug} p={p} />)}
     </ScrollView>
   );

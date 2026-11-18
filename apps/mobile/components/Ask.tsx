@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { ask, type AskResult, type Turn } from '../lib/api';
@@ -12,6 +13,7 @@ const EXAMPLES = ['3 BHK in Whitefield under 1.5 crore', 'Ready to move flats in
 /** The conversation: questions typed or spoken, answers shown and read aloud, matching homes as cards. */
 export function Ask({ header }: { header?: React.ReactNode }) {
   const t = useTheme();
+  const router = useRouter();
   const [thread, setThread] = useState<Entry[]>([]);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
@@ -72,6 +74,15 @@ export function Ask({ header }: { header?: React.ReactNode }) {
                   <Text accessibilityLiveRegion="polite" style={{ color: t.fg, fontSize: 16, lineHeight: 23 }}>{e.result.reply}</Text>
                   {e.result.properties.map((p) => <PropertyCard key={p.slug} p={p} />)}
                   {e.result.total > e.result.properties.length && <Text style={{ color: t.muted, fontSize: 13 }}>Showing {e.result.properties.length} of {e.result.total}. Ask to narrow it down.</Text>}
+                  {(() => {
+                    // An "X vs Y" answer points at /city/compare/a-vs-b; open the same comparison in the app.
+                    const m = /^\/([a-z0-9-]+)\/compare\/([a-z0-9-]+-vs-[a-z0-9-]+)$/.exec(e.result.page?.path ?? '');
+                    return m ? (
+                      <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/compare-localities/[city]/[pair]', params: { city: m[1], pair: m[2] } })} style={[s.chip, { borderColor: t.brand, backgroundColor: t.card }]}>
+                        <Text style={{ color: t.brand, fontWeight: '600' }}>See the two side by side →</Text>
+                      </Pressable>
+                    ) : null;
+                  })()}
                 </>
               ) : e.error ? <Text style={{ color: t.danger }}>{e.error}</Text> : <ActivityIndicator color={t.brand} />}
             </View>
