@@ -29,6 +29,9 @@ export class TrustController {
     return this.trust.report(slug, b);
   }
 
+  /** The outcome of a report, for the buyer holding its private link. */
+  @Get('reports/status/:token') reportStatus(@Param('token') token: string) { return this.trust.reportStatus(token); }
+
   // The seller's own onboarding.
   @UseGuards(AdminGuard) @Roles('AGENT') @Get('admin/dealer/profile') myProfile(@CurrentUser() u: SessionUser) { return this.trust.myProfile(u); }
   @UseGuards(AdminGuard) @Roles('AGENT') @Put('admin/dealer/profile') saveProfile(@CurrentUser() u: SessionUser, @Body() b: Json) { return this.trust.saveProfile(u, b); }

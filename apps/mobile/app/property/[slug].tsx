@@ -14,6 +14,7 @@ function Report({ slug, t }: { slug: string; t: Theme }) {
   const [details, setDetails] = useState('');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
@@ -21,10 +22,10 @@ function Report({ slug, t }: { slug: string; t: Theme }) {
   async function submit() {
     if (!reason) { setError('Choose what is wrong'); return; }
     setBusy(true); setError('');
-    try { await sendReport(slug, { reason, details, name, phone }); setDone(true); } catch (e) { setError((e as Error).message); }
+    try { await sendReport(slug, { reason, details, name, phone, email: email.trim() || undefined }); setDone(true); } catch (e) { setError((e as Error).message); }
     setBusy(false);
   }
-  if (done) return <Text accessibilityLiveRegion="polite" style={{ color: t.ready }}>Thank you. Our team will look into this and may call you. We do not tell the seller who reported them.</Text>;
+  if (done) return <Text accessibilityLiveRegion="polite" style={{ color: t.ready }}>Thank you. Our team will look into this and may call you{email.trim() ? ', and will email you the outcome' : ' with the outcome'}. We do not tell the seller who reported them.</Text>;
   if (!open) return <Pressable accessibilityRole="button" onPress={() => setOpen(true)}><Text style={{ color: t.muted, textDecorationLine: 'underline' }}>Something wrong with this listing or seller? Report it</Text></Pressable>;
   const input = [s.input, { color: t.fg, borderColor: t.line, backgroundColor: t.card }];
   return (
@@ -41,6 +42,7 @@ function Report({ slug, t }: { slug: string; t: Theme }) {
       <TextInput value={details} onChangeText={setDetails} placeholder="What happened?" placeholderTextColor={t.muted} accessibilityLabel="What happened" multiline maxLength={1000} style={[input, { minHeight: 80, textAlignVertical: 'top' }]} />
       <TextInput value={name} onChangeText={setName} placeholder="Your name" placeholderTextColor={t.muted} accessibilityLabel="Your name" autoComplete="name" maxLength={80} style={input} />
       <TextInput value={phone} onChangeText={setPhone} placeholder="Phone (not shared with the seller)" placeholderTextColor={t.muted} accessibilityLabel="Phone" keyboardType="phone-pad" autoComplete="tel" maxLength={20} style={input} />
+      <TextInput value={email} onChangeText={setEmail} placeholder="Email, to hear the outcome (optional)" placeholderTextColor={t.muted} accessibilityLabel="Email, optional" keyboardType="email-address" autoCapitalize="none" autoComplete="email" maxLength={160} style={input} />
       {error ? <Text accessibilityLiveRegion="polite" style={{ color: t.danger }}>{error}</Text> : null}
       <Pressable accessibilityRole="button" disabled={busy} onPress={submit} style={[s.button, { borderWidth: 1, borderColor: t.brand, opacity: busy ? 0.6 : 1 }]}>
         <Text style={{ color: t.brand, fontWeight: '700' }}>{busy ? 'Sending…' : 'Send report'}</Text>

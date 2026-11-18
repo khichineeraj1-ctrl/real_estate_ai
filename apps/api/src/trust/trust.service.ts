@@ -1,4 +1,5 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { randomBytes } from 'node:crypto';
 import { DealerKind, DealerStatus, DocumentKind, Prisma, ReportReason, ReportStatus } from '@prisma/client';
 import { SessionUser, isStaff } from '../admin/auth';
 import { Input } from '../admin/input';
@@ -301,14 +302,39 @@ export class TrustService {
     const reporterName = i.text('name', 'Your name', 80);
     const reporterPhone = i.text('phone', 'Phone', 20).replace(/[\s()-]/g, '');
     if (!/^\+?\d{10,13}$/.test(reporterPhone)) throw new BadRequestException('Enter a phone number with 10 to 13 digits, so we can contact you about your report');
+    const reporterEmail = i.optionalText('email', 'Email', 160);
+    if (reporterEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(reporterEmail)) throw new BadRequestException('Enter a valid email address, or leave it empty');
     const p = await this.db.property.findFirst({ where: { slug, state: 'PUBLISHED' }, select: { id: true, title: true, ownerId: true, owner: { select: { role: true } } } });
     if (!p) throw new NotFoundException('Property not found');
-    await this.db.report.create({ data: { reason, details, reporterName, reporterPhone, listingTitle: p.title, propertyId: p.id, sellerId: this.sellerOf(p) } });
+    const publicToken = randomBytes(18).toString('base64url');
+    await this.db.report.create({ data: { reason, details, reporterName, reporterPhone, reporterEmail, publicToken, listingTitle: p.title, propertyId: p.id, sellerId: this.sellerOf(p) } });
+    if (reporterEmail) {
+      await this.mail.send({ to: reporterEmail, subject: 'We have your report', text: `Hello ${reporterName},\n\nThank you for reporting "${p.title}". Our team will look into it and email you the outcome. You can also check it here at any time:\n${SITE_URL}/report-status/${publicToken}\n\nWe do not tell the seller who reported them.` });
+    }
     const staff = await this.db.user.findMany({ where: { role: { in: ['ADMIN', 'EDITOR'] }, active: true }, select: { email: true, name: true } });
     for (const s of staff) {
       await this.mail.send({ to: s.email, subject: `A buyer reported a listing: ${p.title}`, text: `Hello ${s.name},\n\nA buyer has reported "${p.title}".\n\nReason: ${reason.replace(/_/g, ' ').toLowerCase()}\n\nLook into it and decide:\n${SITE_URL}/admin/reports` });
     }
-    return { ok: true };
+    return { ok: true, token: publicToken };
+  }
+
+  /** What the buyer is told: the standard wording for the decision, plus anything staff added for them. Never staff's own notes. */
+  private outcome(r: { status: ReportStatus; tookDown: boolean; buyerNote: string | null; sellerId: string | null }): string {
+    // Only say what actually happened: a home listed by our own team has no seller whose level could change.
+    const action = r.sellerId
+      ? `The seller’s confidence level has been lowered for all buyers${r.tookDown ? ', and the listing has been taken off the site' : ''}.`
+      : r.tookDown ? 'The listing has been taken off the site.' : 'This home was listed by our own team, and we are correcting the listing.';
+    const base = r.status === 'NEW' ? 'Our team is looking into your report. Nothing has been decided yet.'
+      : r.status === 'UPHELD' ? `We looked into your report and upheld it. ${action}`
+        : 'We looked into your report and could not confirm it, so we have not acted against the seller. If you have more to show us, such as messages or a receipt, please send a new report.';
+    return r.buyerNote ? `${base}\n\n${r.buyerNote}` : base;
+  }
+
+  /** The outcome of one report, for whoever holds its private link. Says nothing about the seller beyond the decision. */
+  async reportStatus(token: string) {
+    const r = token ? await this.db.report.findUnique({ where: { publicToken: token } }) : null;
+    if (!r) throw new NotFoundException('Report not found');
+    return { status: r.status, listingTitle: r.listingTitle, reason: r.reason, createdAt: r.createdAt, decidedAt: r.decidedAt, message: this.outcome(r) };
   }
 
   async reports(q: { status?: string }) {
@@ -333,8 +359,16 @@ export class TrustService {
     const note = i.text('note', 'What you found', 500);
     const report = await this.db.report.findUnique({ where: { id }, include: { property: { select: { id: true, state: true } } } });
     if (!report) throw new NotFoundException('Report not found');
-    await this.db.report.update({ where: { id }, data: { status: decision === 'uphold' ? 'UPHELD' : 'DISMISSED', staffNote: note, decidedAt: new Date(), decidedBy: staff.name } });
     const takeDown = decision === 'uphold' && (body.takeDown === 'on' || body.takeDown === 'true' || body.takeDown === true);
+    const willBeDown = takeDown && !!report.property && report.property.state === 'PUBLISHED';
+    const updated = await this.db.report.update({
+      where: { id },
+      data: { status: decision === 'uphold' ? 'UPHELD' : 'DISMISSED', staffNote: note, buyerNote: i.optionalText('buyerNote', 'Message to the buyer', 400), tookDown: decision === 'uphold' && (willBeDown || report.tookDown), decidedAt: new Date(), decidedBy: staff.name },
+    });
+    // The buyer hears the outcome: by email if they left one, and always on their private link.
+    if (updated.reporterEmail) {
+      await this.mail.send({ to: updated.reporterEmail, subject: 'The outcome of your report', text: `Hello ${updated.reporterName},\n\nAbout your report of "${updated.listingTitle}":\n\n${this.outcome(updated)}\n\n${SITE_URL}/report-status/${updated.publicToken}` });
+    }
     if (takeDown && report.property && report.property.state === 'PUBLISHED') {
       await this.db.property.update({ where: { id: report.property.id }, data: { state: 'REJECTED', rejectReason: 'Taken off the site after a buyer’s report was upheld. Contact our team.', staffVerified: false, staffVerifiedNote: null, staffVerifiedAt: null, staffVerifiedBy: null } });
     }

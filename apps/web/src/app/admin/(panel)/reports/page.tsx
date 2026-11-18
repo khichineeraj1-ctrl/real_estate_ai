@@ -6,7 +6,7 @@ import { decideReport } from '../../actions';
 
 export const metadata = { title: 'Reports' };
 interface Row {
-  id: string; reason: string; details: string; reporterName: string; reporterPhone: string; status: 'NEW' | 'UPHELD' | 'DISMISSED'; staffNote: string | null; decidedAt: string | null; decidedBy: string | null; createdAt: string;
+  id: string; reason: string; details: string; reporterName: string; reporterPhone: string; status: 'NEW' | 'UPHELD' | 'DISMISSED'; staffNote: string | null; buyerNote: string | null; reporterEmail: string | null; decidedAt: string | null; decidedBy: string | null; createdAt: string;
   listingTitle: string; property: { id: string; slug: string; state: string } | null; seller: { id: string; name: string; email: string; phone: string | null } | null;
 }
 const when = (iso: string) => new Date(iso).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata' });
@@ -30,11 +30,11 @@ export default async function Reports({ searchParams }: { searchParams: Promise<
           <dl className="detail">
             <div><dt>Listing</dt><dd>{r.property ? <Link href={`/admin/properties/${r.property.id}`}>{r.listingTitle}</Link> : `${r.listingTitle} (deleted)`}{r.property && r.property.state !== 'PUBLISHED' ? ' — off the site' : ''}</dd></div>
             <div><dt>Seller</dt><dd>{r.seller ? <><Link href={`/admin/dealers/${r.seller.id}`}>{r.seller.name}</Link>{r.seller.phone ? <>, <a href={`tel:${r.seller.phone}`}>{r.seller.phone}</a></> : ''}</> : 'Listed by our team'}</dd></div>
-            <div><dt>Reported by</dt><dd>{r.reporterName}, <a href={`tel:${r.reporterPhone}`}>{r.reporterPhone}</a></dd></div>
+            <div><dt>Reported by</dt><dd>{r.reporterName}, <a href={`tel:${r.reporterPhone}`}>{r.reporterPhone}</a>{r.reporterEmail ? <>, <a href={`mailto:${r.reporterEmail}`}>{r.reporterEmail}</a></> : ''}</dd></div>
             <div><dt>Received</dt><dd>{when(r.createdAt)}</dd></div>
             {r.decidedAt && <div><dt>Decided</dt><dd>{when(r.decidedAt)} by {r.decidedBy}</dd></div>}
           </dl>
-          <DecideReport action={decideReport.bind(null, r.id)} note={r.staffNote} decided={r.status !== 'NEW'} canTakeDown={r.property?.state === 'PUBLISHED'} />
+          <DecideReport action={decideReport.bind(null, r.id)} note={r.staffNote} buyerNote={r.buyerNote} hasEmail={!!r.reporterEmail} decided={r.status !== 'NEW'} canTakeDown={r.property?.state === 'PUBLISHED'} />
         </article>
       ))}
     </>

@@ -97,6 +97,10 @@ functions with tests) and the levels are *Not yet verified*, *Basic checks only*
   uphold or dismiss it with a note of what they found; they can take the listing off the site in the same step, and
   can change the decision later. An upheld report counts as a complaint: the seller is held at *Basic checks only*
   until it is dismissed. The seller is never told who reported them. Limited to three reports a minute per visitor.
+  **The buyer hears the outcome**: after sending a report they get a private link (`/report-status/…`, not indexed)
+  that shows whether it is being looked into, upheld or dismissed, and if they left an email they are emailed an
+  acknowledgement and then the outcome, again if the decision changes. The wording is standard, plus an optional
+  message staff write for the buyer; staff's own notes on what they found are never shown to the buyer.
 - **Ranking**: listings, locality pages and ask-box results show higher-confidence homes first unless the buyer asks
   for a price order. Nothing is hidden. The assistant is told each home's confidence and not to overstate it.
 - **Documents are private**: stored in `apps/api/private-documents` (override with `DOCUMENT_DIR`), a folder no web
@@ -237,7 +241,8 @@ you can copy the link from the terminal running `npm run dev:api`. Sending throu
 
 ## Not done yet
 
-Buyer accounts and saved searches (the comparison shortlist lives only in the browser or the open app), stamp duty slabs and locality-level rates (one rate per city), telling a buyer the outcome of their report, encryption of verification documents at rest,
+Buyer accounts and saved searches (the comparison shortlist lives only in the browser or the open app), stamp duty slabs and locality-level rates (one rate per city), proper database migrations (the schema is applied with `prisma db push`, which will not add a required column to
+a table that already has rows), encryption of verification documents at rest,
 assigning a lead to a particular staff member, builders editing their own project pages,
 a project screen and lead form in the mobile app, reordering photos, object storage for
 photos, pagination beyond 48 homes per listing page, a real listings feed, native speech-to-text on phones, a

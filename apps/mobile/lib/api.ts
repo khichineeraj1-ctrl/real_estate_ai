@@ -64,8 +64,8 @@ export const REPORT_REASONS = [
   ['WRONG_DETAILS', 'Details are not as listed'], ['UNREACHABLE', 'Seller never answers or was abusive'], ['OTHER', 'Something else'],
 ] as const;
 /** Reports a listing or its seller. Our team looks into it; the seller is not told who reported them. */
-export const sendReport = (slug: string, body: { reason: string; details: string; name: string; phone: string }) =>
-  call<{ ok: true }>(`/properties/${slug}/reports`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+export const sendReport = (slug: string, body: { reason: string; details: string; name: string; phone: string; email?: string }) =>
+  call<{ ok: true; token: string }>(`/properties/${slug}/reports`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
 
 export interface EnquiryResult { ok: true; seller: { name: string; phone: string; level?: number | null; label?: string } | null }
 /** Asks the seller to get in touch; the answer includes the seller's contact when the listing has a seller account. */

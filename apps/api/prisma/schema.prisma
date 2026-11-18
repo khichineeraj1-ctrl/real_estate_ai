@@ -367,6 +367,14 @@ model Report {
   details       String
   reporterName  String
   reporterPhone String
+  /// Optional: where to send the outcome.
+  reporterEmail String?
+  /// An unguessable code in the private link the buyer is given to check the outcome.
+  publicToken   String       @unique
+  /// What staff chose to tell the buyer about the outcome, in addition to the standard wording.
+  buyerNote     String?
+  /// Whether the listing was taken off the site when the report was upheld.
+  tookDown      Boolean      @default(false)
   status        ReportStatus @default(NEW)
   staffNote     String?
   decidedAt     DateTime?
