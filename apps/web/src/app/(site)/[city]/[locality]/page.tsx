@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
+import { BuilderCityView, builderCityMetadata, loadBuilderCity } from '@/components/pages/BuilderCity';
 import { AskBox } from '@/components/AskBox';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { Faq } from '@/components/Faq';
@@ -18,7 +19,7 @@ type Props = { params: Promise<{ city: string; locality: string }> };
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { city, locality } = await params;
   const l = await api<LocalityDetail>(`/localities/${city}/${locality}`);
-  if (!l) return {};
+  if (!l) { const d = await loadBuilderCity(city, locality); return d && 'b' in d ? builderCityMetadata(d.b, d.city) : {}; }
   const path = `/${l.city.slug}/${l.slug}`;
   const none = !l.stats.count;
   const title = none ? `Property in ${l.name}, ${l.city.name} — Projects and Locality Guide` : `Property for Sale in ${l.name}, ${l.city.name} — ${l.stats.count} Homes from ${price(l.stats.minPrice)}`;
@@ -29,7 +30,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function LocalityPage({ params }: Props) {
   const { city, locality } = await params;
   const l = await api<LocalityDetail>(`/localities/${city}/${locality}`);
-  if (!l) notFound();
+  if (!l) {
+    // Not a locality: the same place in the address is used for a builder's projects in this city.
+    const d = await loadBuilderCity(city, locality);
+    if (!d) notFound();
+    if ('movedTo' in d) permanentRedirect(d.movedTo);
+    return <BuilderCityView b={d.b} city={d.city} />;
+  }
   const path = `/${l.city.slug}/${l.slug}`;
   const place = `${l.name}, ${l.city.name}`;
   const listing = await api<Listing>(`/properties?city=${l.city.slug}&locality=${l.slug}&pageSize=48`);
@@ -62,7 +69,7 @@ export default async function LocalityPage({ params }: Props) {
         <section className="section">
           <h2>Projects in {l.name}</h2>
           <ul className="tiles">
-            {l.projects.map((p) => <li key={p.slug}><Link href={projectPath(p)}><strong>{p.name}</strong><span>{p.builder}</span><span>{p.registerSource ? 'From the RERA register' : statusLabel(p.status)}</span></Link></li>)}
+            {l.projects.map((p) => <li key={p.slug}><Link href={projectPath(l.city.slug, p)}><strong>{p.name}</strong><span>{p.builder}</span><span>{p.registerSource ? 'From the RERA register' : statusLabel(p.status)}</span></Link></li>)}
           </ul>
         </section>
       )}

@@ -2,12 +2,15 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { api } from '@/lib/api';
+import { builderPath } from '@/lib/seo';
 import type { BuilderSummary } from '@/lib/types';
 
 const title = 'Builders and Developers — Projects in Gurgaon, Bengaluru, Mumbai and Pune';
 const description = 'Find a builder and see every project it has registered with RERA in Gurgaon, Bengaluru, Mumbai and Pune.';
 export const metadata: Metadata = { title, description, alternates: { canonical: '/builders' }, openGraph: { title, description, url: '/builders' } };
 
+/** A builder in one city goes straight to its page there; one in several goes to the page that brings them together. */
+const href = (b: BuilderSummary) => (b.cities.length === 1 ? builderPath(b.cities[0].slug, b.slug) : `/builders/${b.slug}`);
 const count = (n: number) => `${n} ${n === 1 ? 'project' : 'projects'}`;
 
 export default async function Builders() {
@@ -28,7 +31,7 @@ export default async function Builders() {
         <section className="section">
           <h2>Builders with the most projects</h2>
           <ul className="tiles">
-            {top.map((b) => <li key={b.slug}><Link href={`/builders/${b.slug}`}><strong>{b.name}</strong><span>{count(b.projects)} · {b.cities.join(', ')}</span></Link></li>)}
+            {top.map((b) => <li key={b.slug}><Link href={href(b)}><strong>{b.name}</strong><span>{count(b.projects)} · {b.cities.map((c) => c.name).join(', ')}</span></Link></li>)}
           </ul>
         </section>
       )}
@@ -39,7 +42,7 @@ export default async function Builders() {
         {letters.map((k) => (
           <div key={k} className="az">
             <h3 id={id(k)}>{k}</h3>
-            <ul>{groups.get(k)!.map((b) => <li key={b.slug}><Link href={`/builders/${b.slug}`}>{b.name}</Link> <small>{count(b.projects)}</small></li>)}</ul>
+            <ul>{groups.get(k)!.map((b) => <li key={b.slug}><Link href={href(b)}>{b.name}</Link> <small>{count(b.projects)}</small></li>)}</ul>
           </div>
         ))}
       </section>

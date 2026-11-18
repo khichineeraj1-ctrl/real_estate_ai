@@ -14,8 +14,19 @@ locality pages show no price figures until then.
 
 ## Builders and project addresses
 
-Every project sits under its builder: `/builders/<builder>` lists a builder's projects and
-`/builders/<builder>/<project>` is the project page. The old `/projects/<project>` addresses redirect there.
+Addresses go city, then builder, then project:
+
+- `/gurgaon/ss-group` is the builder's projects in that city ("SS Group projects in Gurgaon").
+- `/gurgaon/ss-group/ss-100-sohna-road-gurgaon` is the project page. Its breadcrumb is by location (city › locality ›
+  project), with the builder linked on the page.
+- `/builders` is the A to Z index, and `/builders/<builder>` brings a builder's cities together when it works in more
+  than one (otherwise it redirects to the city page).
+- Earlier addresses (`/projects/<project>`, `/builders/<builder>/<project>`) redirect, as does a project address with
+  the wrong city or builder in it.
+
+Builders share the place after the city with localities (`/gurgaon/sohna-road`), and with home sizes one level down
+(`/gurgaon/sohna-road/3-bhk-flats`). The locality always wins: a builder whose address would match a locality's gets
+`-builder` added, both when the builder is made and when a locality is added later.
 
 - A builder is worked out from the promoter's registered name (`apps/api/src/catalog/builders.ts`): the company form
   ("Private Limited", "LLP") and notes in brackets are dropped, so one company written several ways is one builder.

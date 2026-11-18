@@ -77,7 +77,7 @@ export default async function ComparePage({ searchParams }: Props) {
           {row('Type', homes.map((h) => typeLabel(h.type)))}
           {row('Status', homes.map((h) => (h.status === 'UNDER_CONSTRUCTION' && h.possession ? `Possession ${monthYear(h.possession)}` : statusLabel(h.status))))}
           {row('Locality', homes.map((h) => <Link key={h.slug} href={`/${h.city.slug}/${h.locality.slug}`}>{h.locality.name}, {h.city.name}</Link>))}
-          {row('Project', homes.map((h) => (h.project ? <Link key={h.slug} href={projectPath(h.project)}>{h.project.name}</Link> : '—')))}
+          {row('Project', homes.map((h) => (h.project ? <Link key={h.slug} href={projectPath(h.city.slug, h.project)}>{h.project.name}</Link> : '—')))}
           {row('Floor', homes.map((h) => (h.floor != null ? `${h.floor} of ${h.totalFloors}` : '—')))}
           {row('Facing', homes.map((h) => h.facing ?? '—'))}
           {row('Furnishing', homes.map((h) => h.furnishing ?? '—'))}

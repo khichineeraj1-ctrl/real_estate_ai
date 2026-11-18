@@ -14,7 +14,7 @@ export default async function BuilderPages({ searchParams }: { searchParams: Pro
   return (
     <>
       <div className="ahead"><h1>Builder pages</h1></div>
-      <p className="lead">One page per builder at /builders/…, listing its projects. Companies with the same name written differently are joined automatically. Where two pages are really one builder (companies of the same group), open one and merge it into the other.</p>
+      <p className="lead">One page per builder in each city it works in, at /city/builder, listing its projects there. Companies with the same name written differently are joined automatically. Where two pages are really one builder (companies of the same group), open one and merge it into the other.</p>
       {sp.saved && <p role="status" className="astatus">Saved.</p>}
       {sp.merged && <p role="status" className="astatus">Merged. The projects now sit under the other builder, and their old addresses lead to the new ones.</p>}
       <form className="asearch" action="/admin/builder-pages"><input type="search" name="q" defaultValue={sp.q} placeholder="Find a builder by name" aria-label="Find a builder by name" /></form>

@@ -66,7 +66,7 @@ export default async function CityPage({ params }: Props) {
         <h2>Projects in {city.name}</h2>
         <ul className="tiles">
           {city.projects.map((p) => (
-            <li key={p.slug}><Link href={projectPath(p)}><strong>{p.name}</strong><span>{p.locality?.name} · {p.builder}</span><span>{p.registerSource ? 'From the RERA register' : statusLabel(p.status)}</span></Link></li>
+            <li key={p.slug}><Link href={projectPath(city.slug, p)}><strong>{p.name}</strong><span>{p.locality?.name} · {p.builder}</span><span>{p.registerSource ? 'From the RERA register' : statusLabel(p.status)}</span></Link></li>
           ))}
         </ul>
       </section>

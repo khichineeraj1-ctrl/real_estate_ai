@@ -1,4 +1,4 @@
-import { ensureBuilder } from '../catalog/builders';
+import { aside, ensureBuilder } from '../catalog/builders';
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException, OnModuleInit, UnauthorizedException } from '@nestjs/common';
 import { ConstructionStatus, LeadStatus, ListedBy, ListingState, Prisma, PropertyType, Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -583,6 +583,8 @@ export class AdminService implements OnModuleInit {
     if (!slug) throw new BadRequestException('Name must contain letters or numbers');
     if (slug === 'compare' || slug.includes('-vs-')) throw new BadRequestException('That name cannot be used for a locality'); // those addresses belong to the comparison pages
     if (await this.db.locality.findFirst({ where: { cityId, slug }, select: { id: true } })) throw new ConflictException('This city already has a locality with that name');
+    // Localities and builders share the address space after the city, and the locality keeps its name: a builder already there moves aside.
+    await this.db.builder.updateMany({ where: { slug }, data: { slug: aside(slug) } });
     return this.db.locality.create({ data: { cityId, name, slug, intro: i.text('intro', 'Introduction', 1000), highlights: i.list('highlights', 'Highlights', 8), ...this.placeData(i) } });
   }
   /** The city and the page address stay fixed; name, text and location can change. */

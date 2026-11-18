@@ -17,7 +17,7 @@ export default async function EditProject({ params }: { params: Promise<{ id: st
     <>
       <p><Link href="/admin/projects">← Projects</Link></p>
       <h1>{p ? 'Edit project' : 'Add a project'}</h1>
-      {p && <p className="lead"><Link href={projectPath(p)}>{projectPath(p)}</Link></p>}
+      {p && <p className="lead"><Link href={`/projects/${p.slug}`}>View the public page</Link></p>}
       {p && (
         <div className="astatus">
           <p><strong>{p._count.enquiries} {p._count.enquiries === 1 ? 'lead' : 'leads'}</strong> from buyers on this project and its listings. <Link href={`/admin/enquiries?project=${p.id}`}>View leads</Link>{p._count.enquiries > 0 && <> · <a href={`/admin/enquiries/export?project=${p.id}`}>Download as a spreadsheet</a></>}</p>

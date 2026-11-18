@@ -33,9 +33,25 @@ export function builderFor(registered: string): { slug: string; name: string } {
   return { slug: slugify(name) || 'builder', name };
 }
 
+/** Words that already mean something right after the city in an address. */
+export const RESERVED = ['compare'];
+/** What a builder's address becomes when a locality (or a reserved word) already has it. */
+export const aside = (slug: string) => `${slug}-builder`;
+
+/**
+ * A builder's page in a city is /<city>/<builder>, the same place localities live (/<city>/<locality>). So a builder
+ * never takes an address that a locality has: it gets "-builder" added instead.
+ */
+async function freeAddress(db: Pick<PrismaClient, 'locality'>, slug: string): Promise<string> {
+  const taken = RESERVED.includes(slug) || !!(await db.locality.findFirst({ where: { slug }, select: { id: true } }));
+  return taken ? aside(slug) : slug;
+}
+
 /** The builder page for a registered name, made if this is the first project under it. A merged builder points straight at its target, never at another merged one. */
-export async function ensureBuilder(db: Pick<PrismaClient, 'builder'>, registered: string): Promise<string> {
-  const { slug, name } = builderFor(registered);
+export async function ensureBuilder(db: Pick<PrismaClient, 'builder' | 'locality'>, registered: string): Promise<string> {
+  const found = builderFor(registered);
+  const { name } = found;
+  const slug = await freeAddress(db, found.slug);
   const row = await db.builder.upsert({ where: { slug }, update: {}, create: { slug, name }, select: { id: true, mergedIntoId: true } });
   return row.mergedIntoId ?? row.id; // a company a person merged into another builder stays merged
 }

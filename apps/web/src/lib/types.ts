@@ -29,7 +29,7 @@ export interface LocalityDetail extends Place {
   stats: Stats; bhk: BhkRow[]; projects: ProjectLink[]; nearby: Place[];
 }
 /** A builder as buyers know it, across the companies its projects are registered under. */
-export interface BuilderSummary extends Place { projects: number; cities: string[] }
+export interface BuilderSummary extends Place { projects: number; cities: Place[] }
 export interface BuilderDetail extends Place {
   registeredAs: string[]; cities: Place[];
   projects: (Place & { builder: string; status: Status; reraId: string | null; registerSource: string | null; registerStatus: string | null; registerValidUntil: string | null; homes: number; locality: Place; city: Place })[];
@@ -58,6 +58,8 @@ export interface SitemapData {
   configs: { city: string; locality: string; bhk: number; count: number }[];
   comparisons: { city: string; pair: string }[];
   properties: { slug: string; postedAt: string }[];
-  projects: { slug: string; brand: { slug: string } | null }[];
+  projects: { slug: string; city: string; builder: string }[];
+  /** Each builder's page in each city it works in, and the builders that work in more than one city. */
+  builderCities: { city: string; builder: string }[];
   builders: { slug: string }[];
 }

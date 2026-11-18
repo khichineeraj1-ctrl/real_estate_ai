@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
+import { ProjectView, loadProject, projectMetadata } from '@/components/pages/ProjectView';
 import { AskBox } from '@/components/AskBox';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { Faq } from '@/components/Faq';
@@ -9,7 +10,7 @@ import { PropertyGrid } from '@/components/PropertyCard';
 import { Stats } from '@/components/Stats';
 import { api } from '@/lib/api';
 import { price, rate } from '@/lib/format';
-import { configSlug, itemListLd, parseConfig } from '@/lib/seo';
+import { configSlug, itemListLd, parseConfig, projectPath } from '@/lib/seo';
 import type { Listing, LocalityDetail } from '@/lib/types';
 
 type Props = { params: Promise<{ city: string; locality: string; config: string }> };
@@ -26,9 +27,17 @@ async function load(params: Props['params']) {
   return { l, bhk, listing, path: `/${l.city.slug}/${l.slug}/${configSlug(bhk)}`, place: `${l.name}, ${l.city.name}` };
 }
 
+/** The same shape of address, /<city>/<builder>/<project>, is a builder's project when the last part is not a home size. */
+async function project(params: Props['params']) {
+  const { city, locality: builder, config: slug } = await params;
+  if (parseConfig(slug)) return null;
+  const p = await loadProject(slug);
+  return p?.brand ? { p, right: p.city.slug === city && p.brand.slug === builder } : null;
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const d = await load(params);
-  if (!d) return {};
+  if (!d) { const x = await project(params); return x?.right ? projectMetadata(x.p) : {}; }
   const s = d.listing.stats;
   const title = `${d.bhk} BHK Flats for Sale in ${d.place} — ${s.count} from ${price(s.minPrice)}`;
   const description = `${s.count} ${d.bhk} BHK flats and homes for sale in ${d.place}, priced ${price(s.minPrice)} to ${price(s.maxPrice)} (average ${rate(s.avgRate)}).`;
@@ -37,7 +46,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ConfigPage({ params }: Props) {
   const d = await load(params);
-  if (!d) notFound();
+  if (!d) {
+    const x = await project(params);
+    if (!x) notFound();
+    // One address per project: a wrong city or builder in the address (it was merged or renamed) goes to the right one.
+    if (!x.right) permanentRedirect(projectPath(x.p.city.slug, x.p));
+    return <ProjectView p={x.p} />;
+  }
   const { l, bhk, listing, path, place } = d;
   const s = listing.stats;
   const base = `/${l.city.slug}/${l.slug}`;

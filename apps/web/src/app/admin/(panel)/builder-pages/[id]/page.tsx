@@ -15,7 +15,7 @@ export default async function EditBuilderPage({ params }: { params: Promise<{ id
     <>
       <p><Link href="/admin/builder-pages">← Builder pages</Link></p>
       <h1>{b.name}</h1>
-      <p className="lead"><Link href={`/builders/${b.slug}`}>/builders/{b.slug}</Link> — the address stays the same if you change the name.</p>
+      <p className="lead"><Link href={`/builders/${b.slug}`}>View the public page</Link> — its address ends in “{b.slug}” and stays the same if you change the name.</p>
 
       <AdminForm action={renameBuilderPage.bind(null, b.id)} submit="Save name">
         <Field label="Name shown to buyers" name="name" defaultValue={b.name} maxLength={120} hint="The name people know the builder by, e.g. “DLF”, not the registered company name." />

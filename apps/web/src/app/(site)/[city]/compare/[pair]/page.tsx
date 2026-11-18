@@ -76,7 +76,7 @@ export default async function CompareLocalities({ params }: Props) {
               {both.map((l) => { const x = l.bhk.find((y) => y.bhk === n); return <td key={l.slug}>{x ? <Link href={`/${city.slug}/${l.slug}/${configSlug(n)}`}>{x.count} from {price(x.minPrice)}</Link> : 'None listed'}</td>; })}
             </tr>
           ))}
-          <tr><th scope="row">Projects</th>{both.map((l) => <td key={l.slug}>{l.projects.length ? l.projects.map((p, i) => <span key={p.slug}>{i > 0 && ', '}<Link href={projectPath(p)}>{p.name}</Link></span>) : '—'}</td>)}</tr>
+          <tr><th scope="row">Projects</th>{both.map((l) => <td key={l.slug}>{l.projects.length ? l.projects.map((p, i) => <span key={p.slug}>{i > 0 && ', '}<Link href={projectPath(city.slug, p)}>{p.name}</Link></span>) : '—'}</td>)}</tr>
           <tr><th scope="row">Known for</th>{both.map((l) => <td key={l.slug} className="awrap"><ul className="bullets">{l.highlights.map((h) => <li key={h}>{h}</li>)}</ul></td>)}</tr>
           <tr><th scope="row"><span className="sr">Links</span></th>{both.map((l) => <td key={l.slug}><Link className="abtn quiet" href={`/${city.slug}/${l.slug}`}>See homes in {l.name}</Link></td>)}</tr>
         </tbody>

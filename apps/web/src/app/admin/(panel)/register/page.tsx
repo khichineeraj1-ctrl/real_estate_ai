@@ -1,4 +1,3 @@
-import { projectPath } from '@/lib/seo';
 import Link from 'next/link';
 import { ActionButton } from '@/components/admin/Form';
 import { type Options } from '@/components/admin/fields';
@@ -83,7 +82,7 @@ export default async function Register({ searchParams }: { searchParams: Promise
                 <td className="awrap">
                   {e.project ? (
                     <>
-                      <Link href={projectPath(e.project)}>In {e.project.locality.name}</Link><br /><small>{e.placedHow}</small>
+                      <Link href={`/projects/${e.project.slug}`}>In {e.project.locality.name}</Link><br /><small>{e.placedHow}</small>
                       <ActionButton action={unpublishRegisterEntry.bind(null, e.id, here)} label="Take page down" confirm={`Take down the project page for ${e.name}?`} tone="danger" />
                     </>
                   ) : (

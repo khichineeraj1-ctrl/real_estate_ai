@@ -9,8 +9,10 @@ export const configSlug = (bhk: number) => `${bhk}-bhk-flats`;
 export const parseConfig = (slug: string) => { const m = /^([1-6])-bhk-flats$/.exec(slug); return m ? Number(m[1]) : null; };
 
 /** The one address for a comparison of two localities: the pair is always written alphabetically. */
-/** A project's address: under its builder. A project with no builder page yet keeps the old address, which still opens it. */
-export const projectPath = (p: { slug: string; brand?: { slug: string } | null }) => (p.brand ? `/builders/${p.brand.slug}/${p.slug}` : `/projects/${p.slug}`);
+/** A project's address: city, then builder, then project. A project with no builder page yet keeps the old address, which still opens it. */
+export const projectPath = (city: string, p: { slug: string; brand?: { slug: string } | null }) => (p.brand ? `/${city}/${p.brand.slug}/${p.slug}` : `/projects/${p.slug}`);
+/** A builder's page for one city: its projects there. */
+export const builderPath = (city: string, builder: string) => `/${city}/${builder}`;
 export const comparePath = (city: string, a: string, b: string) => `/${city}/compare/${[a, b].sort().join('-vs-')}`;
 
 export interface Crumb { name: string; path: string }

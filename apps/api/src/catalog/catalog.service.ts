@@ -244,13 +244,13 @@ export class CatalogService {
   async builders() {
     const rows = await this.db.builder.findMany({
       where: { projects: { some: {} } }, orderBy: { name: 'asc' },
-      select: { slug: true, name: true, projects: { select: { locality: { select: { city: { select: { name: true } } } } } } },
+      select: { slug: true, name: true, projects: { select: { locality: { select: { city: { select: { slug: true, name: true } } } } } } },
     });
-    return rows.map((b) => ({ slug: b.slug, name: b.name, projects: b.projects.length, cities: [...new Set(b.projects.map((p) => p.locality.city.name))].sort() }));
+    return rows.map((b) => ({ slug: b.slug, name: b.name, projects: b.projects.length, cities: [...new Map(b.projects.map((p) => [p.locality.city.slug, p.locality.city])).values()].sort((x, y) => x.name.localeCompare(y.name)) }));
   }
 
   /** One builder's page: its projects, and the company names they are registered under. */
-  async builder(slug: string) {
+  async builder(slug: string, city?: string) {
     const b = await this.db.builder.findUnique({
       where: { slug },
       select: {
@@ -264,16 +264,26 @@ export class CatalogService {
     if (b?.mergedInto) return { movedTo: b.mergedInto.slug }; // merged into another builder: the page sends people there
     if (!b || !b.projects.length) throw new NotFoundException('Builder not found');
     const projects = b.projects.map(({ _count, locality, ...p }) => ({ ...p, homes: _count.properties, locality: { slug: locality.slug, name: locality.name }, city: locality.city }));
-    return { slug: b.slug, name: b.name, registeredAs: [...new Set(b.projects.map((p) => p.builder))].sort(), cities: [...new Map(projects.map((p) => [p.city.slug, p.city])).values()], projects };
+    const cities = [...new Map(projects.map((p) => [p.city.slug, p.city])).values()].sort((x, y) => x.name.localeCompare(y.name));
+    // In one city: only that city's projects, and a 404 if the builder has none there.
+    const shown = city ? projects.filter((p) => p.city.slug === city) : projects;
+    if (!shown.length) throw new NotFoundException('Builder not found');
+    return { slug: b.slug, name: b.name, registeredAs: [...new Set(shown.map((p) => p.builder))].sort(), cities, projects: shown };
   }
 
   async sitemap() {
     const [cities, properties, projects] = await Promise.all([
       this.db.city.findMany({ select: { slug: true, localities: { select: { slug: true } } } }),
       this.db.property.findMany({ where: { state: 'PUBLISHED' }, select: { slug: true, postedAt: true } }),
-      this.db.project.findMany({ select: { slug: true, brand: { select: { slug: true } } } }),
+      this.db.project.findMany({ select: { slug: true, brand: { select: { slug: true } }, locality: { select: { city: { select: { slug: true } } } } } }),
     ]);
-    const builders = await this.db.builder.findMany({ where: { projects: { some: {} } }, select: { slug: true } });
+    // Every project with its address parts, and from those each builder-in-a-city page.
+    const placed = projects.filter((p) => p.brand).map((p) => ({ slug: p.slug, city: p.locality.city.slug, builder: p.brand!.slug }));
+    const builderCities = [...new Map(placed.map((p) => [`${p.city}/${p.builder}`, { city: p.city, builder: p.builder }])).values()];
+    const perBuilder = new Map<string, Set<string>>();
+    for (const b of builderCities) (perBuilder.get(b.builder) ?? perBuilder.set(b.builder, new Set()).get(b.builder)!).add(b.city);
+    // A builder working in several cities also has one page that brings them together.
+    const builders = [...perBuilder].filter(([, c]) => c.size > 1).map(([slug]) => ({ slug }));
     const configs = await this.db.property.groupBy({ by: ['localityId', 'bhk'], where: { state: 'PUBLISHED', bhk: { gt: 0 } }, _count: true });
     const locs = await this.db.locality.findMany({ select: { id: true, slug: true, lat: true, lng: true, cityId: true, city: { select: { slug: true } } } });
     // Each locality paired with its two nearest neighbours in the same city, written alphabetically so every pair has one address.
@@ -289,7 +299,7 @@ export class CatalogService {
       cities: cities.map((c) => ({ slug: c.slug, localities: c.localities.map((l) => l.slug) })),
       configs: configs.map((c) => ({ city: byId.get(c.localityId)!.city.slug, locality: byId.get(c.localityId)!.slug, bhk: c.bhk, count: c._count })),
       comparisons: [...pairs].sort().map((p) => { const [city, pair] = p.split('/'); return { city, pair }; }),
-      properties, projects, builders,
+      properties, projects: placed, builderCities, builders,
     };
   }
 }

@@ -5,7 +5,7 @@ import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { JsonLd } from '@/components/JsonLd';
 import { api } from '@/lib/api';
 import { monthYear } from '@/lib/format';
-import { abs } from '@/lib/seo';
+import { abs, builderPath, projectPath } from '@/lib/seo';
 import type { BuilderDetail } from '@/lib/types';
 
 type Props = { params: Promise<{ builder: string }> };
@@ -26,6 +26,8 @@ export default async function BuilderPage({ params }: Props) {
   const b = await api<BuilderDetail | { movedTo: string }>(`/builders/${(await params).builder}`);
   if (!b) notFound();
   if ('movedTo' in b) permanentRedirect(`/builders/${b.movedTo}`); // merged into another builder
+  // A builder in one city has its page there; this page is only for builders that work in several.
+  if (b.cities.length === 1) permanentRedirect(builderPath(b.cities[0].slug, b.slug));
   const path = `/builders/${b.slug}`;
   const fromRegister = b.projects.some((p) => p.registerSource);
   const otherNames = b.registeredAs.filter((n) => n !== b.name);
@@ -43,11 +45,11 @@ export default async function BuilderPage({ params }: Props) {
         const projects = b.projects.filter((p) => p.city.slug === city.slug);
         return (
           <section className="section" key={city.slug}>
-            <h2>{b.name} projects in <Link href={`/${city.slug}`}>{city.name}</Link></h2>
+            <h2><Link href={builderPath(city.slug, b.slug)}>{b.name} projects in {city.name}</Link></h2>
             <ul className="tiles">
               {projects.map((p) => (
                 <li key={p.slug}>
-                  <Link href={`${path}/${p.slug}`}>
+                  <Link href={projectPath(city.slug, { slug: p.slug, brand: b })}>
                     <strong>{p.name}</strong>
                     <span>{p.locality.name}, {city.name}</span>
                     <span>{/lapsed/i.test(p.registerStatus ?? '') ? 'RERA registration lapsed' : p.registerValidUntil ? `RERA registration to ${monthYear(p.registerValidUntil)}` : p.reraId ? 'RERA registered' : ''}{p.homes > 0 ? ` · ${p.homes} ${p.homes === 1 ? 'home' : 'homes'} for sale` : ''}</span>
@@ -61,7 +63,7 @@ export default async function BuilderPage({ params }: Props) {
 
       <JsonLd data={{
         '@context': 'https://schema.org', '@type': 'ItemList', name: `${b.name} projects`, numberOfItems: b.projects.length,
-        itemListElement: b.projects.map((p, i) => ({ '@type': 'ListItem', position: i + 1, name: p.name, url: abs(`${path}/${p.slug}`) })),
+        itemListElement: b.projects.map((p, i) => ({ '@type': 'ListItem', position: i + 1, name: p.name, url: abs(projectPath(p.city.slug, { slug: p.slug, brand: b })) })),
       }} />
     </>
   );

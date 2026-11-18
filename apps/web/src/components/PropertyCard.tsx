@@ -26,7 +26,7 @@ export function PropertyCard({ p }: { p: Card }) {
       </ul>
       <p className="card-foot">
         <Link href={`/${p.locality.city.slug}/${p.locality.slug}`}>{p.locality.name}</Link>, {p.locality.city.name}
-        {p.project && <> · <Link href={projectPath(p.project)}>{p.project.name}</Link></>}
+        {p.project && <> · <Link href={projectPath(p.locality.city.slug, p.project)}>{p.project.name}</Link></>}
       </p>
       <CompareToggle slug={p.slug} title={p.title} />
     </article>
