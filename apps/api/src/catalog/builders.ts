@@ -32,7 +32,15 @@ const SAME: Record<string, string> = {
   'city-realty-and-development': 'city-corporation', // both City Group, the developer of Amanora
 };
 /** The name buyers know a builder by, where it differs from the registered one. */
-const KNOWN_AS: Record<string, string> = { 'sector-113-gatevida-developers': 'Sector 113 Gatevida Developers', 'mrg-group-india': 'MRG Group', 'pareena-infrastructures': 'Pareena', 'lodha-developers': 'Lodha', indiabulls: 'Indiabulls', 'city-corporation': 'City Group' };
+const KNOWN_AS: Record<string, string> = { 'sector-113-gatevida-developers': 'Sector 113 Gatevida Developers', 'mrg-group-india': 'MRG Group', 'pareena-infrastructures': 'Pareena', 'lodha-developers': 'Lodha', indiabulls: 'Indiabulls', 'city-corporation': 'City Group',
+  // registered names with odd capitals or a slip of the hand, set right for display; the address is unchanged
+  'anil-thakurdas-kursija': 'Anil Thakurdas Kursija', 'ashar-ventures': 'Ashar Ventures', 'namo-developers': 'Namo Developers', 'sanskruti-life-spaces': 'Sanskruti Life Spaces',
+  'siddhesh-properties': 'Siddhesh Properties', mhada: 'MHADA', 'pmay-cell-pune-municipal-corporation': 'PMAY Cell, Pune Municipal Corporation',
+  'aipl-bharat-infrastructure': 'AIPL Bharat Infrastructure', 'rof-housing-and-infrastructure': 'ROF Housing & Infrastructure', 'messrs-src-and-associates': 'SRC and Associates',
+  'deluris-buildtech-india-pvt-lts': 'Deluris Buildtech India', 'sadan-realtechprivate': 'Sadan Realtech', 'reliance-enetrprise': 'Reliance Enterprise',
+  'vardhman-propertise': 'Vardhman Properties', 'ocus-skycrapers-realty': 'Ocus Skyscrapers Realty',
+};
+export const DISPLAY_NAMES = KNOWN_AS;
 
 const FORM = /^(private|pvt|limited|limted|ltd|llp|inc)$/i;
 
