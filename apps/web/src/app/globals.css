@@ -510,3 +510,5 @@ p > .connect { margin: 0; }
 .connect-close:hover { background: rgba(255, 255, 255, .35); transform: rotate(90deg); }
 @media (prefers-color-scheme: dark) { .connect-head, .connect-close { color: #0e1116; } }
 @media (prefers-reduced-motion: reduce) { .connect-dialog[open], .connect-dialog[open]::backdrop, .enquiry-done, .done-burst, .auth-submit.is-ready { animation: none; } .when-card, .when-icon, .toggle-icon, .switch::after, .connect-close { transition: none; } .when-card:hover, .connect-close:hover { transform: none; } }
+
+.ptile-photo { display: block; width: calc(100% + 32px); max-width: none; height: auto; margin: -16px -16px 12px; aspect-ratio: 16 / 10; object-fit: cover; background: var(--soft); }

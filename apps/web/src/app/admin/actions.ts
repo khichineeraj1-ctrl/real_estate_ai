@@ -230,3 +230,11 @@ export async function decideProjectSeller(id: string, decision: 'APPROVED' | 'RE
   revalidatePath('/', 'layout');
   redirect('/admin/project-sellers?decided=1');
 }
+
+/** Deletes one photo of a builder's project. */
+export async function removeProjectPhoto(photoId: string, projectId: string, _: FormState): Promise<FormState> {
+  const r = await adminFetch(`/photos/${encodeURIComponent(photoId)}`, { method: 'DELETE' });
+  if (!r.ok) return failed(r);
+  revalidatePath('/', 'layout');
+  redirect(`/admin/projects/${projectId}?photoDeleted=1#photos`);
+}

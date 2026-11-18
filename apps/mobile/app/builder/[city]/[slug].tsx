@@ -1,8 +1,8 @@
 import { ConnectButton } from '../../../components/LeadForm';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { getBuilder, type BuilderDetail } from '../../../lib/api';
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { getBuilder, photoUrl, type BuilderDetail } from '../../../lib/api';
 import { monthYear } from '../../../lib/format';
 import { useTheme } from '../../../lib/theme';
 
@@ -50,6 +50,7 @@ export default function Builder() {
           </Pressable>
           {g.projects.map((p) => (
             <View key={p.slug} style={[s.row, { borderColor: t.line, backgroundColor: t.card, flexDirection: 'column', alignItems: 'stretch' }]}>
+              {p.photos?.[0] ? <Image source={{ uri: photoUrl(p.photos[0].file, 'card') }} accessibilityLabel={`${p.name}: photo`} resizeMode="cover" style={{ width: '100%', aspectRatio: 16 / 10, borderRadius: 10, backgroundColor: t.soft, marginBottom: 6 }} /> : null}
               <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/project/[slug]', params: { slug: p.slug } })} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 10, opacity: pressed ? 0.6 : 1 })}>
                 <View style={{ flex: 1, gap: 2 }}>
                   <Text style={{ color: t.fg, fontWeight: '600' }}>{p.name}</Text>

@@ -310,10 +310,10 @@ export class AdminService implements OnModuleInit {
 
   // ---- Photos
 
-  async addPhotos(user: SessionUser, propertyId: string, files: { buffer: Buffer; size: number }[]) {
-    const p = await this.propertyRow(user, propertyId);
+  /** Checks an upload and stores it against a home or a project, after the photos already there. */
+  private async storePhotos(owner: { propertyId: string } | { projectId: string }, have: number, what: string, files: { buffer: Buffer; size: number }[]) {
     if (!files?.length) throw new BadRequestException('Choose at least one photo');
-    if (p.photos.length + files.length > MAX_PHOTOS_PER_LISTING) throw new BadRequestException(`A listing can have at most ${MAX_PHOTOS_PER_LISTING} photos; this one has ${p.photos.length}`);
+    if (have + files.length > MAX_PHOTOS_PER_LISTING) throw new BadRequestException(`${what} can have at most ${MAX_PHOTOS_PER_LISTING} photos; this one has ${have}`);
     if (files.some((f) => !sniffImage(f.buffer))) throw new BadRequestException('Photos must be JPEG, PNG or WebP images');
     if (files.some((f) => f.size > MAX_PHOTO_BYTES)) throw new BadRequestException('Each photo must be under 5 MB');
     // Every file is decoded and resized before anything is stored, so one bad file rejects the whole upload cleanly.
@@ -321,24 +321,38 @@ export class AdminService implements OnModuleInit {
     for (const f of files) {
       try { processed.push(await processPhoto(f.buffer)); } catch { throw new BadRequestException('One of the photos could not be read. Save it again as a JPEG or PNG and retry.'); }
     }
-    const last = await this.db.photo.aggregate({ where: { propertyId }, _max: { position: true } });
+    const last = await this.db.photo.aggregate({ where: owner, _max: { position: true } });
     let position = (last._max.position ?? -1) + 1;
     for (const ph of processed) {
       const file = await savePhoto(ph);
-      await this.db.photo.create({ data: { propertyId, file, width: ph.width, height: ph.height, position: position++ } });
+      await this.db.photo.create({ data: { ...owner, file, width: ph.width, height: ph.height, position: position++ } });
     }
+  }
+
+  async addPhotos(user: SessionUser, propertyId: string, files: { buffer: Buffer; size: number }[]) {
+    const p = await this.propertyRow(user, propertyId);
+    await this.storePhotos({ propertyId }, p.photos.length, 'A listing', files);
     if (!isStaff(user) && p.state === 'PUBLISHED') await this.db.property.update({ where: { id: propertyId }, data: { state: 'PENDING' } });
     await this.trust.refreshProperty(propertyId);
     return { ok: true, added: files.length };
   }
 
+  /** Photos of a builder's project: its cover on cards and the gallery on its page. Added by our team. */
+  async addProjectPhotos(projectId: string, files: { buffer: Buffer; size: number }[]) {
+    const have = await this.db.photo.count({ where: { projectId } });
+    await this.project(projectId);
+    await this.storePhotos({ projectId }, have, 'A project', files);
+    return { ok: true, added: files.length };
+  }
+
   async deletePhoto(user: SessionUser, photoId: string) {
-    const photo = await this.db.photo.findFirst({ where: { id: photoId, property: this.scope(user) } });
+    // A listing's photo may be deleted by whoever may edit the listing; a project's photo only by our team.
+    const photo = await this.db.photo.findFirst({ where: { id: photoId, OR: [{ property: this.scope(user) }, ...(isStaff(user) ? [{ projectId: { not: null } }] : [])] } });
     if (!photo) throw new NotFoundException('Photo not found');
     await this.db.photo.delete({ where: { id: photoId } });
     await removePhoto(photo.file);
-    await this.trust.refreshProperty(photo.propertyId);
-    return { ok: true, propertyId: photo.propertyId };
+    if (photo.propertyId) await this.trust.refreshProperty(photo.propertyId);
+    return { ok: true, propertyId: photo.propertyId, projectId: photo.projectId };
   }
 
   // ---- Enquiries from buyers. Staff see all; an owner or agent sees those on their own listings.
@@ -497,7 +511,7 @@ export class AdminService implements OnModuleInit {
     });
   }
   async project(id: string) {
-    const p = await this.db.project.findUnique({ where: { id }, include: { brand: { select: { slug: true, name: true } }, _count: { select: { enquiries: true } } } });
+    const p = await this.db.project.findUnique({ where: { id }, include: { brand: { select: { slug: true, name: true } }, photos: { orderBy: { position: 'asc' }, select: { id: true, file: true } }, _count: { select: { enquiries: true } } } });
     if (!p) throw new NotFoundException('Project not found');
     return p;
   }
@@ -619,7 +633,8 @@ export class AdminService implements OnModuleInit {
 
   /** Listings in the project are kept and simply stop being linked to it. */
   async deleteProject(id: string) {
-    await this.project(id);
+    const project = await this.project(id);
+    await Promise.all(project.photos.map((ph) => removePhoto(ph.file))); // the files go with the project
     await this.db.$transaction([this.db.property.updateMany({ where: { projectId: id }, data: { projectId: null } }), this.db.project.delete({ where: { id } })]);
     return { ok: true };
   }

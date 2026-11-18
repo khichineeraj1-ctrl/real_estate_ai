@@ -10,7 +10,7 @@ import { PropertyGrid } from '@/components/PropertyCard';
 import { Stats } from '@/components/Stats';
 import { api } from '@/lib/api';
 import { monthYear, num, price, statusLabel } from '@/lib/format';
-import { abs, builderPath, itemListLd, projectPath, pageMeta } from '@/lib/seo';
+import { abs, builderPath, itemListLd, projectPath, pageMeta, media } from '@/lib/seo';
 import type { ProjectDetail } from '@/lib/types';
 
 /** A builder's project. Its address is /<city>/<builder>/<project>; the page files decide which address was asked for. */
@@ -22,17 +22,26 @@ export function projectMetadata(p: ProjectDetail): Metadata {
   const description = p.registerSource
     ? `${p.name} by ${p.brand?.name ?? p.builder} in ${p.locality.name}, ${p.city.name}: RERA registration number, ${/lapsed/i.test(p.registerStatus ?? '') ? 'lapsed status' : 'status'}${p.registerValidUntil ? ` and validity (to ${monthYear(p.registerValidUntil)})` : ''}, from the ${p.registerName} register.`
     : `${p.name} by ${p.builder} in ${p.locality.name}, ${p.city.name}: ${p.bhk.map((b) => `${b.bhk} BHK`).join(', ')} homes${p.stats.count ? ` from ${price(p.stats.minPrice)}` : ''}. ${statusLabel(p.status)}${p.possession ? `, possession ${monthYear(p.possession)}` : ''}.`;
-  return pageMeta({ title, description, path: pathOf(p) });
+  return pageMeta({ title, description, path: pathOf(p), image: p.photos?.[0] ? media(p.photos[0].file) : undefined });
 }
 
 export function ProjectView({ p }: { p: ProjectDetail }) {
   const builderHere = p.brand ? builderPath(p.city.slug, p.brand.slug) : null;
+  const photos = p.photos ?? [];
   const localityPath = `/${p.city.slug}/${p.locality.slug}`;
   return (
     <>
       <Breadcrumbs crumbs={[{ name: p.city.name, path: `/${p.city.slug}` }, { name: p.locality.name, path: localityPath }, { name: p.name, path: pathOf(p) }]} />
       <h1>{p.name}, {p.locality.name}, {p.city.name}</h1>
       <p className="lead">{p.description}</p>
+      {photos.length > 0 && (
+        <div className={`gallery ${photos.length === 1 ? 'single' : ''}`}>
+          {photos.map((ph, i) => (
+            // The first photo loads at full size; the rest load small and open the full photo when clicked.
+            <a key={ph.file} href={media(ph.file)}><img src={media(ph.file, i === 0 ? 'full' : 'card')} alt={`${p.name}, ${p.locality.name} — photo ${i + 1} of ${photos.length}`} width={i === 0 ? ph.width : 640} height={i === 0 ? ph.height : 480} loading={i === 0 ? 'eager' : 'lazy'} fetchPriority={i === 0 ? 'high' : undefined} decoding="async" /></a>
+          ))}
+        </div>
+      )}
       {p.registerSource && (
         <div className="astatus">
           <p><strong>From the public RERA register, not yet confirmed by the builder.</strong> These details are as published by {p.registerName}{p.sourceFetchedAt ? `, read on ${new Date(p.sourceFetchedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' })}` : ''}. The register does not give prices, floor plans or whether building is finished, so we do not show them. {p.sourceUrl && <a href={p.sourceUrl} target="_blank" rel="noopener noreferrer nofollow">See the register’s own page</a>}</p>
@@ -104,7 +113,7 @@ export function ProjectView({ p }: { p: ProjectDetail }) {
       )}
 
       <JsonLd data={{
-        '@context': 'https://schema.org', '@type': 'ApartmentComplex', name: p.name, description: p.description, url: abs(pathOf(p)),
+        '@context': 'https://schema.org', '@type': 'ApartmentComplex', name: p.name, description: p.description, url: abs(pathOf(p)), ...(photos.length ? { image: photos.map((ph) => abs(media(ph.file))) } : {}),
         address: { '@type': 'PostalAddress', addressLocality: `${p.locality.name}, ${p.city.name}`, addressRegion: p.city.state, addressCountry: 'IN' },
         geo: { '@type': 'GeoCoordinates', latitude: p.locality.lat, longitude: p.locality.lng },
         amenityFeature: p.amenities.map((a) => ({ '@type': 'LocationFeatureSpecification', name: a, value: true })),

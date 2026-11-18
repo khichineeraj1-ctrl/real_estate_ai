@@ -48,6 +48,8 @@ export interface Stats { count: number; minPrice: number | null; maxPrice: numbe
 export const VERIFIED_SELLER = { status: 'APPROVED', user: { active: true, role: 'AGENT', phone: { not: null }, dealer: { status: 'APPROVED' } } } satisfies Prisma.ProjectSellerWhereInput;
 /** Added to a project query to count its verified agents; `withAgents` turns the count into `agents`. */
 const AGENT_COUNT = { select: { sellers: { where: VERIFIED_SELLER } } } as const;
+/** The first photo of a project, for its card. */
+const COVER = { orderBy: { position: 'asc' }, take: 1, select: { file: true } } as const;
 const withAgents = <T extends { _count: { sellers: number } }>({ _count, ...p }: T) => ({ ...p, agents: _count.sellers });
 
 @Injectable()
@@ -108,7 +110,7 @@ export class CatalogService {
       this.bhkBreakdown({ city: slug }),
       Promise.all(city.localities.map(async (l) => ({ slug: l.slug, name: l.name, stats: await this.stats({ city: slug, locality: l.slug }) }))),
       // Projects entered by our team or builders first, then register entries; a city can have hundreds, so only the first few dozen are listed here.
-      this.db.project.findMany({ where: { locality: { city: { slug } } }, select: { slug: true, name: true, builder: true, brand: { select: { slug: true, name: true } }, status: true, registerSource: true, locality: { select: { name: true } }, _count: AGENT_COUNT }, orderBy: [{ registerSource: { sort: 'asc', nulls: 'first' } }, { name: 'asc' }], take: 36 }),
+      this.db.project.findMany({ where: { locality: { city: { slug } } }, select: { slug: true, name: true, builder: true, brand: { select: { slug: true, name: true } }, status: true, registerSource: true, locality: { select: { name: true } }, photos: COVER, _count: AGENT_COUNT }, orderBy: [{ registerSource: { sort: 'asc', nulls: 'first' } }, { name: 'asc' }], take: 36 }),
     ]);
     return { slug: city.slug, name: city.name, state: city.state, intro: city.intro, lat: city.lat, lng: city.lng, costs: costsOf(city), stats, bhk, localities, projects: projects.map(withAgents), builders: await this.buildersIn(slug) };
   }
@@ -128,7 +130,7 @@ export class CatalogService {
     const [stats, bhk, projects, siblings] = await Promise.all([
       this.stats(f),
       this.bhkBreakdown(f),
-      this.db.project.findMany({ where: { localityId: locality.id }, select: { slug: true, name: true, builder: true, brand: { select: { slug: true, name: true } }, status: true, registerSource: true, _count: AGENT_COUNT }, orderBy: [{ registerSource: { sort: 'asc', nulls: 'first' } }, { name: 'asc' }], take: 60 }),
+      this.db.project.findMany({ where: { localityId: locality.id }, select: { slug: true, name: true, builder: true, brand: { select: { slug: true, name: true } }, status: true, registerSource: true, photos: COVER, _count: AGENT_COUNT }, orderBy: [{ registerSource: { sort: 'asc', nulls: 'first' } }, { name: 'asc' }], take: 60 }),
       this.db.locality.findMany({ where: { cityId: locality.cityId, NOT: { id: locality.id } }, select: { slug: true, name: true, lat: true, lng: true } }),
     ]);
     // Nearest first, so "nearby localities" links are the ones a buyer would actually compare.
@@ -140,7 +142,7 @@ export class CatalogService {
   }
 
   async project(slug: string) {
-    const project = await this.db.project.findUnique({ where: { slug }, include: { locality: { include: { city: true } }, brand: { select: { slug: true, name: true } } } });
+    const project = await this.db.project.findUnique({ where: { slug }, include: { locality: { include: { city: true } }, brand: { select: { slug: true, name: true } }, photos: { orderBy: { position: 'asc' }, select: { file: true, width: true, height: true } } } });
     if (!project) throw new NotFoundException('Project not found');
     const [properties, stats, bhk] = await Promise.all([
       this.db.property.findMany({ where: { projectId: project.id, state: 'PUBLISHED' }, select: CARD, orderBy: { priceInr: 'asc' } }),
@@ -149,7 +151,7 @@ export class CatalogService {
     ]);
     const { locality, localityId, id, leadEmail, accountId, brandId, ...rest } = project;
     // Other projects a reader of this one is likely to want next: the same builder in this city, and the same locality.
-    const link = { slug: true, name: true, builder: true, brand: { select: { slug: true, name: true } }, locality: { select: { name: true } }, _count: AGENT_COUNT } as const;
+    const link = { slug: true, name: true, builder: true, brand: { select: { slug: true, name: true } }, locality: { select: { name: true } }, photos: COVER, _count: AGENT_COUNT } as const;
     const [byBuilder, inLocality] = await Promise.all([
       brandId ? this.db.project.findMany({ where: { brandId, id: { not: id }, locality: { cityId: locality.cityId } }, select: link, orderBy: { name: 'asc' }, take: 8 }) : [],
       this.db.project.findMany({ where: { localityId, id: { not: id }, ...(brandId ? { NOT: { brandId } } : {}) }, select: link, orderBy: { name: 'asc' }, take: 8 }),
@@ -369,7 +371,7 @@ export class CatalogService {
         slug: true, name: true, mergedInto: { select: { slug: true } },
         projects: {
           orderBy: [{ name: 'asc' }],
-          select: { slug: true, name: true, builder: true, status: true, reraId: true, registerSource: true, registerStatus: true, registerValidUntil: true, locality: { select: { slug: true, name: true, city: { select: { slug: true, name: true } } } }, _count: { select: { properties: { where: { state: 'PUBLISHED' } }, sellers: { where: VERIFIED_SELLER } } } },
+          select: { slug: true, name: true, builder: true, status: true, reraId: true, registerSource: true, registerStatus: true, registerValidUntil: true, locality: { select: { slug: true, name: true, city: { select: { slug: true, name: true } } } }, photos: COVER, _count: { select: { properties: { where: { state: 'PUBLISHED' } }, sellers: { where: VERIFIED_SELLER } } } },
         },
       },
     });

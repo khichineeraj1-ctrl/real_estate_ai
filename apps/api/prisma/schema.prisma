@@ -123,6 +123,7 @@ model Project {
   properties  Property[]
   enquiries   Enquiry[]
   sellers     ProjectSeller[]
+  photos      Photo[]
 
   @@index([brandId])
 }
@@ -243,10 +244,14 @@ model Photo {
   createdAt  DateTime @default(now())
   width      Int
   height     Int
-  propertyId String
-  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  /// A photo belongs to one home, or to one builder's project: exactly one of the two is set.
+  propertyId String?
+  property   Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  projectId  String?
+  project    Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([propertyId, position])
+  @@index([projectId, position])
 }
 
 enum EmailTokenKind {

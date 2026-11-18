@@ -21,6 +21,16 @@ locality pages show no price figures until then.
 - Everything else takes a **lead** ("Request a call back") and shows no number: builder projects, a home posted by a
   builder, and a home our own team added. The lead goes to the builder's sales address or login, or to our team.
 
+**Photos**
+
+- A listing's photos are added by whoever posts it; the first is the cover on its card and all appear in a gallery
+  on its page.
+- A builder project's photos are added by our team on the project's admin page (up to 12). The first is the cover on
+  the project's cards, the gallery sits at the top of its page, and it becomes the picture shown when the page is
+  shared. Use the builder's own pictures or ones we have the right to use; the RERA registers supply none.
+- Every upload is checked, re-encoded and resized to two sizes, and the files are removed when the photo, listing or
+  project is deleted. The website and the app both show them.
+
 **Buttons on cards, and verified agents**
 
 Every project tile and listing card has a button that opens a short form over the page (name, phone, when they plan
