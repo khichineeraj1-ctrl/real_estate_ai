@@ -1,3 +1,5 @@
+import { displayName } from '../rera/parse';
+import { builderFor } from './builders';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConstructionStatus, Prisma, PropertyType } from '@prisma/client';
 import { Input } from '../admin/input';
@@ -263,6 +265,26 @@ export class CatalogService {
     return rows.map((b) => ({ slug: b.slug, name: b.name, projects: b.projects.length, cities: [...new Map(b.projects.map((p) => [p.locality.city.slug, p.locality.city])).values()].sort((x, y) => x.name.localeCompare(y.name)) }));
   }
 
+  /**
+   * Register entries we hold but have not turned into a project page (they are outside the localities we cover), by
+   * city and builder. They are real registered projects, so a builder's page can name them, and they count towards
+   * whether the page has enough on it to be worth showing in search.
+   */
+  private async unplacedByBuilder(source?: 'HARYANA' | 'KARNATAKA' | 'MAHARASHTRA') {
+    const rows = await this.db.registerProject.findMany({ where: { projectId: null, ...(source ? { source } : {}) }, select: { source: true, name: true, promoter: true, district: true, locationText: true, regNo: true, registerStatus: true, validUntil: true, sourceUrl: true } });
+    const cityOf = (r: { source: string; district: string }) => (r.source === 'HARYANA' ? 'gurgaon' : r.source === 'KARNATAKA' ? 'bengaluru' : /pune/i.test(r.district) ? 'pune' : /mumbai|thane/i.test(r.district) ? 'mumbai' : null);
+    const out = new Map<string, typeof rows>();
+    for (const r of rows) {
+      const city = cityOf(r); const promoter = displayName(r.promoter);
+      if (!city || !promoter) continue;
+      const key = `${city}/${builderFor(promoter).slug}`;
+      (out.get(key) ?? out.set(key, []).get(key)!).push(r);
+    }
+    return out;
+  }
+  /** A builder's page in a city is offered to search engines only when it says more than a single project's own page does. */
+  private worthIndexing(projects: number, homes: number, alsoRegistered: number) { return projects + alsoRegistered >= 2 || homes > 0; }
+
   /** One builder's page: its projects, and the company names they are registered under. */
   async builder(slug: string, city?: string) {
     const b = await this.db.builder.findUnique({
@@ -282,7 +304,12 @@ export class CatalogService {
     // In one city: only that city's projects, and a 404 if the builder has none there.
     const shown = city ? projects.filter((p) => p.city.slug === city) : projects;
     if (!shown.length) throw new NotFoundException('Builder not found');
-    return { slug: b.slug, name: b.name, registeredAs: [...new Set(shown.map((p) => p.builder))].sort(), cities, projects: shown };
+    // Other projects the register lists for this builder in the city, which we have no page for.
+    const SOURCE = { gurgaon: 'HARYANA', bengaluru: 'KARNATAKA', mumbai: 'MAHARASHTRA', pune: 'MAHARASHTRA' } as const;
+    const unplaced = city && city in SOURCE ? (await this.unplacedByBuilder(SOURCE[city as keyof typeof SOURCE])).get(`${city}/${b.slug}`) ?? [] : [];
+    const alsoRegistered = unplaced.sort((x, y) => x.name.localeCompare(y.name)).slice(0, 40).map((r) => ({ name: displayName(r.name), location: displayName(r.locationText), regNo: r.regNo, status: r.registerStatus, validUntil: r.validUntil, sourceUrl: r.sourceUrl, registerName: SOURCE_NAME[r.source] }));
+    const indexable = this.worthIndexing(shown.length, shown.reduce((n, p) => n + p.homes, 0), unplaced.length);
+    return { slug: b.slug, name: b.name, registeredAs: [...new Set(shown.map((p) => p.builder))].sort(), cities, projects: shown, alsoRegistered, alsoRegisteredTotal: unplaced.length, indexable };
   }
 
   async sitemap() {
@@ -293,7 +320,12 @@ export class CatalogService {
     ]);
     // Every project with its address parts, and from those each builder-in-a-city page.
     const placed = projects.filter((p) => p.brand).map((p) => ({ slug: p.slug, city: p.locality.city.slug, builder: p.brand!.slug }));
-    const builderCities = [...new Map(placed.map((p) => [`${p.city}/${p.builder}`, { city: p.city, builder: p.builder }])).values()];
+    // A builder's page in a city is listed only when it has more to say than one project's own page (see worthIndexing).
+    const unplaced = await this.unplacedByBuilder();
+    const perPage = new Map<string, number>();
+    for (const p of placed) perPage.set(`${p.city}/${p.builder}`, (perPage.get(`${p.city}/${p.builder}`) ?? 0) + 1);
+    const builderCities = [...new Map(placed.map((p) => [`${p.city}/${p.builder}`, { city: p.city, builder: p.builder }])).values()]
+      .filter((b) => this.worthIndexing(perPage.get(`${b.city}/${b.builder}`) ?? 0, 0, unplaced.get(`${b.city}/${b.builder}`)?.length ?? 0));
     const perBuilder = new Map<string, Set<string>>();
     for (const b of builderCities) (perBuilder.get(b.builder) ?? perBuilder.set(b.builder, new Set()).get(b.builder)!).add(b.city);
     // A builder working in several cities also has one page that brings them together.

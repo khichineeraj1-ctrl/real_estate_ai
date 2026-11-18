@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
+import { Faq } from '@/components/Faq';
 import { JsonLd } from '@/components/JsonLd';
 import { api } from '@/lib/api';
 import { monthYear } from '@/lib/format';
@@ -24,8 +25,17 @@ export function builderCityMetadata(b: BuilderDetail, city: Place): Metadata {
   const title = `${b.name} Projects in ${city.name} — ${b.projects.length} ${b.projects.length === 1 ? 'Project' : 'Projects'}, RERA Details`;
   const localities = [...new Set(b.projects.map((p) => p.locality.name))];
   const description = `${count(b.projects.length)} by ${b.name} in ${city.name}${localities.length ? `, in ${list(localities.slice(0, 4))}${localities.length > 4 ? ' and more' : ''}` : ''}. RERA registration numbers and status for each.`;
-  return pageMeta({ title, description, path: path });
+  return pageMeta({ title, description, path, noindex: !b.indexable });
 }
+
+const lapsed = (status: string | null) => /lapsed/i.test(status ?? '');
+/** Where a registration stands today, from the register's own status and end date. */
+function standing(status: string | null, validUntil: string | null): 'lapsed' | 'ended' | 'current' | 'unknown' {
+  if (lapsed(status)) return 'lapsed';
+  if (!validUntil) return 'unknown';
+  return new Date(validUntil) < new Date() ? 'ended' : 'current';
+}
+const STANDING = { lapsed: 'Marked lapsed', ended: 'Registration period over', current: 'Registration current', unknown: 'Registered' };
 
 export function BuilderCityView({ b, city, others = [] }: { b: BuilderDetail; city: Place; others?: (Place & { projects: number })[] }) {
   const path = builderPath(city.slug, b.slug);
@@ -36,6 +46,17 @@ export function BuilderCityView({ b, city, others = [] }: { b: BuilderDetail; ci
   const byLocality = new Map<string, { locality: Place; projects: BuilderDetail['projects'] }>();
   for (const p of b.projects) (byLocality.get(p.locality.slug) ?? byLocality.set(p.locality.slug, { locality: p.locality, projects: [] }).get(p.locality.slug)!).projects.push(p);
   const groups = [...byLocality.values()].sort((x, y) => y.projects.length - x.projects.length || x.locality.name.localeCompare(y.locality.name));
+  const all = [...b.projects.map((p) => standing(p.registerStatus, p.registerValidUntil)), ...b.alsoRegistered.map((r) => standing(r.status, r.validUntil))];
+  const n = (k: string) => all.filter((x) => x === k).length;
+  const total = b.projects.length + b.alsoRegisteredTotal;
+  const registerName = b.alsoRegistered[0]?.registerName;
+  const standingText = [n('current') ? `${n('current')} ${n('current') === 1 ? 'has a registration that is' : 'have registrations that are'} still running` : '', n('ended') ? `${n('ended')} ${n('ended') === 1 ? 'has' : 'have'} passed the end date of the registration` : '', n('lapsed') ? `${n('lapsed')} ${n('lapsed') === 1 ? 'is' : 'are'} marked lapsed by the register` : ''].filter(Boolean).join(', ');
+  const faqs = [
+    { q: `How many projects does ${b.name} have in ${city.name}?`, a: `${b.name} has ${count(total)} on the public RERA register for ${city.name}${b.alsoRegisteredTotal ? `: ${b.projects.length} in the localities covered here (${list(groups.map((g) => g.locality.name))}) and ${b.alsoRegisteredTotal} elsewhere in the city` : `, in ${list(groups.map((g) => g.locality.name))}`}.` },
+    { q: `Are ${b.name}'s projects in ${city.name} RERA registered?`, a: `Yes, each project listed here has a RERA registration number, shown on this page.${standingText ? ` Of those shown, ${standingText}.` : ''} A registration period that is over often means the project is complete, but confirm this with the builder.` },
+    { q: `What do ${b.name} projects in ${city.name} cost?`, a: `The RERA register does not publish prices, so none are shown here until ${b.name} or a seller lists homes. Open a project and request a call back, and our team will find out current prices and availability for you.` },
+    ...(otherNames.length ? [{ q: `Which companies register ${b.name}'s projects?`, a: `In ${city.name} they are registered under ${list(b.registeredAs)}. Large builders often register each project under a separate company; the name on your agreement should match the one on the RERA certificate.` }] : []),
+  ];
   return (
     <>
       <Breadcrumbs crumbs={[{ name: city.name, path: `/${city.slug}` }, { name: b.name, path }]} />
@@ -44,6 +65,11 @@ export function BuilderCityView({ b, city, others = [] }: { b: BuilderDetail; ci
         {b.name} has {count(b.projects.length)} in {city.name} listed here, in {list(groups.map((g) => g.locality.name))}.
         {otherNames.length > 0 && ` ${otherNames.length === 1 ? 'They are registered under the company name' : 'They are registered under these company names:'} ${list(otherNames)}.`}
       </p>
+      <dl className="stats">
+        <div><dt>Registered projects in {city.name}</dt><dd>{total}</dd></div>
+        <div><dt>Localities</dt><dd>{groups.length}{b.alsoRegisteredTotal ? '+' : ''}</dd></div>
+        <div><dt>Registrations still running</dt><dd>{n('current')} of {all.length}</dd></div>
+      </dl>
       {fromRegister && <p className="calc-note">Project details come from the public RERA register and have not been confirmed by the builder. The register does not give prices.</p>}
 
       {groups.map(({ locality, projects }) => (
@@ -62,6 +88,42 @@ export function BuilderCityView({ b, city, others = [] }: { b: BuilderDetail; ci
           </ul>
         </section>
       ))}
+
+      <section className="section">
+        <h2>RERA registration details</h2>
+        <div className="atable"><table>
+          <thead><tr><th>Project</th><th>Locality</th><th>RERA number</th><th>Registered by</th><th>Registration runs to</th><th>Standing</th></tr></thead>
+          <tbody>
+            {b.projects.map((p) => (
+              <tr key={p.slug}>
+                <td><Link href={projectPath(city.slug, { slug: p.slug, brand: b })}>{p.name}</Link></td><td><Link href={`/${city.slug}/${p.locality.slug}`}>{p.locality.name}</Link></td>
+                <td>{p.reraId ?? '—'}</td><td>{p.builder}</td><td>{p.registerValidUntil ? monthYear(p.registerValidUntil) : '—'}</td><td>{STANDING[standing(p.registerStatus, p.registerValidUntil)]}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table></div>
+      </section>
+
+      {b.alsoRegistered.length > 0 && (
+        <section className="section">
+          <h2>Other {b.name} projects on the {city.name} register</h2>
+          <p className="lead">{registerName} also lists {b.alsoRegisteredTotal === 1 ? 'this project' : `these ${b.alsoRegisteredTotal} projects`} for {b.name}. {b.alsoRegisteredTotal === 1 ? 'It is' : 'They are'} outside the localities we cover so far, so {b.alsoRegisteredTotal === 1 ? 'it has' : 'they have'} no page here yet.</p>
+          <div className="atable"><table>
+            <thead><tr><th>Project</th><th>Location on the register</th><th>RERA number</th><th>Registration runs to</th><th>Standing</th></tr></thead>
+            <tbody>
+              {b.alsoRegistered.map((r) => (
+                <tr key={r.regNo}>
+                  <td><a href={r.sourceUrl} target="_blank" rel="noopener noreferrer nofollow">{r.name}</a></td><td>{r.location || '—'}</td><td>{r.regNo}</td>
+                  <td>{r.validUntil ? monthYear(r.validUntil) : '—'}</td><td>{STANDING[standing(r.status, r.validUntil)]}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table></div>
+          {b.alsoRegisteredTotal > b.alsoRegistered.length && <p className="calc-note">Showing {b.alsoRegistered.length} of {b.alsoRegisteredTotal}.</p>}
+        </section>
+      )}
+
+      <Faq title={`${b.name} in ${city.name}: common questions`} faqs={faqs} />
 
       {elsewhere.length > 0 && (
         <section className="section">

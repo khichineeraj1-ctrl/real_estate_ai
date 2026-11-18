@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { dayFirst, displayName, parseHaryana, parseKarnataka, parseMaharashtra } from './parse';
+import { dayFirst, displayName, parseHaryana, parseKarnataka, parseMaharashtra, text } from './parse';
 import { Spot, km, place } from './place';
 
 // Small excerpts of the registers' real pages, saved on 18 Nov 2026.
@@ -42,6 +42,10 @@ test('nothing is read from a page that is not a register list', () => {
   assert.deepEqual(parseHaryana('<html><body>Service unavailable</body></html>'), []);
   assert.deepEqual(parseKarnataka('<table><tr><td>a</td><td>b</td></tr></table>'), []);
   assert.deepEqual(parseMaharashtra('<p>No results</p>'), { total: null, entries: [] });
+});
+
+test('text hidden in a comment is not read as content', () => {
+  assert.equal(text('GGM/632/364/2022/107 DATED 21.11.2022 <!-- <img src="images/project_completed.jpg" > -->'), 'GGM/632/364/2022/107 DATED 21.11.2022');
 });
 
 test('dates and display names', () => {
