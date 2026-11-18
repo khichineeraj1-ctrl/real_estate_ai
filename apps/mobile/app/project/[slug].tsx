@@ -2,82 +2,10 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { PropertyCard } from '../../components/PropertyCard';
-import { TIMELINES, getProject, sendProjectEnquiry, type ProjectDetail } from '../../lib/api';
+import { ConnectButton, LeadForm } from '../../components/LeadForm';
+import { getProject, type ProjectDetail } from '../../lib/api';
 import { monthYear, num, statusLabel } from '../../lib/format';
 import { useTheme, type Theme } from '../../lib/theme';
-
-/** Leaves the buyer's details for a call back. For a project taken from a register, our own team calls, since the builder has not joined. */
-function LeadForm({ p, t }: { p: ProjectDetail; t: Theme }) {
-  const unclaimed = !!p.registerSource;
-  const sizes = p.bhk.map((b) => `${b.bhk} BHK`);
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [interest, setInterest] = useState('');
-  const [timeline, setTimeline] = useState('');
-  const [visit, setVisit] = useState(false);
-  const [consent, setConsent] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-  const [done, setDone] = useState(false);
-
-  async function submit() {
-    if (!name.trim() || !phone.trim()) { setError('Enter your name and phone number'); return; }
-    if (!consent) { setError('Turn on the switch to agree to be contacted'); return; }
-    setBusy(true); setError('');
-    try { await sendProjectEnquiry(p.slug, { name, phone, interest: interest || undefined, timeline: timeline || undefined, wantsVisit: visit }); setDone(true); } catch (e) { setError((e as Error).message); }
-    setBusy(false);
-  }
-
-  if (done) {
-    return (
-      <View style={[s.box, { backgroundColor: t.soft, borderColor: t.line }]} accessibilityLiveRegion="polite">
-        <Text style={{ color: t.fg, fontWeight: '700', fontSize: 16 }}>{unclaimed ? 'Thank you. Our team has your details.' : 'Thank you. Your details are with the sales team.'}</Text>
-        <Text style={{ color: t.fg, lineHeight: 21 }}>{unclaimed ? `We will call you about ${p.name}. The builder has not joined us yet, so we will find out what we can for you.` : `Someone will call you about ${p.name} with prices, floor plans and site visit times.`}</Text>
-        <Text style={{ color: t.muted, fontSize: 13, lineHeight: 19 }}>Do not pay a booking amount to anyone before you have seen the site and checked the project’s RERA registration.</Text>
-      </View>
-    );
-  }
-  const input = [s.input, { color: t.fg, borderColor: t.line, backgroundColor: t.card }];
-  return (
-    <View style={[s.box, { backgroundColor: t.soft, borderColor: t.line }]}>
-      <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 18, fontWeight: '700' }}>{unclaimed ? 'Interested in this project?' : 'Get prices, floor plans and a site visit'}</Text>
-      <Text style={{ color: t.muted, lineHeight: 20 }}>{unclaimed ? `Leave your details and our team will call you. ${p.builder} has not joined us yet, so we will find out prices and availability for you.` : `Leave your details and the sales team for ${p.name} will call you back.`}</Text>
-      <TextInput value={name} onChangeText={setName} placeholder="Your name" placeholderTextColor={t.muted} accessibilityLabel="Your name" autoComplete="name" maxLength={80} style={input} />
-      <TextInput value={phone} onChangeText={setPhone} placeholder="Phone" placeholderTextColor={t.muted} accessibilityLabel="Phone" keyboardType="phone-pad" autoComplete="tel" maxLength={20} style={input} />
-      {sizes.length > 0 && (
-        <View style={s.chips} accessibilityRole="radiogroup" accessibilityLabel="Interested in">
-          {sizes.map((x) => (
-            <Pressable key={x} accessibilityRole="radio" accessibilityState={{ selected: interest === x }} onPress={() => setInterest(interest === x ? '' : x)} style={[s.chip, { borderColor: interest === x ? t.brand : t.line, backgroundColor: interest === x ? t.brand : t.card }]}>
-              <Text style={{ color: interest === x ? t.brandInk : t.fg }}>{x}</Text>
-            </Pressable>
-          ))}
-        </View>
-      )}
-      <View style={{ gap: 6 }}>
-        <Text style={{ color: t.fg, fontWeight: '600', fontSize: 14 }}>When do you plan to buy? <Text style={{ color: t.muted, fontWeight: '400' }}>(optional)</Text></Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }} accessibilityRole="radiogroup">
-          {TIMELINES.map(([code, label]) => (
-            <Pressable key={code} accessibilityRole="radio" accessibilityState={{ selected: timeline === code }} onPress={() => setTimeline(timeline === code ? '' : code)} style={{ borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7, borderColor: timeline === code ? t.brand : t.line, backgroundColor: timeline === code ? t.brand : t.card }}>
-              <Text style={{ color: timeline === code ? t.brandInk : t.fg, fontSize: 13 }}>{label}</Text>
-            </Pressable>
-          ))}
-        </View>
-      </View>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-        <Switch value={visit} onValueChange={setVisit} accessibilityLabel="I would like to arrange a site visit" trackColor={{ true: t.brand }} />
-        <Text style={{ color: t.fg, flex: 1, fontSize: 14 }}>I would like to arrange a site visit</Text>
-      </View>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-        <Switch value={consent} onValueChange={setConsent} accessibilityLabel="I agree to be contacted about this project" trackColor={{ true: t.brand }} />
-        <Text style={{ color: t.muted, flex: 1, fontSize: 13 }}>{unclaimed ? `I agree to be contacted by phone about ${p.name} by this app’s team, who may pass my enquiry to the builder.` : `I agree to be contacted by phone about ${p.name} by the builder and this app’s team.`}</Text>
-      </View>
-      {error ? <Text accessibilityLiveRegion="polite" style={{ color: t.danger }}>{error}</Text> : null}
-      <Pressable accessibilityRole="button" disabled={busy} onPress={submit} style={[s.button, { backgroundColor: t.brand, opacity: busy ? 0.6 : 1 }]}>
-        <Text style={{ color: t.brandInk, fontWeight: '700' }}>{busy ? 'Sending…' : 'Request a call back'}</Text>
-      </Pressable>
-    </View>
-  );
-}
 
 export default function Project() {
   const t = useTheme();
@@ -136,7 +64,21 @@ export default function Project() {
           ))}
         </View>
 
-        <LeadForm key={p.slug} p={p} t={t} />
+        {(p.agents?.length ?? 0) > 0 && (
+          <View style={[s.box, { backgroundColor: t.readyBg, borderColor: t.ready }]}>
+            <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 17, fontWeight: '700' }}>Verified agents selling {p.name}</Text>
+            {p.agents!.map((a) => (
+              <View key={a.id}><Text style={{ color: t.fg, fontWeight: '600' }}>{a.name}{a.firmName ? `, ${a.firmName}` : ''}</Text><Text style={{ color: t.ready, fontSize: 13, fontWeight: '600' }}>✓ {a.label}{a.yearsInBusiness ? ` · ${a.yearsInBusiness} years in business` : ''}</Text></View>
+            ))}
+            <ConnectButton kind="project" slug={p.slug} name={p.name} mode="agent" agents={p.agents!.length} unclaimed={!!p.registerSource} />
+          </View>
+        )}
+
+        <View style={[s.box, { backgroundColor: t.soft, borderColor: t.line }]}>
+          <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 18, fontWeight: '700' }}>{p.registerSource ? 'Interested in this project?' : 'Get prices, floor plans and a site visit'}</Text>
+          <Text style={{ color: t.muted, lineHeight: 20 }}>{p.registerSource ? `Leave your details and our team will call you. ${p.brand?.name ?? p.builder} has not joined us yet, so we will find out prices and availability for you.` : `Leave your details and the sales team for ${p.name} will call you back.`}</Text>
+          <LeadForm key={p.slug} kind="project" slug={p.slug} name={p.name} mode="callback" unclaimed={!!p.registerSource} interests={p.bhk.map((b) => `${b.bhk} BHK`)} />
+        </View>
 
         {p.properties.length > 0 && <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 18, fontWeight: '700' }}>Homes for sale in {p.name}</Text>}
         {p.properties.map((h) => <PropertyCard key={h.slug} p={h} />)}

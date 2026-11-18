@@ -3,6 +3,7 @@ import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { CONFIDENCE_LABELS, photoUrl, type PropertyCard as Card } from '../lib/api';
 import { num, price, statusLabel, typeLabel } from '../lib/format';
 import { useTheme } from '../lib/theme';
+import { ConnectButton } from './LeadForm';
 import { CompareToggle } from './tools/Compare';
 
 export function PropertyCard({ p }: { p: Card }) {
@@ -28,7 +29,10 @@ export function PropertyCard({ p }: { p: Card }) {
         {[typeLabel(p.type), p.bhk ? `${p.bhk} BHK` : null, `${num(p.areaSqft)} sq ft`, `₹${num(Math.round(p.priceInr / p.areaSqft))}/sq ft`].filter(Boolean).join('  ·  ')}
       </Text>
       </Pressable>
-      <CompareToggle slug={p.slug} title={p.title} />
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+        <ConnectButton kind="property" slug={p.slug} name={p.title} mode={p.listedBy === 'BUILDER' ? 'callback' : 'seller'} />
+        <CompareToggle slug={p.slug} title={p.title} />
+      </View>
     </View>
   );
 }

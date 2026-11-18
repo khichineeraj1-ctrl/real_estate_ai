@@ -6,6 +6,8 @@ export type Status = 'READY_TO_MOVE' | 'UNDER_CONSTRUCTION';
 export interface Place { slug: string; name: string }
 export interface Stats { count: number; minPrice: number | null; maxPrice: number | null; avgRate: number | null }
 export interface PropertyCard {
+  /** Who posted it: OWNER, AGENT or BUILDER. */
+  listedBy?: string;
   slug: string; title: string; type: PropertyType; bhk: number; bathrooms: number; priceInr: number; areaSqft: number; status: Status; possession: string | null;
   locality: Place & { city: Place }; project: (Place & { builder: string }) | null;
   /** The cover only on cards; every photo on the detail screen. */
@@ -19,13 +21,13 @@ export interface CitySummary extends Place { state: string; localities: Place[];
 export interface LocalityDetail extends Place {
   intro: string; highlights: string[]; city: Place & { state: string }; stats: Stats;
   bhk: { bhk: number; count: number; minPrice: number | null }[]; nearby: Place[];
-  projects: (Place & { builder: string; brand: Place | null; registerSource: string | null })[];
+  projects: (Place & { builder: string; brand: Place | null; registerSource: string | null; agents?: number })[];
 }
 /** A builder as buyers know it, across the companies its projects are registered under. */
 export interface BuilderSummary extends Place { projects: number; cities: Place[] }
 export interface BuilderDetail extends Place {
   registeredAs: string[]; cities: Place[];
-  projects: (Place & { builder: string; reraId: string | null; registerSource: string | null; registerStatus: string | null; registerValidUntil: string | null; homes: number; locality: Place; city: Place })[];
+  projects: (Place & { builder: string; reraId: string | null; registerSource: string | null; registerStatus: string | null; registerValidUntil: string | null; homes: number; agents?: number; locality: Place; city: Place })[];
 }
 export interface ProjectDetail extends Place {
   /** The builder the project is listed under; `builder` is the company name as registered. */
@@ -34,6 +36,8 @@ export interface ProjectDetail extends Place {
   /** Set when the project came from a public RERA register and the builder has not confirmed it. */
   registerSource: string | null; registerName: string | null; registerStatus: string | null; registerValidUntil: string | null; sourceUrl: string | null; sourceFetchedAt: string | null;
   locality: Place; city: Place & { state: string }; properties: PropertyCard[]; stats: Stats; bhk: { bhk: number; count: number; minPrice: number | null }[];
+  /** Agents our team has verified who sell this project. */
+  agents?: { id: string; name: string; firmName: string | null; yearsInBusiness: number | null; level: number; label: string }[];
 }
 export interface Listing { items: PropertyCard[]; total: number; stats: Stats }
 export interface PropertyDetail extends Omit<PropertyCard, 'locality' | 'project' | 'confidence'> {
@@ -73,8 +77,8 @@ export const getBuilders = () => call<BuilderSummary[]>('/builders');
 export const getBuilder = (slug: string, city: string) => call<BuilderDetail | { movedTo: string }>(`/builders/${encodeURIComponent(slug)}?city=${encodeURIComponent(city)}`);
 export const getProject = (slug: string) => call<ProjectDetail>(`/projects/${slug}`);
 /** Leaves the buyer's details for a call back about a builder's project. */
-export const sendProjectEnquiry = (slug: string, body: { name: string; phone: string; interest?: string } & { timeline?: string; wantsVisit?: boolean }) =>
-  call<{ ok: true }>(`/projects/${slug}/enquiries`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+export const sendProjectEnquiry = (slug: string, body: { name: string; phone: string; interest?: string } & Plans) =>
+  call<LeadResult>(`/projects/${slug}/enquiries`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
 export const getProperty = (slug: string) => call<PropertyDetail>(`/properties/${slug}`);
 export const getCompare = (slugs: string[]) => call<CompareHome[]>(`/compare?slugs=${encodeURIComponent(slugs.slice(0, 4).join(','))}`);
 export const ask = (message: string, history: Turn[], context?: string) =>
@@ -91,10 +95,12 @@ export const REPORT_REASONS = [
 export const sendReport = (slug: string, body: { reason: string; details: string; name: string; phone: string; email?: string }) =>
   call<{ ok: true; token: string }>(`/properties/${slug}/reports`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
 
-export interface EnquiryResult { ok: true; seller: { name: string; phone: string; level?: number | null; label?: string } | null }
+/** What comes back from an enquiry: the seller of an owner's or agent's home, or the verified agent the buyer was connected to, or neither (a call back). */
+export interface LeadResult { ok: true; seller?: { name: string; phone: string; level?: number | null; label?: string } | null; agent?: { name: string; phone: string; firmName: string | null; level: number; label: string } | null }
+export type EnquiryResult = LeadResult;
 /** Asks the seller to get in touch; the answer includes the seller's contact when the listing has a seller account. */
 /** What a buyer can say about their plans on an enquiry. The codes match the API's lead scoring. */
 export const TIMELINES = [['NOW', 'Within a month'], ['SOON', '1 to 3 months'], ['LATER', '3 to 6 months'], ['EXPLORING', 'Just exploring']] as const;
-export interface Plans { timeline?: string; wantsVisit?: boolean }
+export interface Plans { timeline?: string; wantsVisit?: boolean; /** 'agent': connect the buyer to a verified agent selling the project. */ via?: 'agent' }
 export const sendEnquiry = (slug: string, body: { name: string; phone: string; message?: string } & Plans) =>
   call<EnquiryResult>(`/properties/${slug}/enquiries`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });

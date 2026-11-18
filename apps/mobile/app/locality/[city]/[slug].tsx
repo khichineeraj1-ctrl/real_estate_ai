@@ -1,3 +1,4 @@
+import { ConnectButton } from '../../../components/LeadForm';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
@@ -51,10 +52,14 @@ export default function Locality() {
         <View style={{ gap: 8 }}>
           <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 18, fontWeight: '700' }}>Projects in {l.name}</Text>
           {l.projects.map((p) => (
-            <Pressable key={p.slug} accessibilityRole="button" onPress={() => router.push({ pathname: '/project/[slug]', params: { slug: p.slug } })} style={({ pressed }) => ({ borderWidth: 1, borderColor: pressed ? t.brand : t.line, backgroundColor: t.card, borderRadius: 14, padding: 12, gap: 2 })}>
-              <Text style={{ color: t.fg, fontWeight: '600' }}>{p.name}</Text>
-              <Text style={{ color: t.muted, fontSize: 13 }}>{p.brand?.name ?? p.builder}{p.registerSource ? ' · from the RERA register' : ''}</Text>
-            </Pressable>
+            <View key={p.slug} style={{ borderWidth: 1, borderColor: t.line, backgroundColor: t.card, borderRadius: 14, padding: 12, gap: 8 }}>
+              <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/project/[slug]', params: { slug: p.slug } })} style={({ pressed }) => ({ gap: 2, opacity: pressed ? 0.6 : 1 })}>
+                <Text style={{ color: t.fg, fontWeight: '600' }}>{p.name}</Text>
+                <Text style={{ color: t.muted, fontSize: 13 }}>{p.brand?.name ?? p.builder}{p.registerSource ? ' · from the RERA register' : ''}</Text>
+                {(p.agents ?? 0) > 0 ? <Text style={{ color: t.ready, fontSize: 13, fontWeight: '600' }}>✓ {p.agents === 1 ? 'A verified agent sells this' : `${p.agents} verified agents sell this`}</Text> : null}
+              </Pressable>
+              <ConnectButton kind="project" slug={p.slug} name={p.name} mode={(p.agents ?? 0) > 0 ? 'agent' : 'callback'} agents={p.agents} unclaimed={!!p.registerSource} />
+            </View>
           ))}
         </View>
       )}

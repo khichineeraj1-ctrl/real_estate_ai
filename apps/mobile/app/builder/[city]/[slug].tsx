@@ -1,3 +1,4 @@
+import { ConnectButton } from '../../../components/LeadForm';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -48,13 +49,17 @@ export default function Builder() {
             <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 18, fontWeight: '700' }}>{g.name} <Text style={{ color: t.brand, fontSize: 14, fontWeight: '600' }}>See the area ›</Text></Text>
           </Pressable>
           {g.projects.map((p) => (
-            <Pressable key={p.slug} accessibilityRole="button" onPress={() => router.push({ pathname: '/project/[slug]', params: { slug: p.slug } })} style={({ pressed }) => [s.row, { borderColor: pressed ? t.brand : t.line, backgroundColor: t.card }]}>
-              <View style={{ flex: 1, gap: 2 }}>
-                <Text style={{ color: t.fg, fontWeight: '600' }}>{p.name}</Text>
-                <Text style={{ color: /lapsed/i.test(p.registerStatus ?? '') ? t.danger : t.muted, fontSize: 13 }}>{[status(p), p.homes > 0 ? `${p.homes} ${p.homes === 1 ? 'home' : 'homes'} for sale` : ''].filter(Boolean).join(' · ')}</Text>
-              </View>
-              <Text style={{ color: t.brand, fontSize: 20 }}>›</Text>
-            </Pressable>
+            <View key={p.slug} style={[s.row, { borderColor: t.line, backgroundColor: t.card, flexDirection: 'column', alignItems: 'stretch' }]}>
+              <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/project/[slug]', params: { slug: p.slug } })} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 10, opacity: pressed ? 0.6 : 1 })}>
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text style={{ color: t.fg, fontWeight: '600' }}>{p.name}</Text>
+                  <Text style={{ color: /lapsed/i.test(p.registerStatus ?? '') ? t.danger : t.muted, fontSize: 13 }}>{[status(p), p.homes > 0 ? `${p.homes} ${p.homes === 1 ? 'home' : 'homes'} for sale` : ''].filter(Boolean).join(' · ')}</Text>
+                  {(p.agents ?? 0) > 0 ? <Text style={{ color: t.ready, fontSize: 13, fontWeight: '600' }}>✓ {p.agents === 1 ? 'A verified agent sells this' : `${p.agents} verified agents sell this`}</Text> : null}
+                </View>
+                <Text style={{ color: t.brand, fontSize: 20 }}>›</Text>
+              </Pressable>
+              <ConnectButton kind="project" slug={p.slug} name={p.name} mode={(p.agents ?? 0) > 0 ? 'agent' : 'callback'} agents={p.agents} unclaimed={!!p.registerSource} />
+            </View>
           ))}
         </View>
       ))}
