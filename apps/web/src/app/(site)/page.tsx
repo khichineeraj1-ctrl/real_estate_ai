@@ -17,7 +17,7 @@ export default async function Home() {
     <>
       <section className="hero">
         <h1>Ask. Find your home.</h1>
-        <p className="lead">Type or speak your question and get a straight answer with matching homes in Gurgaon, Bengaluru, Mumbai and Pune.</p>
+        <p className="lead">Type or speak your question and get a straight answer about homes and builder projects in Gurgaon, Bengaluru, Mumbai and Pune.</p>
         <AskBox autoFocus />
         <ul className="chips" aria-label="Example questions">
           {EXAMPLES.map((q) => <li key={q}><Link href={`/ask?q=${encodeURIComponent(q)}`} rel="nofollow">{q}</Link></li>)}
@@ -31,7 +31,7 @@ export default async function Home() {
             <li key={c.slug}>
               <Link href={`/${c.slug}`}>
                 <strong>Property in {c.name}</strong>
-                <span>{c.stats.count} homes · from {price(c.stats.minPrice)}</span>
+                <span>{c.stats.count ? `${c.stats.count} homes · from ${price(c.stats.minPrice)}` : `${c.localities.length} localities · builder projects`}</span>
               </Link>
             </li>
           ))}
@@ -47,10 +47,12 @@ export default async function Home() {
         </section>
       ))}
 
-      <section className="section">
-        <h2>Newly listed homes</h2>
-        <PropertyGrid items={latest?.items ?? []} />
-      </section>
+      {(latest?.items.length ?? 0) > 0 && (
+        <section className="section">
+          <h2>Newly listed homes</h2>
+          <PropertyGrid items={latest!.items} />
+        </section>
+      )}
 
       <JsonLd data={{
         '@context': 'https://schema.org', '@type': 'WebSite', name: BRAND, description: TAGLINE, url: SITE_URL, inLanguage: 'en-IN',

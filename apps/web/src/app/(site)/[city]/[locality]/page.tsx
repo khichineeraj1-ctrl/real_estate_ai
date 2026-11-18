@@ -5,7 +5,7 @@ import { AskBox } from '@/components/AskBox';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { Faq } from '@/components/Faq';
 import { JsonLd } from '@/components/JsonLd';
-import { PropertyGrid } from '@/components/PropertyCard';
+import { NoHomesYet, PropertyGrid } from '@/components/PropertyCard';
 import { Stats } from '@/components/Stats';
 import { api } from '@/lib/api';
 import { areaFaqs } from '@/lib/faqs';
@@ -20,8 +20,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const l = await api<LocalityDetail>(`/localities/${city}/${locality}`);
   if (!l) return {};
   const path = `/${l.city.slug}/${l.slug}`;
-  const title = `Property for Sale in ${l.name}, ${l.city.name} — ${l.stats.count} Homes from ${price(l.stats.minPrice)}`;
-  const description = `${l.stats.count} flats, villas and plots for sale in ${l.name}, ${l.city.name}. Prices from ${price(l.stats.minPrice)} to ${price(l.stats.maxPrice)}, average ₹${l.stats.avgRate?.toLocaleString('en-IN')} per sq ft.`;
+  const none = !l.stats.count;
+  const title = none ? `Property in ${l.name}, ${l.city.name} — Projects and Locality Guide` : `Property for Sale in ${l.name}, ${l.city.name} — ${l.stats.count} Homes from ${price(l.stats.minPrice)}`;
+  const description = none ? `${l.name}, ${l.city.name}: what the area is known for${l.projects.length ? `, and ${l.projects.length} builder projects from the public RERA register` : ''}.` : `${l.stats.count} flats, villas and plots for sale in ${l.name}, ${l.city.name}. Prices from ${price(l.stats.minPrice)} to ${price(l.stats.maxPrice)}, average ₹${l.stats.avgRate?.toLocaleString('en-IN')} per sq ft.`;
   return { title, description, alternates: { canonical: path }, openGraph: { title, description, url: path } };
 }
 
@@ -53,8 +54,8 @@ export default async function LocalityPage({ params }: Props) {
       )}
 
       <section className="section">
-        <h2>{items.length} homes for sale in {l.name}</h2>
-        <PropertyGrid items={items} />
+        <h2>{items.length ? `${items.length} homes for sale in ${l.name}` : `Homes for sale in ${l.name}`}</h2>
+        {items.length ? <PropertyGrid items={items} /> : <NoHomesYet place={l.name} />}
       </section>
 
       {l.projects.length > 0 && (

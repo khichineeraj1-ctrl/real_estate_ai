@@ -5,7 +5,7 @@ import { AskBox } from '@/components/AskBox';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { Faq } from '@/components/Faq';
 import { JsonLd } from '@/components/JsonLd';
-import { PropertyGrid } from '@/components/PropertyCard';
+import { NoHomesYet, PropertyGrid } from '@/components/PropertyCard';
 import { Stats } from '@/components/Stats';
 import { api } from '@/lib/api';
 import { areaFaqs } from '@/lib/faqs';
@@ -19,8 +19,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { city: slug } = await params;
   const city = await api<CityDetail>(`/cities/${slug}`);
   if (!city) return {};
-  const title = `Property for Sale in ${city.name} — ${city.stats.count} Flats, Villas & Plots`;
-  const description = `${city.stats.count} homes for sale in ${city.name}, ${city.state}, from ${price(city.stats.minPrice)} to ${price(city.stats.maxPrice)}. Compare ${city.localities.length} localities, prices per sq ft and new projects.`;
+  const none = !city.stats.count;
+  const title = none ? `Property in ${city.name} — Localities and RERA-Registered Projects` : `Property for Sale in ${city.name} — ${city.stats.count} Flats, Villas & Plots`;
+  const description = none ? `Explore ${city.localities.length} localities of ${city.name}, ${city.state}, and ${city.projects.length} builder projects taken from the public RERA register.` : `${city.stats.count} homes for sale in ${city.name}, ${city.state}, from ${price(city.stats.minPrice)} to ${price(city.stats.maxPrice)}. Compare ${city.localities.length} localities, prices per sq ft and new projects.`;
   return { title, description, alternates: { canonical: `/${city.slug}` }, openGraph: { title, description, url: `/${city.slug}` } };
 }
 
@@ -48,8 +49,8 @@ export default async function CityPage({ params }: Props) {
             <li key={l.slug}>
               <Link href={`/${city.slug}/${l.slug}`}>
                 <strong>{l.name}</strong>
-                <span>{l.stats.count} homes · from {price(l.stats.minPrice)}</span>
-                <span>Avg ₹{l.stats.avgRate?.toLocaleString('en-IN')}/sq ft</span>
+                {l.stats.count > 0 && <span>{l.stats.count} homes · from {price(l.stats.minPrice)}</span>}
+                {l.stats.avgRate != null && <span>Avg ₹{l.stats.avgRate.toLocaleString('en-IN')}/sq ft</span>}
               </Link>
             </li>
           ))}
@@ -58,7 +59,7 @@ export default async function CityPage({ params }: Props) {
 
       <section className="section">
         <h2>Latest homes for sale in {city.name}</h2>
-        <PropertyGrid items={items} />
+        {items.length ? <PropertyGrid items={items} /> : <NoHomesYet place={city.name} />}
       </section>
 
       <section className="section">

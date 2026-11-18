@@ -28,6 +28,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const path = comparePath(a.city.slug, a.slug, b.slug);
   const title = `${a.name} vs ${b.name}, ${a.city.name} — Property Prices Compared`;
   const description = `${a.name} or ${b.name}? Average rate ${rate(a.stats.avgRate)} against ${rate(b.stats.avgRate)}, prices from ${price(a.stats.minPrice)} and ${price(b.stats.minPrice)}, and homes available by size.`;
+  // With no homes listed on either side there are no prices to compare, so the page is kept out of search until there are.
+  if (!a.stats.count && !b.stats.count) return { title: `${a.name} vs ${b.name}, ${a.city.name}`, description: `${a.name} and ${b.name} in ${a.city.name}: what each is known for and the builder projects registered there.`, alternates: { canonical: path }, robots: { index: false } };
   return { title, description, alternates: { canonical: path }, openGraph: { title, description, url: path } };
 }
 
@@ -42,7 +44,10 @@ export default async function CompareLocalities({ params }: Props) {
   const gap = cheaper ? Math.round(((dearer.stats.avgRate! - cheaper.stats.avgRate!) / dearer.stats.avgRate!) * 100) : 0;
   const more = a.stats.count === b.stats.count ? null : a.stats.count > b.stats.count ? a : b;
   const sizes = [...new Set(both.flatMap((l) => l.bhk.map((x) => x.bhk)))].sort((x, y) => x - y);
-  const verdict = cheaper
+  const priced = both.some((l) => l.stats.count > 0);
+  const verdict = !priced
+    ? `No homes are listed in ${a.name} or ${b.name} yet, so there are no prices to compare. Here is what each is known for and the projects registered there.`
+    : cheaper
     ? `${cheaper.name} is the cheaper of the two: its homes are asking ${rate(cheaper.stats.avgRate)} on average, ${gap}% less than ${dearer.name} at ${rate(dearer.stats.avgRate)}.`
     : `${a.name} and ${b.name} are asking about the same on average, ${rate(a.stats.avgRate)}.`;
   const low = (x: number | null, y: number | null) => (x != null && y != null && x !== y ? Math.min(x, y) : null);
@@ -59,10 +64,12 @@ export default async function CompareLocalities({ params }: Props) {
       <div className="atable compare"><table>
         <thead><tr><th><span className="sr">Measure</span></th>{both.map((l) => <th key={l.slug} scope="col"><Link href={`/${city.slug}/${l.slug}`}>{l.name}</Link></th>)}</tr></thead>
         <tbody>
+          {priced && <>
           <tr><th scope="row">Average asking rate</th>{both.map((l) => <td key={l.slug} className={mark(l.stats.avgRate, lowRate)}><strong>{rate(l.stats.avgRate)}</strong></td>)}</tr>
           <tr><th scope="row">Prices start at</th>{both.map((l) => <td key={l.slug} className={mark(l.stats.minPrice, lowPrice)}>{price(l.stats.minPrice)}</td>)}</tr>
           <tr><th scope="row">Most expensive home</th>{both.map((l) => <td key={l.slug}>{price(l.stats.maxPrice)}</td>)}</tr>
           <tr><th scope="row">Homes for sale</th>{both.map((l) => <td key={l.slug}>{l.stats.count}</td>)}</tr>
+          </>}
           {sizes.map((n) => (
             <tr key={n}>
               <th scope="row">{n} BHK</th>

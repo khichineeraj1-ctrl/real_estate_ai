@@ -7,8 +7,10 @@ conventional, fully server-rendered set of city, locality, project and property 
 The brand name is a placeholder. To rename, change `brand.json` (web and structured data), `BRAND_NAME` in
 `apps/api/.env` (the assistant's name) and `name`/`slug`/`scheme` in `apps/mobile/app.json`.
 
-**All listings are generated sample data** (`apps/api/prisma/seed.ts`): project names, builders, RERA numbers and prices
-are made up. Seed listings have no photos; photos are added in the admin panel.
+**Nothing on the site is invented.** The seed script (`apps/api/prisma/seed.ts`) adds only the cities, localities and
+each city's buying charges; it never deletes anything and is safe to run again. Builder projects come from the public
+RERA registers, which carry no prices. Homes and prices appear only when an owner, agent or builder posts them, so
+locality pages show no price figures until then.
 
 ## Layout
 
@@ -29,7 +31,7 @@ npm install
 cp apps/api/.env.example apps/api/.env
 npm run db:dev        # terminal 1: Postgres on port 5441 (leave running)
 npm run db:push       # once: create tables
-npm run db:seed       # once: 4 cities, 24 localities, 48 projects, 228 homes
+npm run db:seed       # once: 4 cities and 24 localities (no homes or projects)
 npm run dev:api       # terminal 2: http://localhost:4100
 npm run dev:web       # terminal 3: http://localhost:3210
 ```

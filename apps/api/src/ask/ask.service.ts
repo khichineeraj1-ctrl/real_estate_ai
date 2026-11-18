@@ -154,7 +154,7 @@ export class AskService {
     }
     const o = await this.search(p);
     const page = this.pageFor(o.filters, gazetteer);
-    if (o.total === 0) return { reply: `I could not find any ${this.describe(p, 2)} in ${o.place} right now. Try a different area or a wider budget.`, live: false, properties: [], total: 0, page, relaxed: null };
+    if (o.total === 0) return { reply: `No ${this.describe(p, 2)} are listed in ${o.place} yet. Homes appear here as owners, agents and builders post them; the area page shows the builder projects registered there.`, live: false, properties: [], total: 0, page, relaxed: null };
 
     const s = o.stats;
     const range = s.minPrice === s.maxPrice ? `priced at ${rupees(s.minPrice!)}` : `priced from ${rupees(s.minPrice!)} to ${rupees(s.maxPrice!)}`;

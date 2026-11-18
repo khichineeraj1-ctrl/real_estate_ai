@@ -33,6 +33,13 @@ export function PropertyCard({ p }: { p: Card }) {
   );
 }
 
+/** Shown where a list of homes would be, while nobody has listed one there yet. */
+export function NoHomesYet({ place }: { place: string }) {
+  return (
+    <p className="empty">No homes are listed in {place} yet. Prices appear here only when a real owner, agent or builder posts a home. <Link href="/post-property">List yours free</Link></p>
+  );
+}
+
 export function PropertyGrid({ items }: { items: Card[] }) {
   return <div className="grid">{items.map((p) => <PropertyCard key={p.slug} p={p} />)}</div>;
 }

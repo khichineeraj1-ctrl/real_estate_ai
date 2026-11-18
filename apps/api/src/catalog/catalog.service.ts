@@ -249,10 +249,12 @@ export class CatalogService {
     const configs = await this.db.property.groupBy({ by: ['localityId', 'bhk'], where: { state: 'PUBLISHED', bhk: { gt: 0 } }, _count: true });
     const locs = await this.db.locality.findMany({ select: { id: true, slug: true, lat: true, lng: true, cityId: true, city: { select: { slug: true } } } });
     // Each locality paired with its two nearest neighbours in the same city, written alphabetically so every pair has one address.
+    // A comparison is only listed once at least one side has a home, since without homes there are no prices to compare.
+    const withHomes = new Set((await this.db.property.groupBy({ by: ['localityId'], where: { state: 'PUBLISHED' }, _count: true })).map((g) => g.localityId));
     const pairs = new Set<string>();
     for (const a of locs) {
       const near = locs.filter((b) => b.cityId === a.cityId && b.id !== a.id).map((b) => ({ b, d: (b.lat - a.lat) ** 2 + (b.lng - a.lng) ** 2 })).sort((x, y) => x.d - y.d).slice(0, 2);
-      for (const { b } of near) pairs.add(`${a.city.slug}/${[a.slug, b.slug].sort().join('-vs-')}`);
+      for (const { b } of near) if (withHomes.has(a.id) || withHomes.has(b.id)) pairs.add(`${a.city.slug}/${[a.slug, b.slug].sort().join('-vs-')}`);
     }
     const byId = new Map(locs.map((l) => [l.id, l]));
     return {

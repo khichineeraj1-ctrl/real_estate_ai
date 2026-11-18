@@ -417,3 +417,5 @@ body:has(> .auth-page) { display: grid; place-items: center; min-height: 100vh; 
 .ainline select { font: inherit; font-size: .9rem; color: var(--fg); background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; max-width: 190px; }
 .atable .ainline { margin: 6px 0 0; }
 .atable .ainline .abtn { padding: 5px 12px; font-size: .85rem; }
+
+.empty { background: var(--soft); border: 1px dashed var(--line); border-radius: var(--radius); padding: 18px; color: var(--muted); margin: 0; }
