@@ -20,14 +20,19 @@ const GROUPS: Record<string, string> = {
  * the same group. Left: the address the name would otherwise get. Right: the builder it belongs to.
  */
 const SAME: Record<string, string> = {
-  'athena-infrastructures': 'athena-infrastructure', 'millenium-diplomats': 'millennium-diplomats', 'perfect-buidwell': 'perfect-buildwell',
+  'athena-infrastructures': 'indiabulls', 'millenium-diplomats': 'millennium-diplomats', 'perfect-buidwell': 'perfect-buildwell',
   'puri-construction': 'puri-constructions', 'vikas-park': 'vikas-parks', 'pareena-infrastructure': 'pareena-infrastructures',
   'gatevida-developers': 'sector-113-gatevida-developers',
   'hcbs-promoters-and-developers': 'hcbs-developments', 'mrg-castle-reality': 'mrg-group-india', 'pareena-builders-and-promoters': 'pareena-infrastructures',
   'macrotech-developers': 'lodha-developers', // Macrotech Developers is the company behind the Lodha name
+  // Indiabulls registers each project under a separate company
+  'athena-infrastructure': 'indiabulls', 'selene-construction': 'indiabulls', 'citra-properties': 'indiabulls', 'juventus-estate': 'indiabulls',
+  'varali-properties': 'indiabulls', 'sepset-properties': 'indiabulls', 'indiabulls-pharmacare': 'indiabulls',
+  'countrywide-promoters': 'bptp', // a BPTP company
+  'city-realty-and-development': 'city-corporation', // both City Group, the developer of Amanora
 };
 /** The name buyers know a builder by, where it differs from the registered one. */
-const KNOWN_AS: Record<string, string> = { 'sector-113-gatevida-developers': 'Sector 113 Gatevida Developers', 'mrg-group-india': 'MRG Group', 'pareena-infrastructures': 'Pareena', 'lodha-developers': 'Lodha' };
+const KNOWN_AS: Record<string, string> = { 'sector-113-gatevida-developers': 'Sector 113 Gatevida Developers', 'mrg-group-india': 'MRG Group', 'pareena-infrastructures': 'Pareena', 'lodha-developers': 'Lodha', indiabulls: 'Indiabulls', 'city-corporation': 'City Group' };
 
 const FORM = /^(private|pvt|limited|limted|ltd|llp|inc)$/i;
 
