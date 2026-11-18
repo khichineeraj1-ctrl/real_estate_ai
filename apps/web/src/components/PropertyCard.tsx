@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { monthYear, num, price, statusLabel, typeLabel } from '@/lib/format';
 import { media } from '@/lib/seo';
+import { ConfidenceBadge } from './Confidence';
 import { CompareToggle } from './tools/Compare';
 import type { PropertyCard as Card } from '@/lib/types';
 
@@ -16,6 +17,7 @@ export function PropertyCard({ p }: { p: Card }) {
         <span className={`tag ${p.status === 'READY_TO_MOVE' ? 'tag-ready' : ''}`}>{p.status === 'UNDER_CONSTRUCTION' && p.possession ? `Possession ${monthYear(p.possession)}` : statusLabel(p.status)}</span>
       </div>
       <h3><Link href={`/property/${p.slug}`}>{p.title}</Link></h3>
+      <ConfidenceBadge level={p.confidence} />
       <ul className="facts">
         <li>{typeLabel(p.type)}</li>
         {p.bhk > 0 && <li>{p.bhk} BHK</li>}

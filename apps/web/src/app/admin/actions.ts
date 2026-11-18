@@ -72,6 +72,49 @@ export async function removePhoto(photoId: string, propertyId: string, _: FormSt
   redirect(`/admin/properties/${propertyId}?photoDeleted=1`);
 }
 
+// ---- Seller verification
+
+export async function saveDealerProfile(_: FormState, form: FormData): Promise<FormState> {
+  const r = await adminFetch('/dealer/profile', { method: 'PUT', body: fields(form) });
+  if (!r.ok) return failed(r);
+  revalidatePath('/', 'layout'); // a verified seller who edits their details loses the label until re-checked
+  redirect('/admin/verification?saved=1');
+}
+
+export async function submitDealerProfile(_: FormState): Promise<FormState> {
+  const r = await adminFetch('/dealer/profile/submit', { method: 'POST' });
+  if (!r.ok) return failed(r);
+  redirect('/admin/verification');
+}
+
+export async function removeDocument(id: string, backTo: string, _: FormState): Promise<FormState> {
+  const r = await adminFetch(`/documents/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  if (!r.ok) return failed(r);
+  redirect(backTo.startsWith('/admin/') ? backTo : '/admin');
+}
+
+/** Staff record what they checked about a seller and decide; the button pressed carries the decision. */
+export async function reviewDealer(userId: string, _: FormState, form: FormData): Promise<FormState> {
+  const r = await adminFetch(`/dealers/${encodeURIComponent(userId)}/review`, { method: 'POST', body: fields(form) });
+  if (!r.ok) return failed(r);
+  revalidatePath('/', 'layout'); // their listings move up or down for buyers straight away
+  redirect(`/admin/dealers/${userId}?done=1`);
+}
+
+export async function purgeDocuments(userId: string, _: FormState): Promise<FormState> {
+  const r = await adminFetch(`/dealers/${encodeURIComponent(userId)}/documents/purge`, { method: 'POST' });
+  if (!r.ok) return failed(r);
+  redirect(`/admin/dealers/${userId}?purged=1`);
+}
+
+/** Staff confirm they checked a home's papers or visited it, or withdraw that. */
+export async function verifyProperty(id: string, verified: boolean, _: FormState, form: FormData): Promise<FormState> {
+  const r = await adminFetch(`/properties/${encodeURIComponent(id)}/verify`, { method: 'POST', body: { verified: String(verified), note: String(form.get('note') ?? '') } });
+  if (!r.ok) return failed(r);
+  revalidatePath('/', 'layout');
+  redirect(`/admin/properties/${id}?verified=${verified ? '1' : '0'}`);
+}
+
 /** Records where the follow-up on a lead stands. The API checks that this account is allowed to see that lead. */
 export async function updateEnquiry(id: string, _: FormState, form: FormData): Promise<FormState> {
   const r = await adminFetch(`/enquiries/${encodeURIComponent(id)}`, { method: 'PATCH', body: { status: String(form.get('status') ?? ''), note: String(form.get('note') ?? '') } });

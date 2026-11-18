@@ -127,10 +127,19 @@ model Property {
   ownerId      String?
   owner        User?             @relation(fields: [ownerId], references: [id])
   photos       Photo[]
+  /// Set by staff after seeing the ownership papers or visiting the home. The strongest single signal of confidence.
+  staffVerified     Boolean   @default(false)
+  staffVerifiedNote String?
+  staffVerifiedAt   DateTime?
+  staffVerifiedBy   String?
+  /// Confidence level 0-3, worked out from the seller's verification and this listing's own checks (see src/trust).
+  /// Stored so listings can be ordered by it; recomputed whenever something it depends on changes, and daily.
+  confidence        Int       @default(0)
   enquiries    Enquiry[]
 
   @@index([localityId, bhk])
   @@index([priceInr])
+  @@index([confidence, postedAt])
 }
 
 /// What buyers asked, kept to see which searches find nothing. Text and time only: no visitor identity.
@@ -161,6 +170,7 @@ model User {
   properties   Property[]
   emailTokens  EmailToken[]
   projects     Project[]  @relation("ProjectAccount")
+  dealer       DealerProfile?
 }
 
 model Photo {
@@ -261,4 +271,73 @@ model LeadEvent {
 model JobRun {
   name    String @id
   lastDay String
+}
+
+enum DealerKind {
+  OWNER /// selling their own home
+  AGENT /// a broker selling for others
+  BUILDER /// a developer's sales office
+}
+
+enum DealerStatus {
+  DRAFT /// answers saved, not yet sent for review
+  SUBMITTED
+  NEEDS_INFO /// staff asked for something more
+  APPROVED
+  REJECTED
+}
+
+/// What a seller told us about themselves at onboarding, and what our staff then verified.
+model DealerProfile {
+  userId          String       @id
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind            DealerKind
+  firmName        String?
+  yearsInBusiness Int?
+  officeAddress   String?
+  cities          String[]
+  reraNumber      String?
+  gstNumber       String?
+  website         String?
+  /// For an owner: how they are connected to the home (owner, family, power of attorney).
+  ownerRelation   String?
+  about           String?
+  status          DealerStatus @default(DRAFT)
+  submittedAt     DateTime?
+  reviewedAt      DateTime?
+  reviewedBy      String?
+  /// Shown to the dealer: why more is needed, or why they were turned down.
+  reviewNote      String?
+  /// For staff only.
+  internalNote    String?
+  /// What a staff member confirmed. Nothing counts towards confidence unless one of these is ticked.
+  checkIdentity   Boolean      @default(false)
+  checkRera       Boolean      @default(false) /// RERA registration found on the state site; for an owner, ownership papers seen
+  checkPhone      Boolean      @default(false) /// spoke to them on the number they gave
+  checkAddress    Boolean      @default(false) /// office or home address confirmed
+  /// Complaints from buyers that staff judged to be genuine.
+  complaints      Int          @default(0)
+  /// Confidence level 0-3, stored for ordering and recomputed with the listings.
+  level           Int          @default(0)
+  documents       DealerDocument[]
+}
+
+enum DocumentKind {
+  RERA_CERTIFICATE
+  ID_PROOF
+  BUSINESS_PROOF
+  OWNERSHIP_PROOF
+}
+
+/// A verification document a dealer uploaded. The file is kept outside the public upload folder and is only ever
+/// sent to that dealer or to staff. Deleted automatically some days after the review (DOCUMENT_RETENTION_DAYS).
+model DealerDocument {
+  id        String        @id @default(cuid())
+  kind      DocumentKind
+  file      String        @unique
+  mime      String
+  sizeBytes Int
+  createdAt DateTime      @default(now())
+  userId    String
+  profile   DealerProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
 }

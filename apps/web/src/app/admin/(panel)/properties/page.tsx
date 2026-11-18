@@ -1,11 +1,12 @@
 import Link from 'next/link';
+import { ConfidenceBadge } from '@/components/Confidence';
 import { Notice } from '@/components/admin/fields';
 import { adminGet, getMe, isStaff } from '@/lib/admin';
 import { day, price } from '@/lib/format';
 
 export const metadata = { title: 'Listings' };
 type State = 'PUBLISHED' | 'PENDING' | 'REJECTED';
-interface Row { id: string; slug: string; title: string; priceInr: number; status: string; state: State; postedAt: string; owner: { name: string } | null; _count: { photos: number } }
+interface Row { id: string; slug: string; title: string; priceInr: number; status: string; state: State; postedAt: string; confidence: number; owner: { name: string } | null; _count: { photos: number } }
 interface Data { items: Row[]; total: number; pending: number; page: number; pageSize: number }
 
 const STATE_LABEL: Record<State, string> = { PUBLISHED: 'Live', PENDING: 'Waiting for review', REJECTED: 'Needs changes' };
@@ -37,13 +38,14 @@ export default async function Properties({ searchParams }: { searchParams: Promi
       <p>{d.total.toLocaleString('en-IN')} {d.total === 1 ? 'listing' : 'listings'}{q && <> matching “{q}”</>}</p>
       {d.items.length > 0 && (
         <div className="atable"><table>
-          <thead><tr><th>Title</th><th>Price</th><th>State</th><th>Photos</th>{staff && <th>Posted by</th>}<th>Date</th><th><span className="sr">Actions</span></th></tr></thead>
+          <thead><tr><th>Title</th><th>Price</th><th>State</th><th>Confidence</th><th>Photos</th>{staff && <th>Posted by</th>}<th>Date</th><th><span className="sr">Actions</span></th></tr></thead>
           <tbody>
             {d.items.map((p) => (
               <tr key={p.id}>
                 <td><Link href={`/admin/properties/${p.id}`}>{p.title}</Link></td>
                 <td>{price(p.priceInr)}</td>
                 <td><span className={`tag ${p.state === 'PUBLISHED' ? 'tag-ready' : ''}`}>{STATE_LABEL[p.state]}</span></td>
+                <td><ConfidenceBadge level={p.confidence} /></td>
                 <td>{p._count.photos}</td>
                 {staff && <td>{p.owner?.name ?? '—'}</td>}
                 <td>{day(p.postedAt)}</td>

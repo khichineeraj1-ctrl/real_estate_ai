@@ -33,6 +33,7 @@ function Enquiry({ slug, t }: { slug: string; t: Theme }) {
             <Text style={{ color: t.fg }}>Call the seller, {done.seller.name}: <Text style={{ color: t.brand, fontWeight: '700' }}>{done.seller.phone}</Text></Text>
           </Pressable>
         ) : <Text style={{ color: t.fg }}>Our team will call you about this home.</Text>}
+        {done.seller && (done.seller.level ?? 0) < 2 ? <Text style={{ color: t.danger }}>We have not fully verified this seller yet. Do not pay a token, booking amount or any advance before you have seen the home and had its papers checked.</Text> : null}
       </View>
     );
   }
@@ -89,6 +90,15 @@ export default function Property() {
         ))}
       </View>
       <CompareToggle slug={p.slug} title={p.title} />
+      <View style={[s.box, { backgroundColor: t.soft, borderColor: t.line }]}>
+        <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 18, fontWeight: '700' }}>How confident can you be?</Text>
+        <Text style={{ color: p.confidence.level >= 2 ? t.ready : t.fg, fontWeight: '700' }}>{p.confidence.level >= 2 ? '✓ ' : ''}{p.confidence.label}</Text>
+        {p.confidence.reasons.map((r) => (
+          <Text key={r.text} accessibilityLabel={`${r.ok ? 'Checked' : 'Not checked'}: ${r.text}`} style={{ color: r.ok ? t.fg : t.muted, lineHeight: 20 }}>{r.ok ? '✓' : '○'}  {r.text}</Text>
+        ))}
+        <Text style={{ color: t.fg }}>{p.seller ? `Seller: ${p.seller.firmName ?? p.seller.name} (${p.seller.confidence.label.toLowerCase()})` : 'Listed through our team, not by an outside seller.'}</Text>
+        <Text style={{ color: t.muted, fontSize: 12, lineHeight: 17 }}>Our checks reduce risk; they are not a guarantee. Before paying anything, see the home yourself and have a lawyer check the title papers.</Text>
+      </View>
       <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 18, fontWeight: '700', marginTop: 8 }}>What will it really cost?</Text>
       {p.costs ? <CostCalculator key={`cost-${p.slug}`} price={p.priceInr} costs={p.costs} cityName={p.city.name} underConstruction={p.status === 'UNDER_CONSTRUCTION'} /> : <Text style={{ color: t.muted }}>We do not have the government charges for {p.city.name} yet.</Text>}
       <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 18, fontWeight: '700', marginTop: 8 }}>Monthly EMI for this home</Text>

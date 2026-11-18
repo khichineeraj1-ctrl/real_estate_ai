@@ -230,3 +230,19 @@ ol.bullets li { margin-bottom: 4px; }
 .atable.compare td.best { background: var(--ready-bg); color: var(--ready); font-weight: 700; }
 .atable.compare td .bullets { margin: 0; }
 .aform h2.wide, .aform p.wide { grid-column: 1 / -1; margin: 12px 0 0; }
+
+/* Confidence: how far a home or seller is verified */
+.conf { display: inline-block; font-size: .75rem; font-weight: 600; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); background: var(--soft); white-space: nowrap; vertical-align: middle; align-self: flex-start; }
+.conf-3 { background: var(--ready-bg); color: var(--ready); border-color: var(--ready); }
+.conf-2 { background: var(--ready-bg); color: var(--ready); border-color: transparent; }
+.conf-1 { background: var(--soft); color: var(--fg); }
+.conf-0 { background: transparent; border-style: dashed; }
+h1 .conf, h2 .conf { font-size: .8rem; margin-left: 6px; }
+.conf-reasons { list-style: none; padding: 0; margin: 8px 0 12px; display: grid; gap: 5px; }
+.conf-reasons li { display: flex; gap: 8px; align-items: baseline; }
+.conf-reasons li.yes { color: var(--fg); }
+.conf-reasons li.yes > span[aria-hidden] { color: var(--ready); font-weight: 700; }
+.conf-reasons li.no { color: var(--muted); }
+.trust { background: var(--soft); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; }
+.trust h2 { margin-bottom: 6px; }
+.areview-buttons { display: flex; flex-wrap: wrap; gap: 10px; }

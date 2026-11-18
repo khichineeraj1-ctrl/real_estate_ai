@@ -2,6 +2,7 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/commo
 import { Prisma } from '@prisma/client';
 import { Mailer, SITE_URL } from '../mail/mailer';
 import { PrismaService } from '../prisma/prisma.service';
+import { TrustService } from '../trust/trust.service';
 
 const JOB = 'lead-reminders';
 const WAIT_HOURS = 24; // a lead is "left waiting" once it has been New this long
@@ -21,9 +22,11 @@ type Lead = Prisma.EnquiryGetPayload<{ include: { property: { select: { title: t
 export class Reminders implements OnModuleInit, OnModuleDestroy {
   private log = new Logger('Reminders');
   private timer: NodeJS.Timeout | null = null;
-  constructor(private readonly db: PrismaService, private readonly mail: Mailer) {}
+  constructor(private readonly db: PrismaService, private readonly mail: Mailer, private readonly trust: TrustService) {}
 
   onModuleInit() {
+    // Levels are stored for ordering; bring them up to date on start in case the rules or data changed while the API was down.
+    this.trust.refreshAll().then((r) => this.log.log(`Confidence levels checked for ${r.homes} homes (${r.changed} changed).`)).catch((e: Error) => this.log.error(`Could not refresh confidence: ${e.message}`));
     if (process.env.REMINDERS === 'off') { this.log.log('Daily lead reminders are off (REMINDERS=off).'); return; }
     this.timer = setInterval(() => { this.tick().catch((e: Error) => this.log.error(`Reminder check failed: ${e.message}`)); }, CHECK_EVERY_MS);
     this.timer.unref();
@@ -41,6 +44,11 @@ export class Reminders implements OnModuleInit, OnModuleDestroy {
     const at = Number(process.env.REMINDER_HOUR_IST ?? 9);
     if (hour < (Number.isInteger(at) && at >= 0 && at <= 23 ? at : 9)) return;
     if (!(await this.claim(day))) return;
+    // The other once-a-day chores ride along: confidence levels drift as follow-up rates and area prices change,
+    // and verification papers are deleted once their retention period is over.
+    const refreshed = await this.trust.refreshAll();
+    const purged = await this.trust.purgeExpiredDocuments(now);
+    this.log.log(`Confidence re-judged for ${refreshed.homes} homes (${refreshed.changed} changed); ${purged} expired verification documents deleted.`);
     const summary = await this.run(true, now);
     this.log.log(`Sent ${summary.filter((s) => s.sent).length} of ${summary.length} reminder emails for ${day}.`);
   }

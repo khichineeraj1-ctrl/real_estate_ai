@@ -1,17 +1,20 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { ConfidenceBadge, ConfidenceReasons } from '@/components/Confidence';
 import { ActionButton, AdminForm, DeleteForm } from '@/components/admin/Form';
 import { Area, Field, STATUS, Select, localityGroups, month, projectGroups, type Options } from '@/components/admin/fields';
 import { adminGet, getMe, isStaff } from '@/lib/admin';
 import { media } from '@/lib/seo';
-import { remove, removePhoto, review, save } from '../../../actions';
+import type { Confidence } from '@/lib/trust';
+import { remove, removePhoto, review, save, verifyProperty } from '../../../actions';
 
 interface Property {
   id: string; slug: string; title: string; description: string; type: string; bhk: number; bathrooms: number; priceInr: number; areaSqft: number; floor: number | null; totalFloors: number | null;
   facing: string | null; furnishing: string | null; status: string; possession: string | null; amenities: string[]; listedBy: string; localityId: string; projectId: string | null;
-  state: 'PUBLISHED' | 'PENDING' | 'REJECTED'; rejectReason: string | null; photos: { id: string; file: string }[]; owner: { name: string; email: string; phone: string | null } | null;
+  state: 'PUBLISHED' | 'PENDING' | 'REJECTED'; rejectReason: string | null; ownerId: string | null;
+  staffVerified: boolean; staffVerifiedNote: string | null; staffVerifiedAt: string | null; staffVerifiedBy: string | null; confidenceDetail: Confidence; photos: { id: string; file: string }[]; owner: { name: string; email: string; phone: string | null } | null;
 }
-type Search = { created?: string; photos?: string; photoDeleted?: string; error?: string };
+type Search = { created?: string; photos?: string; photoDeleted?: string; error?: string; verified?: string };
 const MAX_PHOTOS = 12;
 
 export default async function EditProperty({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Search> }) {
@@ -33,6 +36,7 @@ export default async function EditProperty({ params, searchParams }: { params: P
       {sp.photos && <p role="status" className="anotice">{sp.photos} {sp.photos === '1' ? 'photo' : 'photos'} added.</p>}
       {sp.photoDeleted && <p role="status" className="anotice">Photo deleted.</p>}
       {sp.error && <p role="alert" className="aerror">{sp.error}</p>}
+      {sp.verified && <p role="status" className="anotice">{sp.verified === '1' ? 'Recorded as checked by our team. Buyers see this now.' : 'Check withdrawn.'}</p>}
 
       {p && (
         <div className="astatus">
@@ -57,6 +61,25 @@ export default async function EditProperty({ params, searchParams }: { params: P
         <ActionButton action={review.bind(null, p.id, 'reject')} label="Take off the site" confirm="Take this listing off the site?">
           <input type="hidden" name="reason" value="Taken off the site by our team." />
         </ActionButton>
+      )}
+
+      {p && (
+        <section className="astatus trust">
+          <h2>Confidence buyers see <ConfidenceBadge level={p.confidenceDetail.level} /></h2>
+          <ConfidenceReasons confidence={p.confidenceDetail} />
+          {staff && p.staffVerified && (
+            <>
+              <p>Checked by {p.staffVerifiedBy}{p.staffVerifiedAt ? ` on ${new Date(p.staffVerifiedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })}` : ''}: {p.staffVerifiedNote}</p>
+              <ActionButton action={verifyProperty.bind(null, p.id, false)} label="Withdraw this check" confirm="Withdraw the check on this home?" tone="danger" />
+            </>
+          )}
+          {staff && !p.staffVerified && (
+            <ActionButton action={verifyProperty.bind(null, p.id, true)} label="Record that we checked this home" tone="primary">
+              <label className="afield"><span>What did you check?</span><input name="note" maxLength={300} placeholder="e.g. Sale deed and society NOC seen; visited on 12 Nov" /></label>
+            </ActionButton>
+          )}
+          {!staff && <p>Homes from verified sellers are shown to buyers first. <Link href="/admin/verification">See your verification</Link>.</p>}
+        </section>
       )}
 
       <AdminForm action={save.bind(null, 'properties', p?.id ?? null)} submit={p ? (staff ? 'Save changes' : 'Save and send for review') : staff ? 'Add listing' : 'Save and continue to photos'}>

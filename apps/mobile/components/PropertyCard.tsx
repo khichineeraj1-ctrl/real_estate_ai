@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import { photoUrl, type PropertyCard as Card } from '../lib/api';
+import { CONFIDENCE_LABELS, photoUrl, type PropertyCard as Card } from '../lib/api';
 import { num, price, statusLabel, typeLabel } from '../lib/format';
 import { useTheme } from '../lib/theme';
 import { CompareToggle } from './tools/Compare';
@@ -23,6 +23,7 @@ export function PropertyCard({ p }: { p: Card }) {
         <Text style={[s.tag, { color: ready ? t.ready : t.muted, backgroundColor: ready ? t.readyBg : t.soft }]}>{statusLabel(p.status)}</Text>
       </View>
       <Text style={[s.title, { color: t.fg }]}>{p.title}</Text>
+      {p.confidence != null && <Text style={[s.conf, { color: (p.confidence ?? 0) >= 2 ? t.ready : t.muted, backgroundColor: (p.confidence ?? 0) >= 2 ? t.readyBg : t.soft }]}>{(p.confidence ?? 0) >= 2 ? '✓ ' : ''}{CONFIDENCE_LABELS[p.confidence]}</Text>}
       <Text style={{ color: t.muted, fontSize: 13 }}>
         {[typeLabel(p.type), p.bhk ? `${p.bhk} BHK` : null, `${num(p.areaSqft)} sq ft`, `₹${num(Math.round(p.priceInr / p.areaSqft))}/sq ft`].filter(Boolean).join('  ·  ')}
       </Text>
@@ -40,4 +41,5 @@ const s = StyleSheet.create({
   price: { fontSize: 19, fontWeight: '700' },
   tag: { fontSize: 12, paddingHorizontal: 9, paddingVertical: 3, borderRadius: 999, overflow: 'hidden' },
   title: { fontSize: 15, fontWeight: '600', lineHeight: 20 },
+  conf: { alignSelf: 'flex-start', fontSize: 12, fontWeight: '600', paddingHorizontal: 9, paddingVertical: 3, borderRadius: 999, overflow: 'hidden' },
 });

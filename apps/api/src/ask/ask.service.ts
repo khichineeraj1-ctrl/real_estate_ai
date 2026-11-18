@@ -52,6 +52,9 @@ export class Limiter {
 
 interface Outcome { filters: PropertyFilters; items: PropertyCard[]; total: number; stats: Stats; relaxed: string | null; place: string }
 
+/** How far we have verified a home and its seller, in the words the assistant may use. */
+const CONFIDENCE_WORDS = ['not yet verified', 'basic checks only', 'good confidence', 'high confidence'];
+
 const TYPE_WORD = { APARTMENT: 'flats', VILLA: 'villas', BUILDER_FLOOR: 'builder floors', PLOT: 'plots' } as const;
 
 const SEARCH_TOOL = {
@@ -163,7 +166,7 @@ export class AskService {
     else if (p.intent === 'price') reply = `Homes in ${o.place} are asking about ₹${s.avgRate?.toLocaleString('en-IN')} per sq ft on average. The ${o.total} listed here are ${range}.`;
     else reply = `I found ${o.total} ${this.describe(p, o.total)} in ${o.place}, ${range}${rate}.`;
     const top = o.items[0];
-    if (top && p.intent !== 'price') reply += ` ${p.sort === 'price_asc' ? 'The cheapest' : 'The newest'} is a ${top.title.split(' in ')[0]} of ${top.areaSqft.toLocaleString('en-IN')} sq ft in ${top.locality.name} for ${rupees(top.priceInr)}.`;
+    if (top && p.intent !== 'price') reply += ` ${p.sort === 'price_asc' ? 'The cheapest' : 'One of them'} is a ${top.title.split(' in ')[0]} of ${top.areaSqft.toLocaleString('en-IN')} sq ft in ${top.locality.name} for ${rupees(top.priceInr)} (${CONFIDENCE_WORDS[top.confidence] ?? CONFIDENCE_WORDS[0]}).`;
     return { reply, live: false, properties: o.items, total: o.total, page, relaxed: o.relaxed };
   }
 
@@ -173,6 +176,7 @@ export class AskService {
       `Places covered: ${gazetteer.map((c) => `${c.name} (${c.localities.map((l) => l.name).join(', ')})`).join('; ')}.`,
       'Anything you say about what is for sale, what an area costs, or a specific home must come from the search_properties tool: search first, then answer. If a search finds nothing, say so and suggest the nearest alternative the tool shows you (it loosens the budget or area itself and tells you in "note"). Never invent a listing, price or project.',
       'For general questions (home loans, stamp duty, RERA, how to check a title, which area suits a commute) answer from what you know, briefly, and say when a figure varies by state or should be confirmed with a professional.',
+      'Each home in a search result has a "confidence": how far our team has verified the home and its seller. Results come most-verified first. When you single out a home, prefer one with good or high confidence and say so in a few words; if the only matches are not yet verified, say that plainly and remind the buyer to see the home and its papers before paying anything. Never describe a home as verified, safe or genuine beyond what its confidence says.',
       'Because replies are spoken, keep them to two or three short sentences with no lists, markdown or links; the matching homes appear as cards under your reply, so summarise them (how many, price range, one standout) instead of reading each one. Say amounts the Indian way, like "₹85 lakh" or "₹1.2 crore". Reply in the language the buyer used, including Hindi or Hinglish.',
     ].join('\n\n');
   }
@@ -228,7 +232,7 @@ export class AskService {
               content: JSON.stringify({
                 total: last.total, where: last.place, price_range_inr: [last.stats.minPrice, last.stats.maxPrice], avg_rate_per_sqft: last.stats.avgRate,
                 note: unknownPlace ?? (last.relaxed ? `Nothing matched exactly, so the ${last.relaxed} filter was dropped.` : null),
-                shown: last.items.map((p) => ({ title: p.title, price_inr: p.priceInr, area_sqft: p.areaSqft, status: p.status, project: p.project?.name ?? null })),
+                shown: last.items.map((p) => ({ title: p.title, price_inr: p.priceInr, area_sqft: p.areaSqft, status: p.status, project: p.project?.name ?? null, confidence: CONFIDENCE_WORDS[p.confidence] ?? CONFIDENCE_WORDS[0] })),
               }),
             });
           }

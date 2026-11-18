@@ -64,6 +64,47 @@ during the site build, because the home page is prerendered from it).
   works in the web build. Expo Go has no speech recognition module, so on phones the app points to the keyboard's
   dictation key; `apps/mobile/lib/voice.ts` is the one place to plug in a native recogniser in a development build.
 
+## Confidence: how far a home and its seller are verified
+
+A home is the largest purchase most buyers make, so every listing and seller carries a confidence level with the
+reasons behind it. **Only things a member of staff actually confirmed can raise it**: what a seller says about
+themselves counts for nothing until someone has checked it. The rules are in `apps/api/src/trust/confidence.ts` (pure
+functions with tests) and the levels are *Not yet verified*, *Basic checks only*, *Good confidence*, *High confidence*.
+
+- **Seller onboarding** (**Get verified** in a seller's panel): who they are (owner, agent or builder), firm, RERA
+  registration number, GST number, address, where they work, and documents: an identity document for everyone, a RERA
+  certificate for agents, a business document for builders, proof of ownership for owners. They send it for review and
+  cannot change it while it is with staff.
+- **Staff review** (**Sellers** in the admin panel): staff read the answers, open the documents, and tick what they
+  confirmed themselves: identity, RERA registration (looked up on the state register) or ownership, a phone call, the
+  address. Approval needs at least the identity tick. They can ask for more or turn a seller down with a message, and
+  record upheld buyer complaints. The seller is emailed the outcome.
+- **A seller's level**: identity only gives *Basic*; plus RERA/ownership and a phone call gives *Good*; plus address
+  gives *High*. Ignoring most buyer enquiries or having many listings turned down takes *High* away; an upheld
+  complaint holds a seller at *Basic* until cleared. If a verified seller edits their answers, they go back to
+  unverified until staff check again.
+- **A home's level**: starts from its seller's level (homes added by staff start at *Basic*). Staff can record that
+  they checked a particular home's papers or visited it, saying what they checked; that lifts it to at least *Good*,
+  and *High* needs both a trusted seller and that check. No photos caps it at *Good*; a home under construction with
+  no RERA number on record, or priced more than 35% below the area average, is capped at *Basic* with a warning. A
+  seller editing a listing withdraws staff's check of it.
+- **What buyers see**: a badge on every listing card; on the property page a "How confident can you be?" section with
+  each reason, ticked or not, and the seller's public page (`/dealers/[id]`, not indexed, no contact details). After
+  an enquiry, the buyer is told whether the seller is verified and, if not, warned not to pay any advance.
+- **Ranking**: listings, locality pages and ask-box results show higher-confidence homes first unless the buyer asks
+  for a price order. Nothing is hidden. The assistant is told each home's confidence and not to overstate it.
+- **Documents are private**: stored in `apps/api/private-documents` (override with `DOCUMENT_DIR`), a folder no web
+  address serves, with files readable only by the API's own account. The API sends a document only to the seller it
+  belongs to or to staff, never cached, and logs each time staff open one. They are deleted automatically 90 days
+  after the review (`DOCUMENT_RETENTION_DAYS`), or at once from the seller's review page; the record of what was
+  verified is kept. They are not encrypted on disk: protect or relocate that folder in production.
+- Levels are stored on each listing for ordering and recalculated whenever something they depend on changes, when the
+  API starts, and once a day.
+
+Every confidence display says that the checks reduce risk and are not a guarantee, and tells the buyer to see the
+home and have a lawyer check the title. **Have a lawyer review this wording, the document handling and your duties
+under India's data protection law before launch.**
+
 ## Tools that help buyers decide
 
 On the website (linked from **Tools** in the header and from each property page) and in the mobile app (**Tools**
@@ -190,7 +231,8 @@ you can copy the link from the terminal running `npm run dev:api`. Sending throu
 
 ## Not done yet
 
-Buyer accounts and saved searches (the comparison shortlist lives only in the browser or the open app), stamp duty slabs and locality-level rates (one rate per city), assigning a lead to a particular staff member, builders editing their own project pages,
+Buyer accounts and saved searches (the comparison shortlist lives only in the browser or the open app), stamp duty slabs and locality-level rates (one rate per city), a way for buyers to report a seller (complaints are entered by staff), encryption of verification documents at rest,
+assigning a lead to a particular staff member, builders editing their own project pages,
 a project screen and lead form in the mobile app, reordering photos, object storage for
 photos, pagination beyond 48 homes per listing page, a real listings feed, native speech-to-text on phones, a
 Content-Security-Policy header, and deployment.

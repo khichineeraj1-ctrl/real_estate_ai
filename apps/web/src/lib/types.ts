@@ -1,4 +1,5 @@
 import type { CityCosts } from './finance';
+import type { Confidence, PublicDealer } from './trust';
 
 export type PropertyType = 'APARTMENT' | 'VILLA' | 'BUILDER_FLOOR' | 'PLOT';
 export type Status = 'READY_TO_MOVE' | 'UNDER_CONSTRUCTION';
@@ -13,6 +14,8 @@ export interface PropertyCard {
   project: (Place & { builder: string }) | null;
   /** At most one on cards (the cover); every photo on the detail page. */
   photos: { file: string; width?: number; height?: number }[];
+  /** How far the home and its seller are verified, 0 (not yet) to 3 (high). */
+  confidence?: number;
 }
 export interface ProjectLink extends Place { builder: string; status: Status; locality?: { name: string } }
 
@@ -29,7 +32,9 @@ export interface ProjectDetail extends Place {
   builder: string; description: string; status: Status; possession: string | null; reraId: string | null; totalUnits: number; amenities: string[];
   locality: Place & { lat: number; lng: number }; city: Place & { state: string }; properties: PropertyCard[]; stats: Stats; bhk: BhkRow[];
 }
-export interface PropertyDetail extends Omit<PropertyCard, 'locality' | 'project'> {
+export interface PropertyDetail extends Omit<PropertyCard, 'locality' | 'project' | 'confidence'> {
+  /** The level with what it rests on, and the seller's public card when the home has an outside seller. */
+  confidence: Confidence; seller: PublicDealer | null; staffVerifiedAt: string | null;
   description: string; floor: number | null; totalFloors: number | null; facing: string | null; furnishing: string | null; amenities: string[];
   locality: Place & { lat: number; lng: number; highlights: string[] }; city: Place & { state: string };
   project: (Place & { builder: string; reraId: string | null }) | null; localityStats: Stats; similar: PropertyCard[];

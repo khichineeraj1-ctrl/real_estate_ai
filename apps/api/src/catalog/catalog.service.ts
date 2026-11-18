@@ -3,6 +3,8 @@ import { ConstructionStatus, Prisma, PropertyType } from '@prisma/client';
 import { Input } from '../admin/input';
 import { Mailer, SITE_URL } from '../mail/mailer';
 import { PrismaService } from '../prisma/prisma.service';
+import { LEVEL_LABEL, Level } from '../trust/confidence';
+import { TrustService } from '../trust/trust.service';
 
 export interface PropertyFilters {
   city?: string; // slugs
@@ -23,6 +25,7 @@ const CARD = {
   locality: { select: { slug: true, name: true, city: { select: { slug: true, name: true } } } },
   project: { select: { slug: true, name: true, builder: true } },
   photos: { select: { file: true }, orderBy: { position: 'asc' }, take: 1 }, // the cover photo
+  confidence: true, // level 0-3; see src/trust
 } satisfies Prisma.PropertySelect;
 
 export type PropertyCard = Prisma.PropertyGetPayload<{ select: typeof CARD }>;
@@ -39,7 +42,7 @@ export interface Stats { count: number; minPrice: number | null; maxPrice: numbe
 
 @Injectable()
 export class CatalogService {
-  constructor(private readonly db: PrismaService, private readonly mail: Mailer) {}
+  constructor(private readonly db: PrismaService, private readonly mail: Mailer, private readonly trust: TrustService) {}
 
   private where(f: PropertyFilters): Prisma.PropertyWhereInput {
     return {
@@ -64,7 +67,9 @@ export class CatalogService {
     const pageSize = Math.min(Math.max(f.pageSize ?? 12, 1), 48);
     const page = Math.max(f.page ?? 1, 1);
     const where = this.where(f);
-    const orderBy: Prisma.PropertyOrderByWithRelationInput[] = f.sort === 'price_asc' ? [{ priceInr: 'asc' }] : f.sort === 'price_desc' ? [{ priceInr: 'desc' }] : [{ postedAt: 'desc' }];
+    const orderBy: Prisma.PropertyOrderByWithRelationInput[] = f.sort === 'price_asc' ? [{ priceInr: 'asc' }] : f.sort === 'price_desc' ? [{ priceInr: 'desc' }]
+      // Unless the buyer asked for a price order, homes we have more confidence in come first, newest first within each level.
+      : f.sort === 'newest' ? [{ postedAt: 'desc' }] : [{ confidence: 'desc' }, { postedAt: 'desc' }];
     const [items, stats] = await Promise.all([
       this.db.property.findMany({ where, select: CARD, orderBy: [...orderBy, { slug: 'asc' }], skip: (page - 1) * pageSize, take: pageSize }),
       this.stats(f),
@@ -130,16 +135,20 @@ export class CatalogService {
   async property(slug: string) {
     const p = await this.db.property.findFirst({
       where: { slug, state: 'PUBLISHED' },
-      include: { locality: { include: { city: true } }, project: { select: { slug: true, name: true, builder: true, reraId: true } }, photos: { select: { file: true, width: true, height: true }, orderBy: { position: 'asc' } } },
+      include: { locality: { include: { city: true } }, project: { select: { slug: true, name: true, builder: true, reraId: true } }, photos: { select: { file: true, width: true, height: true }, orderBy: { position: 'asc' } }, owner: { select: { role: true } } },
     });
     if (!p) throw new NotFoundException('Property not found');
     const similar = await this.db.property.findMany({
       where: { state: 'PUBLISHED', localityId: p.localityId, NOT: { id: p.id }, ...(p.bhk ? { bhk: { in: [p.bhk - 1, p.bhk, p.bhk + 1] } } : {}) },
-      select: CARD, orderBy: { postedAt: 'desc' }, take: 4,
+      select: CARD, orderBy: [{ confidence: 'desc' }, { postedAt: 'desc' }], take: 4,
     });
-    const { locality, localityId, projectId, id, ownerId, state, rejectReason, ...rest } = p;
+    // Staff's working notes and names stay inside; buyers get the level, the reasons, and the seller's public card.
+    const { locality, localityId, projectId, id, ownerId, state, rejectReason, staffVerifiedNote, staffVerifiedBy, confidence, owner, ...rest } = p;
+    const sellerId = ownerId && p.owner?.role === 'AGENT' ? ownerId : null;
     return {
       ...rest,
+      confidence: await this.trust.property(id),
+      seller: sellerId ? await this.trust.publicDealer(sellerId) : null,
       locality: { slug: locality.slug, name: locality.name, lat: locality.lat, lng: locality.lng, highlights: locality.highlights },
       city: { slug: locality.city.slug, name: locality.city.name, state: locality.city.state },
       costs: costsOf(locality.city),
@@ -202,7 +211,7 @@ export class CatalogService {
 
   async enquire(slug: string, body: Record<string, unknown>) {
     const { name, phone, email, message } = this.buyer(body);
-    const p = await this.db.property.findFirst({ where: { slug, state: 'PUBLISHED' }, select: { id: true, title: true, projectId: true, project: { select: { name: true, leadEmail: true, account: { select: { email: true, active: true } } } }, owner: { select: { name: true, phone: true, email: true, role: true, active: true } } } });
+    const p = await this.db.property.findFirst({ where: { slug, state: 'PUBLISHED' }, select: { id: true, title: true, projectId: true, ownerId: true, project: { select: { name: true, leadEmail: true, account: { select: { email: true, active: true } } } }, owner: { select: { name: true, phone: true, email: true, role: true, active: true } } } });
     if (!p) throw new NotFoundException('Property not found');
     await this.db.enquiry.create({ data: { propertyId: p.id, projectId: p.projectId, name, phone, email, message } });
     const seller = p.owner?.active && p.owner.role === 'AGENT' && p.owner.phone ? p.owner : null;
@@ -220,7 +229,8 @@ export class CatalogService {
         text: `A buyer asked about "${p.title}".\n\nName: ${name}\nPhone: ${phone}${email ? `\nEmail: ${email}` : ''}${message ? `\nMessage: ${message}` : ''}\n\nThe buyer agreed to be contacted about this home.`,
       });
     }
-    return { ok: true, seller: seller ? { name: seller.name, phone: seller.phone } : null };
+    const sellerLevel = seller && p.ownerId ? (await this.trust.dealer(p.ownerId)).level : null;
+    return { ok: true, seller: seller ? { name: seller.name, phone: seller.phone, level: sellerLevel, label: LEVEL_LABEL[(sellerLevel ?? 0) as Level] } : null };
   }
 
   logQuestion(data: { text: string; live: boolean; total: number; relaxed: string | null; page: string | null }) {

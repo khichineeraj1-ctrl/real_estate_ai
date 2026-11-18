@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AskBox } from '@/components/AskBox';
+import { ConfidenceBadge, ConfidenceReasons } from '@/components/Confidence';
 import { EnquiryForm } from '@/components/EnquiryForm';
 import { CostCalculator, EmiCalculator } from '@/components/tools/Calculators';
 import { CompareToggle } from '@/components/tools/Compare';
@@ -11,6 +12,7 @@ import { PropertyGrid } from '@/components/PropertyCard';
 import { api } from '@/lib/api';
 import { day, monthYear, num, price, rate, statusLabel, typeLabel } from '@/lib/format';
 import { abs, configSlug, media } from '@/lib/seo';
+import { KIND_LABEL } from '@/lib/trust';
 import type { PropertyDetail } from '@/lib/types';
 
 type Props = { params: Promise<{ slug: string }> };
@@ -73,6 +75,18 @@ export default async function PropertyPage({ params }: Props) {
         <div><dt>Listed by</dt><dd>{p.listedBy[0] + p.listedBy.slice(1).toLowerCase()}</dd></div>
         <div><dt>Listed on</dt><dd>{day(p.postedAt)}</dd></div>
       </dl>
+
+      <section className="section trust" id="confidence">
+        <h2>How confident can you be? <ConfidenceBadge level={p.confidence.level} /></h2>
+        <ConfidenceReasons confidence={p.confidence} />
+        {p.seller ? (
+          <p>
+            Seller: <Link href={`/dealers/${p.seller.id}`} rel="nofollow">{p.seller.firmName ?? p.seller.name}</Link>
+            {p.seller.kind ? ` (${KIND_LABEL[p.seller.kind].toLowerCase()})` : ''} — <ConfidenceBadge level={p.seller.confidence.level} />
+          </p>
+        ) : <p>This home was listed through our team, not by an outside seller.</p>}
+        <p className="calc-note">Our checks reduce risk; they are not a guarantee. Before paying anything, see the home yourself and have a lawyer check the title papers{p.status === 'UNDER_CONSTRUCTION' ? ' and the project’s RERA registration' : ''}.</p>
+      </section>
 
       <p className="compare-line">
         <CompareToggle slug={p.slug} title={p.title} />

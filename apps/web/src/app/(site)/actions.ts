@@ -2,7 +2,7 @@
 
 import { headers } from 'next/headers';
 
-export interface EnquiryState { error?: string; sent?: true; seller?: { name: string; phone: string } | null }
+export interface EnquiryState { error?: string; sent?: true; seller?: { name: string; phone: string; level?: number | null; label?: string } | null }
 
 const API_URL = process.env.API_URL || 'http://localhost:4100';
 
@@ -18,7 +18,7 @@ export async function enquire(kind: 'property' | 'project', slug: string, _: Enq
   const body = { name: form.get('name'), phone: form.get('phone'), email: form.get('email'), message: form.get('message'), interest: form.get('interest'), visitor };
   try {
     const res = await fetch(`${API_URL}/${kind === 'project' ? 'projects' : 'properties'}/${encodeURIComponent(slug)}/enquiries`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), cache: 'no-store' });
-    const data = (await res.json().catch(() => null)) as { message?: string; seller?: { name: string; phone: string } | null } | null;
+    const data = (await res.json().catch(() => null)) as { message?: string; seller?: { name: string; phone: string; level?: number | null; label?: string } | null } | null;
     if (!res.ok) return { error: data?.message || 'Your enquiry could not be sent. Please try again.' };
     return { sent: true, seller: data?.seller ?? null };
   } catch {

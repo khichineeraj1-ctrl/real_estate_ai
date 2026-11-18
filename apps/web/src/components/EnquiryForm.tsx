@@ -23,7 +23,14 @@ export function EnquiryForm({ slug, kind = 'property', interests, projectName }:
         {project
           ? <p>Someone will call you about {projectName ?? 'this project'} with prices, floor plans and site visit times.</p>
           : state.seller
-            ? <p>You can also call the seller directly: {state.seller.name}, <a href={`tel:${state.seller.phone}`}>{state.seller.phone}</a>.</p>
+            ? (
+              <>
+                <p>You can also call the seller directly: {state.seller.name}, <a href={`tel:${state.seller.phone}`}>{state.seller.phone}</a>.</p>
+                {(state.seller.level ?? 0) >= 2
+                  ? <p>We have verified this seller ({state.seller.label?.toLowerCase()}).</p>
+                  : <p className="aerror">We have not fully verified this seller yet. Do not pay a token, booking amount or any advance before you have seen the home and had its papers checked.</p>}
+              </>
+            )
             : <p>Our team will call you about this home.</p>}
       </div>
     );

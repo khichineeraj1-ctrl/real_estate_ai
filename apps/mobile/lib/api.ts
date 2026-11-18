@@ -10,14 +10,19 @@ export interface PropertyCard {
   locality: Place & { city: Place }; project: (Place & { builder: string }) | null;
   /** The cover only on cards; every photo on the detail screen. */
   photos: { file: string }[];
+  /** How far the home and its seller are verified, 0 (not yet) to 3 (high). */
+  confidence?: number;
 }
+export interface Confidence { level: number; label: string; reasons: { ok: boolean; text: string }[] }
+export const CONFIDENCE_LABELS = ['Not yet verified', 'Basic checks only', 'Good confidence', 'High confidence'];
 export interface CitySummary extends Place { state: string; localities: Place[]; stats: Stats; costs: CityCosts | null }
 export interface LocalityDetail extends Place {
   intro: string; highlights: string[]; city: Place & { state: string }; stats: Stats;
   bhk: { bhk: number; count: number; minPrice: number | null }[]; nearby: Place[];
 }
 export interface Listing { items: PropertyCard[]; total: number; stats: Stats }
-export interface PropertyDetail extends Omit<PropertyCard, 'locality' | 'project'> {
+export interface PropertyDetail extends Omit<PropertyCard, 'locality' | 'project' | 'confidence'> {
+  confidence: Confidence; seller: { name: string; firmName: string | null; confidence: Confidence } | null;
   description: string; floor: number | null; totalFloors: number | null; facing: string | null; furnishing: string | null; amenities: string[]; listedBy: string;
   locality: Place & { highlights: string[] }; city: Place & { state: string }; project: (Place & { builder: string; reraId: string | null }) | null;
   localityStats: Stats; similar: PropertyCard[];
@@ -54,7 +59,7 @@ export const ask = (message: string, history: Turn[], context?: string) =>
 /** Address of a stored listing photo. */
 export const photoUrl = (file: string, size: 'full' | 'card' = 'full') => `${API_URL}/uploads/${size === 'card' ? file.replace(/\.webp$/, '-card.webp') : file}`;
 
-export interface EnquiryResult { ok: true; seller: { name: string; phone: string } | null }
+export interface EnquiryResult { ok: true; seller: { name: string; phone: string; level?: number | null; label?: string } | null }
 /** Asks the seller to get in touch; the answer includes the seller's contact when the listing has a seller account. */
 export const sendEnquiry = (slug: string, body: { name: string; phone: string; message?: string }) =>
   call<EnquiryResult>(`/properties/${slug}/enquiries`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });

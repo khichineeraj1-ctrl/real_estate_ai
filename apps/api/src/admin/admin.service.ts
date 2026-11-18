@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException, OnModuleInit, UnauthorizedException } from '@nestjs/common';
 import { ConstructionStatus, LeadStatus, ListedBy, ListingState, Prisma, PropertyType, Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { TrustService } from '../trust/trust.service';
 import { Mailer, SITE_URL } from '../mail/mailer';
 import { SessionUser, emailSecret, hashEmailSecret, hashPassword, isStaff, issueToken, normalEmail, verifyPassword } from './auth';
 import { IMPORT_COLUMNS, parseCsv } from './csv';
@@ -17,7 +18,7 @@ const USER_PUBLIC = { id: true, email: true, name: true, phone: true, role: true
 @Injectable()
 export class AdminService implements OnModuleInit {
   private log = new Logger('Admin');
-  constructor(private readonly db: PrismaService, private readonly mail: Mailer) {}
+  constructor(private readonly db: PrismaService, private readonly mail: Mailer, private readonly trust: TrustService) {}
 
   /** The owner account comes from the environment, so there is always a way in; every other account lives in the database. */
   async onModuleInit() {
@@ -214,7 +215,7 @@ export class AdminService implements OnModuleInit {
     const [items, total, pending] = await Promise.all([
       this.db.property.findMany({
         where, orderBy: [{ postedAt: 'desc' }, { slug: 'asc' }], skip: (p - 1) * PAGE, take: PAGE,
-        select: { id: true, slug: true, title: true, priceInr: true, status: true, state: true, postedAt: true, owner: { select: { name: true } }, _count: { select: { photos: true } } },
+        select: { id: true, slug: true, title: true, priceInr: true, status: true, state: true, postedAt: true, confidence: true, staffVerified: true, owner: { select: { name: true } }, _count: { select: { photos: true } } },
       }),
       this.db.property.count({ where }), this.db.property.count({ where: { ...this.scope(user), state: 'PENDING' } }),
     ]);
@@ -222,6 +223,10 @@ export class AdminService implements OnModuleInit {
   }
 
   async property(user: SessionUser, id: string) {
+    const p = await this.propertyRow(user, id);
+    return { ...p, confidenceDetail: await this.trust.property(id) };
+  }
+  private async propertyRow(user: SessionUser, id: string) {
     const p = await this.db.property.findFirst({ where: { id, ...this.scope(user) }, include: { photos: { orderBy: { position: 'asc' }, select: { id: true, file: true } }, owner: { select: { name: true, email: true, phone: true } } } });
     if (!p) throw new NotFoundException('Property not found');
     return p;
@@ -265,16 +270,21 @@ export class AdminService implements OnModuleInit {
     if (!isStaff(user) && !user.emailVerified) throw new ForbiddenException('Confirm your email address before posting. We sent you a link; you can ask for a new one from your overview page.');
     const data = await this.propertyData(body);
     // What staff add is live at once; what an agent adds waits for approval.
-    return this.db.property.create({ data: { ...data, slug: await this.freshSlug(data.title), ownerId: user.id, state: isStaff(user) ? 'PUBLISHED' : 'PENDING' } });
+    const created = await this.db.property.create({ data: { ...data, slug: await this.freshSlug(data.title), ownerId: user.id, state: isStaff(user) ? 'PUBLISHED' : 'PENDING' } });
+    await this.trust.refreshProperty(created.id);
+    return created;
   }
   async updateProperty(user: SessionUser, id: string, body: Record<string, unknown>) {
-    await this.property(user, id);
+    await this.propertyRow(user, id);
     const data = await this.propertyData(body);
     // An agent's edit goes back for review, so changed text or price is never live unchecked.
-    return this.db.property.update({ where: { id }, data: { ...data, ...(isStaff(user) ? {} : { state: 'PENDING' as const, rejectReason: null }) } });
+    // A seller's change also withdraws our team's check of the home: what was checked is no longer what is listed.
+    const updated = await this.db.property.update({ where: { id }, data: { ...data, ...(isStaff(user) ? {} : { state: 'PENDING' as const, rejectReason: null, staffVerified: false, staffVerifiedNote: null, staffVerifiedAt: null, staffVerifiedBy: null }) } });
+    await this.trust.refreshProperty(id);
+    return updated;
   }
   async deleteProperty(user: SessionUser, id: string) {
-    const p = await this.property(user, id);
+    const p = await this.propertyRow(user, id);
     await this.db.property.delete({ where: { id } });
     await Promise.all(p.photos.map((ph) => removePhoto(ph.file)));
     return { ok: true };
@@ -284,14 +294,18 @@ export class AdminService implements OnModuleInit {
     const i = new Input(body);
     const decision = i.oneOf('decision', 'Decision', ['approve', 'reject'] as const);
     if (!(await this.db.property.findUnique({ where: { id }, select: { id: true } }))) throw new NotFoundException('Property not found');
-    if (decision === 'approve') return this.db.property.update({ where: { id }, data: { state: 'PUBLISHED', rejectReason: null, postedAt: new Date() } });
-    return this.db.property.update({ where: { id }, data: { state: 'REJECTED', rejectReason: i.text('reason', 'Reason for rejecting', 300) } });
+    const updated = decision === 'approve'
+      ? await this.db.property.update({ where: { id }, data: { state: 'PUBLISHED', rejectReason: null, postedAt: new Date() } })
+      : await this.db.property.update({ where: { id }, data: { state: 'REJECTED', rejectReason: i.text('reason', 'Reason for rejecting', 300) } });
+    // A seller's share of rejected listings is part of their confidence, so their level and listings are re-judged.
+    if (updated.ownerId) await this.trust.refreshDealer(updated.ownerId); else await this.trust.refreshProperty(id);
+    return updated;
   }
 
   // ---- Photos
 
   async addPhotos(user: SessionUser, propertyId: string, files: { buffer: Buffer; size: number }[]) {
-    const p = await this.property(user, propertyId);
+    const p = await this.propertyRow(user, propertyId);
     if (!files?.length) throw new BadRequestException('Choose at least one photo');
     if (p.photos.length + files.length > MAX_PHOTOS_PER_LISTING) throw new BadRequestException(`A listing can have at most ${MAX_PHOTOS_PER_LISTING} photos; this one has ${p.photos.length}`);
     if (files.some((f) => !sniffImage(f.buffer))) throw new BadRequestException('Photos must be JPEG, PNG or WebP images');
@@ -308,6 +322,7 @@ export class AdminService implements OnModuleInit {
       await this.db.photo.create({ data: { propertyId, file, width: ph.width, height: ph.height, position: position++ } });
     }
     if (!isStaff(user) && p.state === 'PUBLISHED') await this.db.property.update({ where: { id: propertyId }, data: { state: 'PENDING' } });
+    await this.trust.refreshProperty(propertyId);
     return { ok: true, added: files.length };
   }
 
@@ -316,6 +331,7 @@ export class AdminService implements OnModuleInit {
     if (!photo) throw new NotFoundException('Photo not found');
     await this.db.photo.delete({ where: { id: photoId } });
     await removePhoto(photo.file);
+    await this.trust.refreshProperty(photo.propertyId);
     return { ok: true, propertyId: photo.propertyId };
   }
 
@@ -450,6 +466,8 @@ export class AdminService implements OnModuleInit {
     const data = [];
     for (const v of valid) data.push({ ...v, slug: await this.freshSlug(v.title, taken), ownerId: user.id, state: 'PUBLISHED' as const });
     await this.db.property.createMany({ data });
+    const made = await this.db.property.findMany({ where: { slug: { in: data.map((d) => d.slug) } }, select: { id: true } });
+    for (const m of made) await this.trust.refreshProperty(m.id);
     return { imported: data.length, errors: [] };
   }
 
