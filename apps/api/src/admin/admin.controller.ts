@@ -5,6 +5,7 @@ import { AdminService } from './admin.service';
 import { AdminGuard, CurrentUser, Roles, SessionUser } from './auth';
 import { IMPORT_SAMPLE } from './csv';
 import { MAX_PHOTOS_PER_LISTING, MAX_PHOTO_BYTES } from './photos';
+import { Reminders } from './reminders';
 
 type Json = Record<string, unknown>;
 type Upload = { buffer: Buffer; size: number };
@@ -24,7 +25,7 @@ export class AdminController {
   private signups = new Limiter(20, 5_000);
   private emails = new Limiter(2, 10_000); // per account or email: emails cost money and can be used to pester someone
   private key = (v: unknown) => (typeof v === 'string' ? v.trim().toLowerCase().slice(0, 160) : '');
-  constructor(private readonly admin: AdminService) {}
+  constructor(private readonly admin: AdminService, private readonly reminders: Reminders) {}
 
   @Post('login')
   @HttpCode(200)
@@ -100,6 +101,10 @@ export class AdminController {
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Post('cities') createCity(@Body() b: Json) { return this.admin.createCity(b); }
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Patch('cities/:id') updateCity(@Param('id') id: string, @Body() b: Json) { return this.admin.updateCity(id, b); }
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Delete('cities/:id') deleteCity(@Param('id') id: string) { return this.admin.deleteCity(id); }
+
+  /** Who is due a reminder about leads left New. `send: "true"` emails them now; otherwise it only reports. Admins only. */
+  @UseGuards(AdminGuard) @Roles('ADMIN') @Post('reminders/run') @HttpCode(200)
+  runReminders(@Body() b: { send?: unknown }) { return this.reminders.run(b?.send === 'true' || b?.send === true); }
 
   // Users: admins only.
   @UseGuards(AdminGuard) @Roles('ADMIN') @Get('users') users() { return this.admin.users(); }

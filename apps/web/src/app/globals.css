@@ -198,3 +198,8 @@ ol.bullets li { margin-bottom: 4px; }
 .alead-msg { grid-column: 1 / -1; font-size: .82rem; color: var(--ready); }
 .alead-msg.error { color: var(--danger); white-space: normal; }
 .afilter { flex-wrap: wrap; row-gap: 4px; }
+
+.apartner { margin: 8px 0 0; font-size: .85rem; color: var(--muted); white-space: normal; max-width: 300px; }
+.ahistory { margin-top: 6px; font-size: .82rem; color: var(--muted); max-width: 300px; }
+.ahistory summary { cursor: pointer; color: var(--brand); }
+.ahistory ol { margin: 6px 0 0; padding-left: 1.1rem; white-space: normal; display: grid; gap: 4px; }

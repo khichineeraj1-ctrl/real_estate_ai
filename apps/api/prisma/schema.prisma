@@ -200,11 +200,16 @@ model Enquiry {
   message    String?
   /// What the buyer said they want on a project lead, e.g. "3 BHK".
   interest   String?
-  /// Where the follow-up stands, set by whoever is handling the lead (staff, the seller or the builder).
+  /// Our own team's follow-up: where it stands, and a short private note. Never shown to the buyer, seller or builder.
   status     LeadStatus @default(NEW)
-  /// A short private note from whoever is handling the lead; never shown to the buyer.
   note       String?
   statusAt   DateTime?
+  /// The follow-up of the outside party this lead belongs to: the listing's seller, or the project's builder.
+  /// Kept apart from ours so neither side overwrites the other. Staff can read it; the partner cannot read ours.
+  partnerStatus   LeadStatus @default(NEW)
+  partnerNote     String?
+  partnerStatusAt DateTime?
+  events     LeadEvent[]
   createdAt  DateTime @default(now())
   /// Set for an enquiry about one listing.
   propertyId String?
@@ -216,4 +221,33 @@ model Enquiry {
   @@index([propertyId, createdAt])
   @@index([projectId, createdAt])
   @@index([status, createdAt])
+  @@index([partnerStatus, createdAt])
+}
+
+enum LeadParty {
+  STAFF
+  PARTNER
+}
+
+/// One entry in a lead's trail: who changed its status or note, and when.
+model LeadEvent {
+  id         String     @id @default(cuid())
+  party      LeadParty
+  fromStatus LeadStatus
+  toStatus   LeadStatus
+  note       String?
+  /// The person's name at the time, kept even if the account is later renamed or deactivated.
+  byName     String
+  byUserId   String?
+  createdAt  DateTime   @default(now())
+  enquiryId  String
+  enquiry    Enquiry    @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+
+  @@index([enquiryId, createdAt])
+}
+
+/// Remembers the last day a daily job ran, so it runs once a day even across restarts or several API servers.
+model JobRun {
+  name    String @id
+  lastDay String
 }

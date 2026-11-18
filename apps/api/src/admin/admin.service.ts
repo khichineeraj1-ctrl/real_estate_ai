@@ -171,7 +171,7 @@ export class AdminService implements OnModuleInit {
       const projects = await this.db.project.findMany({ where: { accountId: user.id }, orderBy: { name: 'asc' }, select: { id: true, slug: true, name: true, locality: { select: { name: true, city: { select: { name: true } } } } } });
       const mine = this.builderLeads(user);
       const withCounts = await Promise.all(projects.map(async (p) => ({
-        ...p, leads: await this.db.enquiry.count({ where: { AND: [mine, { projectId: p.id }] } }), leadsNew: await this.db.enquiry.count({ where: { AND: [mine, { projectId: p.id, status: 'NEW' }] } }), leadsWeek: await this.db.enquiry.count({ where: { AND: [mine, { projectId: p.id, createdAt: { gte: weekAgo } }] } }),
+        ...p, leads: await this.db.enquiry.count({ where: { AND: [mine, { projectId: p.id }] } }), leadsNew: await this.db.enquiry.count({ where: { AND: [mine, { projectId: p.id, partnerStatus: 'NEW' }] } }), leadsWeek: await this.db.enquiry.count({ where: { AND: [mine, { projectId: p.id, createdAt: { gte: weekAgo } }] } }),
       })));
       return { role: user.role, name: user.name, projects: withCounts };
     }
@@ -179,7 +179,7 @@ export class AdminService implements OnModuleInit {
       const mine = await this.db.property.groupBy({ by: ['state'], where: { ownerId: user.id }, _count: true });
       const n = (s: ListingState) => mine.find((m) => m.state === s)?._count ?? 0;
       const enquiries = await this.db.enquiry.count({ where: { property: { ownerId: user.id } } });
-      const enquiriesNew = await this.db.enquiry.count({ where: { property: { ownerId: user.id }, status: 'NEW' } });
+      const enquiriesNew = await this.db.enquiry.count({ where: { property: { ownerId: user.id }, partnerStatus: 'NEW' } });
       return { role: user.role, name: user.name, enquiries, enquiriesNew, mine: { published: n('PUBLISHED'), pending: n('PENDING'), rejected: n('REJECTED') } };
     }
     const weekAgo = new Date(Date.now() - 7 * 86_400_000);
@@ -329,45 +329,85 @@ export class AdminService implements OnModuleInit {
     return q.kind === 'project' ? { propertyId: null } : q.kind === 'listing' ? { propertyId: { not: null } } : {};
   }
 
+  /**
+   * Each lead is followed up on two separate tracks: ours (staff) and the outside party's (the listing's seller or the
+   * project's builder). This says which track an account works on, so neither side overwrites the other.
+   */
+  private track(user: SessionUser) {
+    return isStaff(user)
+      ? { party: 'STAFF' as const, status: 'status' as const, note: 'note' as const, at: 'statusAt' as const }
+      : { party: 'PARTNER' as const, status: 'partnerStatus' as const, note: 'partnerNote' as const, at: 'partnerStatusAt' as const };
+  }
+
   async enquiries(user: SessionUser, q: { page?: string; kind?: string; project?: string; status?: string }) {
     const scope = this.enquiryWhere(user, q);
+    const t = this.track(user);
+    const staff = isStaff(user);
     const status = Object.values(LeadStatus).includes(q.status as LeadStatus) ? (q.status as LeadStatus) : undefined;
-    const where: Prisma.EnquiryWhereInput = status ? { AND: [scope, { status }] } : scope;
+    const where: Prisma.EnquiryWhereInput = status ? { AND: [scope, { [t.status]: status }] } : scope;
     const p = page(q.page);
-    // How many leads are at each stage within what this person can see, for the filter tabs.
-    const grouped = await this.db.enquiry.groupBy({ by: ['status'], where: scope, _count: true });
-    const byStatus = Object.fromEntries(Object.values(LeadStatus).map((s) => [s, grouped.find((g) => g.status === s)?._count ?? 0]));
-    const [items, total, project] = await Promise.all([
+    // How many leads are at each stage on this account's own track, for the filter tabs.
+    const grouped = await this.db.enquiry.groupBy({ by: [t.status], where: scope, _count: true });
+    const byStatus = Object.fromEntries(Object.values(LeadStatus).map((x) => [x, grouped.find((g) => g[t.status] === x)?._count ?? 0]));
+    const [rows, total, project] = await Promise.all([
       this.db.enquiry.findMany({
         where, orderBy: { createdAt: 'desc' }, skip: (p - 1) * 50, take: 50,
-        include: { property: { select: { id: true, slug: true, title: true, state: true } }, project: { select: { id: true, slug: true, name: true } } },
+        include: {
+          property: { select: { id: true, slug: true, title: true, state: true, owner: { select: { name: true, role: true } } } },
+          project: { select: { id: true, slug: true, name: true, account: { select: { name: true } } } },
+          // A partner sees only their own trail; staff see both.
+          events: { where: staff ? {} : { party: 'PARTNER' }, orderBy: { createdAt: 'desc' }, take: 20, select: { id: true, party: true, fromStatus: true, toStatus: true, note: true, byName: true, createdAt: true } },
+        },
       }),
       this.db.enquiry.count({ where }),
       q.project && user.role !== 'AGENT' ? this.db.project.findFirst({ where: { id: q.project, ...(user.role === 'BUILDER' ? { accountId: user.id } : {}) }, select: { id: true, name: true, builder: true } }) : null,
     ]);
+    const items = rows.map((e) => {
+      // Who the outside party is for this lead: a seller with their own account, else the project's builder login.
+      const seller = e.property?.owner?.role === 'AGENT' ? e.property.owner.name : null;
+      const partnerName = seller ?? e.project?.account?.name ?? null;
+      return {
+        id: e.id, name: e.name, phone: e.phone, email: e.email, message: e.message, interest: e.interest, createdAt: e.createdAt,
+        property: e.property && { id: e.property.id, slug: e.property.slug, title: e.property.title, state: e.property.state },
+        project: e.project && { id: e.project.id, slug: e.project.slug, name: e.project.name },
+        status: e[t.status], note: e[t.note], events: e.events,
+        // Staff also see how the seller or builder is getting on; the reverse is never sent.
+        partner: staff && partnerName ? { kind: seller ? 'Seller' : 'Builder', name: partnerName, status: e.partnerStatus, note: e.partnerNote, at: e.partnerStatusAt } : null,
+      };
+    });
     return { items, total, page: p, pageSize: 50, project, byStatus };
   }
 
-  /** Anyone who can see a lead can record where the follow-up stands and leave a short private note. */
+  /** Records where this account's follow-up stands, with a short private note, and adds the change to the lead's trail. */
   async updateEnquiry(user: SessionUser, id: string, body: Record<string, unknown>) {
     const i = new Input(body);
     const status = i.oneOf('status', 'Status', Object.values(LeadStatus));
     const note = i.optionalText('note', 'Note', 300);
-    const current = await this.db.enquiry.findFirst({ where: { AND: [this.enquiryWhere(user, {}), { id }] }, select: { status: true } });
+    const t = this.track(user);
+    const current = await this.db.enquiry.findFirst({ where: { AND: [this.enquiryWhere(user, {}), { id }] } });
     if (!current) throw new NotFoundException('Enquiry not found');
-    return this.db.enquiry.update({ where: { id }, data: { status, note, ...(status !== current.status ? { statusAt: new Date() } : {}) }, select: { id: true, status: true, note: true, statusAt: true } });
+    const changedStatus = status !== current[t.status];
+    if (!changedStatus && note === current[t.note]) return { id, status, note, changed: false };
+    await this.db.$transaction([
+      this.db.enquiry.update({ where: { id }, data: { [t.status]: status, [t.note]: note, ...(changedStatus ? { [t.at]: new Date() } : {}) } }),
+      this.db.leadEvent.create({ data: { enquiryId: id, party: t.party, fromStatus: current[t.status], toStatus: status, note, byName: user.name, byUserId: user.id } }),
+    ]);
+    return { id, status, note, changed: true };
   }
 
   /** The same leads as a spreadsheet file. Staff get everything they filter for; a builder gets their own projects' leads. */
   async enquiriesCsv(user: SessionUser, q: { kind?: string; project?: string }) {
+    const t = this.track(user);
+    const staff = isStaff(user);
     const rows = await this.db.enquiry.findMany({
       where: this.enquiryWhere(user, q), orderBy: { createdAt: 'desc' }, take: 5000,
       include: { property: { select: { title: true } }, project: { select: { name: true } } },
     });
     // Quoted throughout; a leading apostrophe stops a spreadsheet from running a cell that starts like a formula.
-    const cell = (v: string | null | undefined) => { const t = v ?? ''; return `"${(/^[=+\-@\t\r]/.test(t) ? `'${t}` : t).replace(/"/g, '""')}"`; };
-    const lines = rows.map((e) => [e.createdAt.toISOString(), e.project?.name, e.property?.title, e.name, e.phone, e.email, e.interest, e.message, e.status, e.note].map(cell).join(','));
-    return ['"received","project","listing","name","phone","email","interested_in","message","status","note"', ...lines].join('\r\n') + '\r\n';
+    const cell = (v: string | null | undefined) => { const x = v ?? ''; return `"${(/^[=+\-@\t\r]/.test(x) ? `'${x}` : x).replace(/"/g, '""')}"`; };
+    const lines = rows.map((e) => [e.createdAt.toISOString(), e.project?.name, e.property?.title, e.name, e.phone, e.email, e.interest, e.message, e[t.status], e[t.note], ...(staff ? [e.partnerStatus, e.partnerNote] : [])].map(cell).join(','));
+    const header = ['received', 'project', 'listing', 'name', 'phone', 'email', 'interested_in', 'message', 'status', 'note', ...(staff ? ['seller_or_builder_status', 'seller_or_builder_note'] : [])];
+    return [header.map((h) => `"${h}"`).join(','), ...lines].join('\r\n') + '\r\n';
   }
 
   // ---- Bulk import

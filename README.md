@@ -102,17 +102,19 @@ during the site build, because the home page is prerendered from it).
   but not enquiries on resale listings that an owner or agent posted there (those buyers agreed to share their details
   with that seller only). If a project has no sales email, its leads are emailed to the builder login instead.
 - **Lead status**: every enquiry starts as *New* and can be moved to *Contacted*, *Site visit planned*, *Booked* or
-  *Not interested*, with a short private note, by anyone who can see it (staff, the listing's seller, or the project's
-  builder). It is edited in place on the **Enquiries** / **Leads** screen, which has a tab with a count for each
-  status; overviews show how many are still new, and the spreadsheet includes status and note. There is one shared
-  status per lead, and no history of who changed it.
-- **Photos**: up to 12 per listing, JPEG/PNG/WebP up to 5 MB each; the first is the cover. Each upload is re-encoded
-  into two WebP files, a full size (longest side 1600px) and a 640×480 card size used in listings, which also turns
-  the photo upright and removes embedded data such as GPS position. Files get random names in `apps/api/uploads`
-  (override with `UPLOAD_DIR`), served by the API at `/uploads/…` and shown by the site at `/media/…`. Local disk only
-  suits a single server: `apps/api/src/admin/photos.ts` is the one place to switch to object storage.
-- **Bulk import**: staff upload a CSV of up to 500 listings under **Import** (a sample file is linked there). Every row is
-  checked first; if any row is wrong nothing is imported and the rows to fix are listed. Imported listings go live.
+  *Not interested*, with a short private note, edited in place on the **Enquiries** / **Leads** screen. That screen
+  has a tab with a count for each status, overviews show how many are still new, and the spreadsheet includes status
+  and note.
+- **Two separate tracks per lead**: your team's status and note are kept apart from those of the outside party the
+  lead belongs to (the listing's seller, or the project's builder), so neither overwrites the other. Staff see the
+  seller's or builder's status under their own; sellers and builders never see staff's status or notes.
+- **History**: every change of status or note is recorded with who made it and when, and shown under the lead as
+  "History". Staff see both tracks' history; a seller or builder sees only their own.
+- **Reminders**: once a day (9:00 India time; `REMINDER_HOUR_IST`, or `REMINDERS=off`) each seller and builder is
+  emailed the leads on their track that are still *New* more than 24 hours after arriving, and staff are emailed the
+  ones nobody else is handling (no seller account, no builder login). Leads older than 30 days are left out. It runs
+  once a day even across restarts. An admin can preview who is due with `POST /admin/reminders/run`, or send
+  immediately with `{"send":"true"}`; there is no button for this in the panel yet.
 - **Listings, projects, localities, cities**: add, edit and delete. Saving refreshes the public pages straight away.
   Page addresses never change after creation, so renaming a listing or city does not break links. A locality or city
   that still has content cannot be deleted; deleting a project keeps its listings and unlinks them.
@@ -153,7 +155,7 @@ you can copy the link from the terminal running `npm run dev:api`. Sending throu
 
 ## Not done yet
 
-Buyer accounts and saved searches, a history of who changed a lead's status, reminders for leads left new, builders editing their own project pages,
+Buyer accounts and saved searches, assigning a lead to a particular staff member, builders editing their own project pages,
 a project screen and lead form in the mobile app, reordering photos, object storage for
 photos, pagination beyond 48 homes per listing page, a real listings feed, native speech-to-text on phones, a
 Content-Security-Policy header, and deployment.

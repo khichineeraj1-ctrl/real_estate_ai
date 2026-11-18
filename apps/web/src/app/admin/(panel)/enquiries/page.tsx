@@ -5,11 +5,18 @@ import { adminGet, getMe, isStaff } from '@/lib/admin';
 import { updateEnquiry } from '../../actions';
 
 export const metadata = { title: 'Enquiries' };
+interface Event { id: string; party: 'STAFF' | 'PARTNER'; fromStatus: string; toStatus: string; note: string | null; byName: string; createdAt: string }
 interface Row {
   id: string; name: string; phone: string; email: string | null; message: string | null; interest: string | null; status: string; note: string | null; createdAt: string;
+  /** Staff only: how the seller or builder this lead belongs to is getting on. */
+  partner: { kind: 'Seller' | 'Builder'; name: string; status: string; note: string | null; at: string | null } | null;
+  events: Event[];
   property: { id: string; slug: string; title: string; state: string } | null; project: { id: string; slug: string; name: string } | null;
 }
 interface Data { items: Row[]; total: number; page: number; pageSize: number; project: { id: string; name: string; builder: string } | null; byStatus: Record<string, number> }
+
+const label = (status: string) => LEAD_STATUSES.find((s) => s.value === status)?.label ?? status;
+const when = (iso: string) => new Date(iso).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata' });
 
 export default async function Enquiries({ searchParams }: { searchParams: Promise<{ page?: string; kind?: string; project?: string; status?: string }> }) {
   const sp = await searchParams;
@@ -35,6 +42,7 @@ export default async function Enquiries({ searchParams }: { searchParams: Promis
             : staff ? 'Every buyer who asked to be contacted. Leads on builder projects, and enquiries on listings without a seller account, are yours to follow up or pass to the builder.'
               : 'Buyers who asked to be contacted about your listings. They were shown your name and phone number, and you were emailed each time.'}
         {' '}Set a status as you follow up; notes are private and never shown to the buyer.
+        {staff ? ' Your team’s status is separate from the seller’s or builder’s, which is shown beneath it.' : ''}
       </p>
       {staff && !d.project && (
         <p className="afilter">
@@ -61,8 +69,26 @@ export default async function Enquiries({ searchParams }: { searchParams: Promis
                 <td>{e.name}</td>
                 <td><a href={`tel:${e.phone}`}>{e.phone}</a>{e.email && <><br /><a href={`mailto:${e.email}`}>{e.email}</a></>}</td>
                 <td className="awrap">{e.interest}{e.interest && e.message ? ' · ' : ''}{e.message}{!e.interest && !e.message && '—'}</td>
-                <td><LeadStatus key={e.id} action={updateEnquiry.bind(null, e.id)} status={e.status} note={e.note} who={e.name} /></td>
-                <td>{new Date(e.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata' })}</td>
+                <td>
+                  <LeadStatus key={e.id} action={updateEnquiry.bind(null, e.id)} status={e.status} note={e.note} who={e.name} />
+                  {e.partner && (
+                    <p className="apartner"><strong>{e.partner.kind}</strong> ({e.partner.name}): {label(e.partner.status)}{e.partner.note ? ` — ${e.partner.note}` : ''}</p>
+                  )}
+                  {e.events.length > 0 && (
+                    <details className="ahistory">
+                      <summary>History ({e.events.length})</summary>
+                      <ol>
+                        {e.events.map((ev) => (
+                          <li key={ev.id}>
+                            {when(ev.createdAt)} · {ev.byName}{staff ? ` (${ev.party === 'STAFF' ? 'our team' : 'seller or builder'})` : ''}:{' '}
+                            {ev.fromStatus === ev.toStatus ? `note changed, still ${label(ev.toStatus)}` : `${label(ev.fromStatus)} → ${label(ev.toStatus)}`}{ev.note ? ` — “${ev.note}”` : ''}
+                          </li>
+                        ))}
+                      </ol>
+                    </details>
+                  )}
+                </td>
+                <td>{when(e.createdAt)}</td>
               </tr>
             ))}
           </tbody>
