@@ -6,10 +6,15 @@ import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { Faq } from '@/components/Faq';
 import { api } from '@/lib/api';
 import { price, rate } from '@/lib/format';
-import { comparePath, configSlug, projectPath } from '@/lib/seo';
+import { comparePath, configSlug, projectPath, pageMeta } from '@/lib/seo';
 import type { LocalityDetail } from '@/lib/types';
 
 type Props = { params: Promise<{ city: string; pair: string }> };
+
+// Built the first time someone asks for it, then served from cache and refreshed in the background every two minutes,
+// so visitors and crawlers get the page without waiting for the catalogue.
+export const revalidate = 120;
+export async function generateStaticParams() { return []; }
 
 async function load(params: Props['params']) {
   const { city, pair } = await params;
@@ -29,8 +34,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const title = `${a.name} vs ${b.name}, ${a.city.name} — Property Prices Compared`;
   const description = `${a.name} or ${b.name}? Average rate ${rate(a.stats.avgRate)} against ${rate(b.stats.avgRate)}, prices from ${price(a.stats.minPrice)} and ${price(b.stats.minPrice)}, and homes available by size.`;
   // With no homes listed on either side there are no prices to compare, so the page is kept out of search until there are.
-  if (!a.stats.count && !b.stats.count) return { title: `${a.name} vs ${b.name}, ${a.city.name}`, description: `${a.name} and ${b.name} in ${a.city.name}: what each is known for and the builder projects registered there.`, alternates: { canonical: path }, robots: { index: false } };
-  return { title, description, alternates: { canonical: path }, openGraph: { title, description, url: path } };
+  if (!a.stats.count && !b.stats.count) return pageMeta({ title: `${a.name} vs ${b.name}, ${a.city.name}`, description: `${a.name} and ${b.name} in ${a.city.name}: what each is known for and the builder projects registered there.`, path, noindex: true });
+  return pageMeta({ title, description, path: path });
 }
 
 export default async function CompareLocalities({ params }: Props) {

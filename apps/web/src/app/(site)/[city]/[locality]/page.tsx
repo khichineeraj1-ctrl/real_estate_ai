@@ -11,10 +11,15 @@ import { Stats } from '@/components/Stats';
 import { api } from '@/lib/api';
 import { areaFaqs } from '@/lib/faqs';
 import { price, statusLabel } from '@/lib/format';
-import { comparePath, configSlug, itemListLd, projectPath } from '@/lib/seo';
-import type { Listing, LocalityDetail } from '@/lib/types';
+import { comparePath, configSlug, itemListLd, projectPath, pageMeta, builderPath } from '@/lib/seo';
+import type { CityDetail, Listing, LocalityDetail } from '@/lib/types';
 
 type Props = { params: Promise<{ city: string; locality: string }> };
+
+// Built the first time someone asks for it, then served from cache and refreshed in the background every two minutes,
+// so visitors and crawlers get the page without waiting for the catalogue.
+export const revalidate = 120;
+export async function generateStaticParams() { return []; }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { city, locality } = await params;
@@ -22,9 +27,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!l) { const d = await loadBuilderCity(city, locality); return d && 'b' in d ? builderCityMetadata(d.b, d.city) : {}; }
   const path = `/${l.city.slug}/${l.slug}`;
   const none = !l.stats.count;
-  const title = none ? `Property in ${l.name}, ${l.city.name} — Projects and Locality Guide` : `Property for Sale in ${l.name}, ${l.city.name} — ${l.stats.count} Homes from ${price(l.stats.minPrice)}`;
+  const title = none ? `Property in ${l.name}, ${l.city.name} — Projects & Area Guide` : `Property for Sale in ${l.name}, ${l.city.name} — ${l.stats.count} Homes from ${price(l.stats.minPrice)}`;
   const description = none ? `${l.name}, ${l.city.name}: what the area is known for${l.projects.length ? `, and ${l.projects.length} builder projects from the public RERA register` : ''}.` : `${l.stats.count} flats, villas and plots for sale in ${l.name}, ${l.city.name}. Prices from ${price(l.stats.minPrice)} to ${price(l.stats.maxPrice)}, average ₹${l.stats.avgRate?.toLocaleString('en-IN')} per sq ft.`;
-  return { title, description, alternates: { canonical: path }, openGraph: { title, description, url: path } };
+  return pageMeta({ title, description, path: path });
 }
 
 export default async function LocalityPage({ params }: Props) {
@@ -35,12 +40,14 @@ export default async function LocalityPage({ params }: Props) {
     const d = await loadBuilderCity(city, locality);
     if (!d) notFound();
     if ('movedTo' in d) permanentRedirect(d.movedTo);
-    return <BuilderCityView b={d.b} city={d.city} />;
+    const cityData = await api<CityDetail>(`/cities/${city}`); // already fetched for the page's footer links, so this is served from cache
+    return <BuilderCityView b={d.b} city={d.city} others={(cityData?.builders.top ?? []).filter((o) => o.slug !== d.b.slug).slice(0, 12)} />;
   }
   const path = `/${l.city.slug}/${l.slug}`;
   const place = `${l.name}, ${l.city.name}`;
   const listing = await api<Listing>(`/properties?city=${l.city.slug}&locality=${l.slug}&pageSize=48`);
   const items = listing?.items ?? [];
+  const builders = [...new Map(l.projects.flatMap((p) => (p.brand ? [[p.brand.slug, p.brand] as const] : []))).values()].sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <>
@@ -69,8 +76,15 @@ export default async function LocalityPage({ params }: Props) {
         <section className="section">
           <h2>Projects in {l.name}</h2>
           <ul className="tiles">
-            {l.projects.map((p) => <li key={p.slug}><Link href={projectPath(l.city.slug, p)}><strong>{p.name}</strong><span>{p.builder}</span><span>{p.registerSource ? 'From the RERA register' : statusLabel(p.status)}</span></Link></li>)}
+            {l.projects.map((p) => <li key={p.slug}><Link href={projectPath(l.city.slug, p)}><strong>{p.name}</strong><span>{p.brand?.name ?? p.builder}</span><span>{p.registerSource ? 'From the RERA register' : statusLabel(p.status)}</span></Link></li>)}
           </ul>
+        </section>
+      )}
+
+      {builders.length > 0 && (
+        <section className="section">
+          <h2>Builders with projects in {l.name}</h2>
+          <ul className="chips left">{builders.map((b) => <li key={b.slug}><Link href={builderPath(l.city.slug, b.slug)}>{b.name} projects in {l.city.name}</Link></li>)}</ul>
         </section>
       )}
 

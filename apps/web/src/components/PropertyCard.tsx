@@ -11,7 +11,7 @@ export function PropertyCard({ p }: { p: Card }) {
   const rate = Math.round(p.priceInr / p.areaSqft);
   return (
     <article className="card">
-      {cover && <Link href={`/property/${p.slug}`} className="card-photo" tabIndex={-1} aria-hidden="true"><img src={media(cover.file, 'card')} alt="" width={640} height={480} loading="lazy" decoding="async" /></Link>}
+      {cover && <Link href={`/property/${p.slug}`} className="card-photo" tabIndex={-1}><img src={media(cover.file, 'card')} alt={`${p.title}: photo`} width={640} height={480} loading="lazy" decoding="async" /></Link>}
       <div className="card-top">
         <span className="card-price">{price(p.priceInr)}</span>
         <span className={`tag ${p.status === 'READY_TO_MOVE' ? 'tag-ready' : ''}`}>{p.status === 'UNDER_CONSTRUCTION' && p.possession ? `Possession ${monthYear(p.possession)}` : statusLabel(p.status)}</span>

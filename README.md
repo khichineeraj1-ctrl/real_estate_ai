@@ -274,6 +274,20 @@ you can copy the link from the terminal running `npm run dev:api`. Sending throu
 
 ## SEO
 
+On-page basics are checked by `python3 scripts/seo_audit.py` (with the site running): for one page of each kind it
+reports the title and description lengths, the canonical address, the single h1 and heading order, social tags,
+images without alt text and vague link text.
+
+- **Metadata** comes from one helper, `pageMeta()` in `apps/web/src/lib/seo.ts`: canonical address, Open Graph and X
+  card tags, and a share picture drawn from the page title by `/og`. Titles stay within 60 characters (the brand is
+  dropped when it would not fit) and descriptions within 155.
+- **Internal links**: city pages link to each builder's page in that city; locality pages to the builders working
+  there; project pages to more projects by the same builder and to other projects in the locality; the tools link to
+  each other; the footer links every city, locality, the builders index and the tools.
+- **Speed**: listing pages (city, locality, builder, project) are built on first request and then served from cache,
+  refreshed every two minutes. There are no web fonts, and photos carry their size, load lazily below the first one,
+  and are cached for a year.
+
 | URL | Page | Structured data |
 |---|---|---|
 | `/` | Ask box, cities, localities, newest homes | `WebSite` + `SearchAction`, `Organization` |

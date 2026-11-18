@@ -3,12 +3,12 @@ import Link from 'next/link';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { LocalityPicker, QuickLook } from '@/components/tools/Hub';
 import { api } from '@/lib/api';
-import { BRAND } from '@/lib/seo';
+import { BRAND, pageMeta } from '@/lib/seo';
 import type { CitySummary } from '@/lib/types';
 
-const title = 'Home Buying Tools — EMI, Affordability, Total Cost and Comparisons';
-const description = `Free tools from ${BRAND} to help you decide: work out your EMI, how much home you can afford, the full cost including stamp duty and GST, and compare homes and localities side by side.`;
-export const metadata: Metadata = { title, description, alternates: { canonical: '/tools' }, openGraph: { title, description, url: '/tools' } };
+const title = 'Home Buying Tools — EMI, Affordability & Cost Calculators';
+const description = `Free tools from ${BRAND}: work out your EMI, how much home you can afford and the full cost with stamp duty and GST, and compare homes and localities.`;
+export const metadata: Metadata = pageMeta({ title, description, path: '/tools' });
 
 /* Small line drawings, one per tool. They take the text colour, so they work in light and dark. */
 const ICONS = {

@@ -1,3 +1,4 @@
+import { pageMeta } from '@/lib/seo';
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 import { AskBox } from '@/components/AskBox';
@@ -10,7 +11,7 @@ const question = async (sp: Props['searchParams']) => { const q = (await sp).q; 
 // Answers are endless variations of the same listings, so they stay out of the index and pass crawlers on to the real pages.
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   const q = await question(searchParams);
-  return { title: q ? `${q} — answer` : 'Ask about homes for sale', robots: { index: false, follow: true }, alternates: { canonical: '/ask' } };
+  return pageMeta({ title: q ? `${q} — answer` : 'Ask about homes for sale', description: 'Ask about homes and builder projects in your own words, by typing or by voice, and get a direct answer.', path: '/ask', noindex: true });
 }
 
 export default async function AskPage({ searchParams }: Props) {

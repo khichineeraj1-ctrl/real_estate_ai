@@ -101,7 +101,15 @@ export class CatalogService {
       // Projects entered by our team or builders first, then register entries; a city can have hundreds, so only the first few dozen are listed here.
       this.db.project.findMany({ where: { locality: { city: { slug } } }, select: { slug: true, name: true, builder: true, brand: { select: { slug: true, name: true } }, status: true, registerSource: true, locality: { select: { name: true } } }, orderBy: [{ registerSource: { sort: 'asc', nulls: 'first' } }, { name: 'asc' }], take: 36 }),
     ]);
-    return { slug: city.slug, name: city.name, state: city.state, intro: city.intro, lat: city.lat, lng: city.lng, costs: costsOf(city), stats, bhk, localities, projects };
+    return { slug: city.slug, name: city.name, state: city.state, intro: city.intro, lat: city.lat, lng: city.lng, costs: costsOf(city), stats, bhk, localities, projects, builders: await this.buildersIn(slug) };
+  }
+
+  /** The builders with projects in a city, busiest first: the links from a city page to each builder's page there. */
+  private async buildersIn(citySlug: string, take = 30) {
+    const rows = await this.db.project.groupBy({ by: ['brandId'], where: { brandId: { not: null }, locality: { city: { slug: citySlug } } }, _count: true });
+    const names = new Map((await this.db.builder.findMany({ where: { id: { in: rows.map((r) => r.brandId!) } }, select: { id: true, slug: true, name: true } })).map((b) => [b.id, b]));
+    const all = rows.map((r) => ({ slug: names.get(r.brandId!)!.slug, name: names.get(r.brandId!)!.name, projects: r._count })).sort((a, b) => b.projects - a.projects || a.name.localeCompare(b.name));
+    return { total: all.length, top: all.slice(0, take) };
   }
 
   async locality(citySlug: string, slug: string) {
@@ -131,8 +139,14 @@ export class CatalogService {
       this.bhkBreakdown({ project: slug }),
     ]);
     const { locality, localityId, id, leadEmail, accountId, brandId, ...rest } = project;
+    // Other projects a reader of this one is likely to want next: the same builder in this city, and the same locality.
+    const link = { slug: true, name: true, builder: true, brand: { select: { slug: true, name: true } }, locality: { select: { name: true } } } as const;
+    const [byBuilder, inLocality] = await Promise.all([
+      brandId ? this.db.project.findMany({ where: { brandId, id: { not: id }, locality: { cityId: locality.cityId } }, select: link, orderBy: { name: 'asc' }, take: 8 }) : [],
+      this.db.project.findMany({ where: { localityId, id: { not: id }, ...(brandId ? { NOT: { brandId } } : {}) }, select: link, orderBy: { name: 'asc' }, take: 8 }),
+    ]);
     const registerName = project.registerSource ? SOURCE_NAME[project.registerSource] : null; // the builder's sales address and login are for our use only
-    return { ...rest, registerName, locality: { slug: locality.slug, name: locality.name, lat: locality.lat, lng: locality.lng }, city: { slug: locality.city.slug, name: locality.city.name, state: locality.city.state }, properties, stats, bhk };
+    return { ...rest, registerName, locality: { slug: locality.slug, name: locality.name, lat: locality.lat, lng: locality.lng }, city: { slug: locality.city.slug, name: locality.city.name, state: locality.city.state }, properties, stats, bhk, more: { byBuilder, inLocality } };
   }
 
   async property(slug: string) {

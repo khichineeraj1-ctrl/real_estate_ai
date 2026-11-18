@@ -1,3 +1,5 @@
+import { OtherTools } from '@/components/tools/OtherTools';
+import { pageMeta } from '@/lib/seo';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
@@ -6,9 +8,9 @@ import { EmiCalculator } from '@/components/tools/Calculators';
 import { LOAN_DEFAULTS, loanPlan } from '@/lib/finance';
 import { price } from '@/lib/format';
 
-const title = 'Home Loan EMI Calculator — Monthly Instalment and Total Interest';
+const title = 'Home Loan EMI Calculator — Monthly EMI & Total Interest';
 const description = 'Work out the monthly EMI on a home loan from the price, down payment, interest rate and loan period, and see how much interest you pay in total.';
-export const metadata: Metadata = { title, description, alternates: { canonical: '/tools/emi-calculator' }, openGraph: { title, description, url: '/tools/emi-calculator' } };
+export const metadata: Metadata = pageMeta({ title, description, path: '/tools/emi-calculator' });
 
 export default function EmiPage() {
   const example = loanPlan(10_000_000, LOAN_DEFAULTS.downPct, LOAN_DEFAULTS.ratePct, LOAN_DEFAULTS.years);
@@ -24,6 +26,7 @@ export default function EmiPage() {
         { q: `What is the EMI on a ₹1 crore home?`, a: `With a ${LOAN_DEFAULTS.downPct}% down payment, the loan is ${price(example.loan)}. At an example rate of ${LOAN_DEFAULTS.ratePct}% over ${LOAN_DEFAULTS.years} years the EMI is about ₹${example.monthly.toLocaleString('en-IN')} a month, and the interest over the whole period is about ${price(example.interest)}. Your bank’s rate will differ.` },
         { q: 'Does a longer loan period cost more?', a: 'Yes. A longer period lowers the monthly instalment but you pay interest for more years, so the total interest is higher. Try 15 and 25 years in the calculator to see the difference.' },
       ]} />
+      <OtherTools current="/tools/emi-calculator" />
     </>
   );
 }

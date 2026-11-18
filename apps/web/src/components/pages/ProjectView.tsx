@@ -8,7 +8,7 @@ import { PropertyGrid } from '@/components/PropertyCard';
 import { Stats } from '@/components/Stats';
 import { api } from '@/lib/api';
 import { monthYear, num, price, statusLabel } from '@/lib/format';
-import { abs, builderPath, itemListLd, projectPath } from '@/lib/seo';
+import { abs, builderPath, itemListLd, projectPath, pageMeta } from '@/lib/seo';
 import type { ProjectDetail } from '@/lib/types';
 
 /** A builder's project. Its address is /<city>/<builder>/<project>; the page files decide which address was asked for. */
@@ -16,11 +16,11 @@ export const loadProject = (slug: string) => api<ProjectDetail>(`/projects/${slu
 const pathOf = (p: ProjectDetail) => projectPath(p.city.slug, p);
 
 export function projectMetadata(p: ProjectDetail): Metadata {
-  const title = p.registerSource ? `${p.name}, ${p.locality.name}, ${p.city.name} — RERA Registration and Builder` : `${p.name}, ${p.locality.name}, ${p.city.name} — Price, Floor Plans & Possession`;
+  const title = p.registerSource ? `${p.name}, ${p.locality.name}, ${p.city.name} — RERA Details` : `${p.name}, ${p.locality.name}, ${p.city.name} — Price, Floor Plans & Possession`;
   const description = p.registerSource
-    ? `${p.name} by ${p.builder} in ${p.locality.name}, ${p.city.name}. RERA registration ${p.reraId}${p.registerValidUntil ? `, valid to ${monthYear(p.registerValidUntil)}` : ''}, from the ${p.registerName} register.`
+    ? `${p.name} by ${p.brand?.name ?? p.builder} in ${p.locality.name}, ${p.city.name}: RERA registration number, ${/lapsed/i.test(p.registerStatus ?? '') ? 'lapsed status' : 'status'}${p.registerValidUntil ? ` and validity (to ${monthYear(p.registerValidUntil)})` : ''}, from the ${p.registerName} register.`
     : `${p.name} by ${p.builder} in ${p.locality.name}, ${p.city.name}: ${p.bhk.map((b) => `${b.bhk} BHK`).join(', ')} homes${p.stats.count ? ` from ${price(p.stats.minPrice)}` : ''}. ${statusLabel(p.status)}${p.possession ? `, possession ${monthYear(p.possession)}` : ''}.`;
-  return { title, description, alternates: { canonical: pathOf(p) }, openGraph: { title, description, url: pathOf(p) } };
+  return pageMeta({ title, description, path: pathOf(p) });
 }
 
 export function ProjectView({ p }: { p: ProjectDetail }) {
@@ -61,6 +61,24 @@ export function ProjectView({ p }: { p: ProjectDetail }) {
         <h2>Homes for sale in {p.name}</h2>
         {p.properties.length ? <PropertyGrid items={p.properties} /> : <p>No homes in this project are listed right now. <Link href={localityPath}>See other property in {p.locality.name}</Link>.</p>}
       </section>
+      {p.brand && p.more.byBuilder.length > 0 && (
+        <section className="section">
+          <h2>More {p.brand.name} projects in {p.city.name}</h2>
+          <ul className="tiles">
+            {p.more.byBuilder.map((x) => <li key={x.slug}><Link href={projectPath(p.city.slug, x)}><strong>{x.name}</strong><span>{x.locality?.name}, {p.city.name}</span></Link></li>)}
+          </ul>
+          {builderHere && <p><Link href={builderHere}>All {p.brand.name} projects in {p.city.name}</Link></p>}
+        </section>
+      )}
+      {p.more.inLocality.length > 0 && (
+        <section className="section">
+          <h2>Other projects in {p.locality.name}</h2>
+          <ul className="tiles">
+            {p.more.inLocality.map((x) => <li key={x.slug}><Link href={projectPath(p.city.slug, x)}><strong>{x.name}</strong><span>{x.brand?.name ?? x.builder}</span></Link></li>)}
+          </ul>
+          <p><Link href={localityPath}>All projects and property in {p.locality.name}</Link></p>
+        </section>
+      )}
       {p.amenities.length > 0 && (
         <section className="section">
           <h2>Amenities</h2>

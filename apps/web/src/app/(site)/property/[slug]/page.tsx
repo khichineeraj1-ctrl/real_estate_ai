@@ -12,7 +12,7 @@ import { JsonLd } from '@/components/JsonLd';
 import { PropertyGrid } from '@/components/PropertyCard';
 import { api } from '@/lib/api';
 import { day, monthYear, num, price, rate, statusLabel, typeLabel } from '@/lib/format';
-import { abs, configSlug, media, projectPath } from '@/lib/seo';
+import { abs, configSlug, media, projectPath, pageMeta } from '@/lib/seo';
 import { KIND_LABEL } from '@/lib/trust';
 import type { PropertyDetail } from '@/lib/types';
 
@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!p) return {};
   const title = `${p.title} — ${price(p.priceInr)}, ${num(p.areaSqft)} sq ft`;
   const description = `${p.description} Price ${price(p.priceInr)} (${rate(Math.round(p.priceInr / p.areaSqft))}).`.slice(0, 300);
-  return { title, description, alternates: { canonical: `/property/${p.slug}` }, openGraph: { title, description, url: `/property/${p.slug}`, type: 'article', ...(p.photos?.[0] ? { images: [media(p.photos[0].file)] } : {}) } };
+  return pageMeta({ title, description, path: `/property/${p.slug}`, type: 'article', image: p.photos?.[0] ? media(p.photos[0].file) : undefined });
 }
 
 export default async function PropertyPage({ params }: Props) {

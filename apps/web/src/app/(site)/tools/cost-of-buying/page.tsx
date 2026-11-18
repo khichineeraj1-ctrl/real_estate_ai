@@ -1,3 +1,5 @@
+import { OtherTools } from '@/components/tools/OtherTools';
+import { pageMeta } from '@/lib/seo';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
@@ -7,9 +9,9 @@ import { api } from '@/lib/api';
 import { GST } from '@/lib/finance';
 import type { CitySummary } from '@/lib/types';
 
-const title = 'True Cost of Buying a Home — Stamp Duty, Registration and GST Calculator';
+const title = 'Stamp Duty, Registration & GST Calculator — Cost of Buying';
 const description = 'Estimate what a home costs beyond the listed price: stamp duty, registration fee and GST in Gurgaon, Bengaluru, Mumbai and Pune.';
-export const metadata: Metadata = { title, description, alternates: { canonical: '/tools/cost-of-buying' }, openGraph: { title, description, url: '/tools/cost-of-buying' } };
+export const metadata: Metadata = pageMeta({ title, description, path: '/tools/cost-of-buying' });
 
 export default async function CostPage() {
   const cities = ((await api<CitySummary[]>('/cities')) ?? []).filter((c) => c.costs);
@@ -42,6 +44,7 @@ export default async function CostPage() {
         { q: 'Is there GST on a ready-to-move flat?', a: 'No. GST applies only when you buy a home that is still under construction. Once the building has its completion certificate, there is no GST on the sale.' },
         { q: 'Can a home loan pay for stamp duty and registration?', a: 'Usually not. Lenders finance a share of the property’s price, so plan to pay these charges from your own savings, together with the down payment.' },
       ]} />
+      <OtherTools current="/tools/cost-of-buying" />
     </>
   );
 }

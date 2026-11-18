@@ -23,6 +23,8 @@ export interface CitySummary extends Place { state: string; intro: string; local
 export interface CityDetail extends Place {
   state: string; intro: string; lat: number; lng: number; stats: Stats; bhk: BhkRow[];
   localities: (Place & { stats: Stats })[]; projects: ProjectLink[];
+  /** Builders with projects in the city, busiest first; `total` counts them all. */
+  builders: { total: number; top: (Place & { projects: number })[] };
 }
 export interface LocalityDetail extends Place {
   intro: string; highlights: string[]; lat: number; lng: number; city: Place & { state: string };
@@ -41,6 +43,8 @@ export interface ProjectDetail extends Place {
   /** Set when the page was made from a public RERA register and the builder has not confirmed it. */
   registerSource: string | null; registerName: string | null; registerStatus: string | null; registerValidUntil: string | null; sourceUrl: string | null; sourceFetchedAt: string | null;
   locality: Place & { lat: number; lng: number }; city: Place & { state: string }; properties: PropertyCard[]; stats: Stats; bhk: BhkRow[];
+  /** Other projects by the same builder in this city, and by other builders in the same locality. */
+  more: { byBuilder: ProjectLink[]; inLocality: ProjectLink[] };
 }
 export interface PropertyDetail extends Omit<PropertyCard, 'locality' | 'project' | 'confidence'> {
   /** The level with what it rests on, and the seller's public card when the home has an outside seller. */

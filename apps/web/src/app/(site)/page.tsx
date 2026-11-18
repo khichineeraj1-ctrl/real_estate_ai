@@ -1,23 +1,28 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { AskBox } from '@/components/AskBox';
 import { JsonLd } from '@/components/JsonLd';
 import { PropertyGrid } from '@/components/PropertyCard';
 import { api } from '@/lib/api';
 import { price } from '@/lib/format';
-import { BRAND, SITE_URL, TAGLINE, abs } from '@/lib/seo';
-import type { CitySummary, Listing } from '@/lib/types';
+import { BRAND, SITE_URL, TAGLINE, abs, pageMeta, builderPath } from '@/lib/seo';
+import type { CitySummary, Listing, BuilderSummary } from '@/lib/types';
 
-export const metadata = { alternates: { canonical: '/' } };
+export const metadata: Metadata = {
+  ...pageMeta({ title: `${BRAND} — ${TAGLINE}`, description: 'Ask by typing or by voice and get a direct answer about homes and RERA-registered builder projects in Gurgaon, Bengaluru, Mumbai and Pune.', path: '/' }),
+  title: { absolute: `${BRAND} — ${TAGLINE}` },
+};
 
 const EXAMPLES = ['3 BHK in Whitefield under 1.5 crore', 'Ready to move flats in Sector 57 Gurgaon', 'What is the average rate in Powai?', 'Cheapest 2 BHK in Pune', 'Villas in Bengaluru above 3 crore'];
 
 export default async function Home() {
-  const [cities, latest] = await Promise.all([api<CitySummary[]>('/cities'), api<Listing>('/properties?pageSize=6')]);
+  const [cities, latest, builders] = await Promise.all([api<CitySummary[]>('/cities'), api<Listing>('/properties?pageSize=6'), api<BuilderSummary[]>('/builders')]);
+  const topBuilders = [...(builders ?? [])].sort((a, b) => b.projects - a.projects || a.name.localeCompare(b.name)).slice(0, 12);
   return (
     <>
       <section className="hero">
-        <h1>Ask. Find your home.</h1>
-        <p className="lead">Type or speak your question and get a straight answer about homes and builder projects in Gurgaon, Bengaluru, Mumbai and Pune.</p>
+        <h1>Ask. Find your home.<span>Property and builder projects in Gurgaon, Bengaluru, Mumbai and Pune</span></h1>
+        <p className="lead">Type or speak your question and get a straight answer, with the matching homes and builder projects.</p>
         <AskBox autoFocus />
         <ul className="chips" aria-label="Example questions">
           {EXAMPLES.map((q) => <li key={q}><Link href={`/ask?q=${encodeURIComponent(q)}`} rel="nofollow">{q}</Link></li>)}
@@ -46,6 +51,25 @@ export default async function Home() {
           </ul>
         </section>
       ))}
+
+      {topBuilders.length > 0 && (
+        <section className="section">
+          <h2>Projects by builder</h2>
+          <ul className="chips left">
+            {topBuilders.flatMap((b) => b.cities.map((c) => <li key={`${b.slug}-${c.slug}`}><Link href={builderPath(c.slug, b.slug)}>{b.name} projects in {c.name}</Link></li>))}
+            <li><Link href="/builders">All {builders!.length} builders</Link></li>
+          </ul>
+        </section>
+      )}
+
+      <section className="section">
+        <h2>Work out the money</h2>
+        <ul className="chips left">
+          <li><Link href="/tools/emi-calculator">Home loan EMI calculator</Link></li>
+          <li><Link href="/tools/home-affordability">How much home can I afford?</Link></li>
+          <li><Link href="/tools/cost-of-buying">Stamp duty and registration calculator</Link></li>
+        </ul>
+      </section>
 
       {(latest?.items.length ?? 0) > 0 && (
         <section className="section">

@@ -2,11 +2,11 @@ import type { Metadata } from 'next';
 import { AuthShell } from '@/components/auth/AuthShell';
 import { SignupForm } from '@/components/auth/AuthForms';
 import { Faq } from '@/components/Faq';
-import { BRAND } from '@/lib/seo';
+import { BRAND, pageMeta } from '@/lib/seo';
 
-const title = 'Post Your Property for Sale — Free for Owners, Agents and Builders';
-const description = `List your flat, villa, builder floor or plot for sale on ${BRAND}. Create an account, add the details and photos, and reach buyers in Gurgaon, Bengaluru, Mumbai and Pune.`;
-export const metadata: Metadata = { title, description, alternates: { canonical: '/post-property' }, openGraph: { title, description, url: '/post-property' } };
+const title = 'Post Property for Sale Free — Owners, Agents & Builders';
+const description = `List your flat, villa, builder floor or plot for sale on ${BRAND}, free. Add details and photos and reach buyers in Gurgaon, Bengaluru, Mumbai and Pune.`;
+export const metadata: Metadata = pageMeta({ title, description, path: '/post-property' });
 
 export default function PostProperty() {
   return (

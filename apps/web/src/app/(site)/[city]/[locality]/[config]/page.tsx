@@ -10,10 +10,15 @@ import { PropertyGrid } from '@/components/PropertyCard';
 import { Stats } from '@/components/Stats';
 import { api } from '@/lib/api';
 import { price, rate } from '@/lib/format';
-import { configSlug, itemListLd, parseConfig, projectPath } from '@/lib/seo';
+import { configSlug, itemListLd, parseConfig, projectPath, pageMeta } from '@/lib/seo';
 import type { Listing, LocalityDetail } from '@/lib/types';
 
 type Props = { params: Promise<{ city: string; locality: string; config: string }> };
+
+// Built the first time someone asks for it, then served from cache and refreshed in the background every two minutes,
+// so visitors and crawlers get the page without waiting for the catalogue.
+export const revalidate = 120;
+export async function generateStaticParams() { return []; }
 
 async function load(params: Props['params']) {
   const { city, locality, config } = await params;
@@ -41,7 +46,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const s = d.listing.stats;
   const title = `${d.bhk} BHK Flats for Sale in ${d.place} — ${s.count} from ${price(s.minPrice)}`;
   const description = `${s.count} ${d.bhk} BHK flats and homes for sale in ${d.place}, priced ${price(s.minPrice)} to ${price(s.maxPrice)} (average ${rate(s.avgRate)}).`;
-  return { title, description, alternates: { canonical: d.path }, openGraph: { title, description, url: d.path } };
+  return pageMeta({ title, description, path: d.path });
 }
 
 export default async function ConfigPage({ params }: Props) {

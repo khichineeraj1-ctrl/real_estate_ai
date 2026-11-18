@@ -4,11 +4,11 @@ import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { api } from '@/lib/api';
 import { LOAN_DEFAULTS, buyingCosts, loanPlan } from '@/lib/finance';
 import { monthYear, num, price, rate, statusLabel, typeLabel } from '@/lib/format';
-import { media, projectPath } from '@/lib/seo';
+import { media, projectPath, pageMeta } from '@/lib/seo';
 import type { PropertyDetail } from '@/lib/types';
 
 // A page per combination of listings would be endless near-duplicates, so comparisons are not indexed.
-export const metadata: Metadata = { title: 'Compare homes side by side', robots: { index: false, follow: true }, alternates: { canonical: '/compare' } };
+export const metadata: Metadata = pageMeta({ title: 'Compare homes side by side', description: 'Put up to four homes side by side: price, rate per sq ft, size, buying costs and amenities.', path: '/compare', noindex: true });
 
 type Home = Omit<PropertyDetail, 'similar'>;
 type Props = { searchParams: Promise<{ ids?: string | string[] }> };
@@ -59,7 +59,7 @@ export default async function ComparePage({ searchParams }: Props) {
             <th><span className="sr">Feature</span></th>
             {homes.map((h) => (
               <th key={h.slug} scope="col">
-                {h.photos?.[0] && <img src={media(h.photos[0].file, 'card')} alt="" width={640} height={480} loading="lazy" />}
+                {h.photos?.[0] && <img src={media(h.photos[0].file, 'card')} alt={`${h.title}: photo`} width={640} height={480} loading="lazy" />}
                 <Link href={`/property/${h.slug}`}>{h.title}</Link>
               </th>
             ))}

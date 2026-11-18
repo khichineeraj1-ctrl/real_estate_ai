@@ -4,7 +4,7 @@ import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { JsonLd } from '@/components/JsonLd';
 import { api } from '@/lib/api';
 import { monthYear } from '@/lib/format';
-import { abs, builderPath, projectPath } from '@/lib/seo';
+import { abs, builderPath, projectPath, pageMeta } from '@/lib/seo';
 import type { BuilderDetail, Place } from '@/lib/types';
 
 /** One builder's projects in one city, at /<city>/<builder>. Null when the builder has nothing in that city. */
@@ -21,13 +21,13 @@ const list = (xs: string[]) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1)
 
 export function builderCityMetadata(b: BuilderDetail, city: Place): Metadata {
   const path = builderPath(city.slug, b.slug);
-  const title = `${b.name} Projects in ${city.name} — ${count(b.projects.length)}, RERA Details`;
+  const title = `${b.name} Projects in ${city.name} — ${b.projects.length} ${b.projects.length === 1 ? 'Project' : 'Projects'}, RERA Details`;
   const localities = [...new Set(b.projects.map((p) => p.locality.name))];
   const description = `${count(b.projects.length)} by ${b.name} in ${city.name}${localities.length ? `, in ${list(localities.slice(0, 4))}${localities.length > 4 ? ' and more' : ''}` : ''}. RERA registration numbers and status for each.`;
-  return { title, description, alternates: { canonical: path }, openGraph: { title, description, url: path } };
+  return pageMeta({ title, description, path: path });
 }
 
-export function BuilderCityView({ b, city }: { b: BuilderDetail; city: Place }) {
+export function BuilderCityView({ b, city, others = [] }: { b: BuilderDetail; city: Place; others?: (Place & { projects: number })[] }) {
   const path = builderPath(city.slug, b.slug);
   const fromRegister = b.projects.some((p) => p.registerSource);
   const otherNames = b.registeredAs.filter((n) => n !== b.name);
@@ -67,6 +67,12 @@ export function BuilderCityView({ b, city }: { b: BuilderDetail; city: Place }) 
         <section className="section">
           <h2>{b.name} in other cities</h2>
           <ul className="chips left">{elsewhere.map((c) => <li key={c.slug}><Link href={builderPath(c.slug, b.slug)}>{b.name} projects in {c.name}</Link></li>)}</ul>
+        </section>
+      )}
+      {others.length > 0 && (
+        <section className="section">
+          <h2>Other builders in {city.name}</h2>
+          <ul className="chips left">{others.map((o) => <li key={o.slug}><Link href={builderPath(city.slug, o.slug)}>{o.name} <small>({o.projects})</small></Link></li>)}</ul>
         </section>
       )}
       <p className="section"><Link href="/builders">All builders</Link> · <Link href={`/${city.slug}`}>Property in {city.name}</Link></p>

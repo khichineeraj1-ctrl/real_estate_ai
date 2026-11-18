@@ -2,12 +2,12 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { api } from '@/lib/api';
-import { builderPath } from '@/lib/seo';
+import { builderPath, pageMeta } from '@/lib/seo';
 import type { BuilderSummary } from '@/lib/types';
 
-const title = 'Builders and Developers — Projects in Gurgaon, Bengaluru, Mumbai and Pune';
+const title = 'Builders & Developers in Gurgaon, Bengaluru, Mumbai, Pune';
 const description = 'Find a builder and see every project it has registered with RERA in Gurgaon, Bengaluru, Mumbai and Pune.';
-export const metadata: Metadata = { title, description, alternates: { canonical: '/builders' }, openGraph: { title, description, url: '/builders' } };
+export const metadata: Metadata = pageMeta({ title, description, path: '/builders' });
 
 /** A builder in one city goes straight to its page there; one in several goes to the page that brings them together. */
 const href = (b: BuilderSummary) => (b.cities.length === 1 ? builderPath(b.cities[0].slug, b.slug) : `/builders/${b.slug}`);

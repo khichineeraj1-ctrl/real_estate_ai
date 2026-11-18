@@ -5,10 +5,15 @@ import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { JsonLd } from '@/components/JsonLd';
 import { api } from '@/lib/api';
 import { monthYear } from '@/lib/format';
-import { abs, builderPath, projectPath } from '@/lib/seo';
+import { abs, builderPath, projectPath, pageMeta } from '@/lib/seo';
 import type { BuilderDetail } from '@/lib/types';
 
 type Props = { params: Promise<{ builder: string }> };
+
+// Built the first time someone asks for it, then served from cache and refreshed in the background every two minutes,
+// so visitors and crawlers get the page without waiting for the catalogue.
+export const revalidate = 120;
+export async function generateStaticParams() { return []; }
 
 const list = (xs: string[]) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
 const count = (n: number) => `${n} ${n === 1 ? 'project' : 'projects'}`;
@@ -17,9 +22,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const b = await api<BuilderDetail | { movedTo: string }>(`/builders/${(await params).builder}`);
   if (!b || 'movedTo' in b) return {};
   const where = list(b.cities.map((c) => c.name));
-  const title = `${b.name} Projects in ${where} — RERA-Registered Projects`;
+  const title = `${b.name} Projects in ${where} — RERA Details`;
   const description = `${count(b.projects.length)} by ${b.name} in ${where}, with RERA registration numbers and localities.`;
-  return { title, description, alternates: { canonical: `/builders/${b.slug}` }, openGraph: { title, description, url: `/builders/${b.slug}` } };
+  return pageMeta({ title, description, path: `/builders/${b.slug}` });
 }
 
 export default async function BuilderPage({ params }: Props) {

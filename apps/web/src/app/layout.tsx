@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   title: { default: `${BRAND} — ${TAGLINE}`, template: `%s | ${BRAND}` },
   description: 'Ask in your own words, by typing or by voice, and get a direct answer with matching flats, villas and plots for sale in Gurgaon, Bengaluru, Mumbai and Pune.',
   openGraph: { siteName: BRAND, type: 'website', locale: 'en_IN' },
-  twitter: { card: 'summary' },
+  twitter: { card: 'summary_large_image' },
 };
 export const viewport: Viewport = { width: 'device-width', initialScale: 1, themeColor: [{ media: '(prefers-color-scheme: dark)', color: '#0e1116' }, { color: '#ffffff' }] };
 
