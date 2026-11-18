@@ -1,0 +1,97 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PropertyType {
+  APARTMENT
+  VILLA
+  BUILDER_FLOOR
+  PLOT
+}
+
+enum ConstructionStatus {
+  READY_TO_MOVE
+  UNDER_CONSTRUCTION
+}
+
+enum ListedBy {
+  OWNER
+  BUILDER
+  AGENT
+}
+
+model City {
+  id         String     @id @default(cuid())
+  slug       String     @unique
+  name       String
+  state      String
+  intro      String
+  lat        Float
+  lng        Float
+  localities Locality[]
+}
+
+model Locality {
+  id         String     @id @default(cuid())
+  slug       String
+  name       String
+  intro      String
+  highlights String[]
+  lat        Float
+  lng        Float
+  cityId     String
+  city       City       @relation(fields: [cityId], references: [id])
+  projects   Project[]
+  properties Property[]
+
+  @@unique([cityId, slug])
+}
+
+model Project {
+  id          String             @id @default(cuid())
+  slug        String             @unique
+  name        String
+  builder     String
+  description String
+  status      ConstructionStatus
+  possession  DateTime?
+  reraId      String?
+  totalUnits  Int
+  amenities   String[]
+  localityId  String
+  locality    Locality           @relation(fields: [localityId], references: [id])
+  properties  Property[]
+}
+
+model Property {
+  id          String             @id @default(cuid())
+  slug        String             @unique
+  title       String
+  description String
+  type        PropertyType
+  bhk         Int // 0 for plots
+  bathrooms   Int
+  priceInr    Int
+  areaSqft    Int
+  floor       Int?
+  totalFloors Int?
+  facing      String?
+  furnishing  String?
+  status      ConstructionStatus
+  possession  DateTime?
+  amenities   String[]
+  listedBy    ListedBy
+  postedAt    DateTime           @default(now())
+  localityId  String
+  locality    Locality           @relation(fields: [localityId], references: [id])
+  projectId   String?
+  project     Project?           @relation(fields: [projectId], references: [id])
+
+  @@index([localityId, bhk])
+  @@index([priceInr])
+}

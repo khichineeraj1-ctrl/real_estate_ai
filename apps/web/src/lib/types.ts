@@ -1,0 +1,40 @@
+export type PropertyType = 'APARTMENT' | 'VILLA' | 'BUILDER_FLOOR' | 'PLOT';
+export type Status = 'READY_TO_MOVE' | 'UNDER_CONSTRUCTION';
+export interface Place { slug: string; name: string }
+export interface Stats { count: number; minPrice: number | null; maxPrice: number | null; avgRate: number | null }
+export interface BhkRow { bhk: number; count: number; minPrice: number | null }
+
+export interface PropertyCard {
+  slug: string; title: string; type: PropertyType; bhk: number; bathrooms: number; priceInr: number; areaSqft: number;
+  status: Status; possession: string | null; listedBy: 'OWNER' | 'BUILDER' | 'AGENT'; postedAt: string;
+  locality: Place & { city: Place };
+  project: (Place & { builder: string }) | null;
+}
+export interface ProjectLink extends Place { builder: string; status: Status; locality?: { name: string } }
+
+export interface CitySummary extends Place { state: string; intro: string; localities: Place[]; stats: Stats }
+export interface CityDetail extends Place {
+  state: string; intro: string; lat: number; lng: number; stats: Stats; bhk: BhkRow[];
+  localities: (Place & { stats: Stats })[]; projects: ProjectLink[];
+}
+export interface LocalityDetail extends Place {
+  intro: string; highlights: string[]; lat: number; lng: number; city: Place & { state: string };
+  stats: Stats; bhk: BhkRow[]; projects: ProjectLink[]; nearby: Place[];
+}
+export interface ProjectDetail extends Place {
+  builder: string; description: string; status: Status; possession: string | null; reraId: string | null; totalUnits: number; amenities: string[];
+  locality: Place & { lat: number; lng: number }; city: Place & { state: string }; properties: PropertyCard[]; stats: Stats; bhk: BhkRow[];
+}
+export interface PropertyDetail extends Omit<PropertyCard, 'locality' | 'project'> {
+  description: string; floor: number | null; totalFloors: number | null; facing: string | null; furnishing: string | null; amenities: string[];
+  locality: Place & { lat: number; lng: number; highlights: string[] }; city: Place & { state: string };
+  project: (Place & { builder: string; reraId: string | null }) | null; localityStats: Stats; similar: PropertyCard[];
+}
+export interface Listing { items: PropertyCard[]; total: number; page: number; pageSize: number; stats: Stats }
+export interface AskResult { reply: string; live: boolean; properties: PropertyCard[]; total: number; page: { path: string; label: string } | null }
+export interface SitemapData {
+  cities: { slug: string; localities: string[] }[];
+  configs: { city: string; locality: string; bhk: number; count: number }[];
+  properties: { slug: string; postedAt: string }[];
+  projects: { slug: string }[];
+}

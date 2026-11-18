@@ -1,0 +1,33 @@
+{
+  "name": "@realestate/api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "nest start --watch",
+    "build": "nest build",
+    "start": "node dist/main.js",
+    "test": "node --import tsx --test src/**/*.spec.ts",
+    "db:dev": "node scripts/dev-db.mjs",
+    "db:push": "prisma db push --skip-generate && prisma generate",
+    "db:seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "latest",
+    "@nestjs/common": "^12.2.0",
+    "@nestjs/core": "^12.2.0",
+    "@nestjs/platform-express": "^12.2.0",
+    "@prisma/client": "^6.19.3",
+    "helmet": "^8.3.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^12.0.10",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.6.5",
+    "embedded-postgres": "^18.4.0-beta.17",
+    "prisma": "^6.19.3",
+    "tsx": "^4.23.15",
+    "typescript": "5.9"
+  }
+}

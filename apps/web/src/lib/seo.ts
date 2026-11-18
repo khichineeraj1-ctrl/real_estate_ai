@@ -1,0 +1,23 @@
+import brand from '../../../../brand.json';
+
+export const BRAND = brand.name;
+export const TAGLINE = brand.tagline;
+export const SITE_URL = (process.env.SITE_URL || 'http://localhost:3210').replace(/\/$/, '');
+export const abs = (path: string) => `${SITE_URL}${path}`;
+
+export const configSlug = (bhk: number) => `${bhk}-bhk-flats`;
+export const parseConfig = (slug: string) => { const m = /^([1-6])-bhk-flats$/.exec(slug); return m ? Number(m[1]) : null; };
+
+export interface Crumb { name: string; path: string }
+export const breadcrumbLd = (crumbs: Crumb[]) => ({
+  '@context': 'https://schema.org', '@type': 'BreadcrumbList',
+  itemListElement: crumbs.map((c, i) => ({ '@type': 'ListItem', position: i + 1, name: c.name, item: abs(c.path) })),
+});
+export const itemListLd = (name: string, items: { slug: string; title: string }[]) => ({
+  '@context': 'https://schema.org', '@type': 'ItemList', name, numberOfItems: items.length,
+  itemListElement: items.map((p, i) => ({ '@type': 'ListItem', position: i + 1, name: p.title, url: abs(`/property/${p.slug}`) })),
+});
+export const faqLd = (faqs: { q: string; a: string }[]) => ({
+  '@context': 'https://schema.org', '@type': 'FAQPage',
+  mainEntity: faqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
+});

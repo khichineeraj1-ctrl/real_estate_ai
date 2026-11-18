@@ -1,0 +1,35 @@
+import { useRouter } from 'expo-router';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import type { PropertyCard as Card } from '../lib/api';
+import { num, price, statusLabel, typeLabel } from '../lib/format';
+import { useTheme } from '../lib/theme';
+
+export function PropertyCard({ p }: { p: Card }) {
+  const t = useTheme();
+  const router = useRouter();
+  const ready = p.status === 'READY_TO_MOVE';
+  return (
+    <Pressable
+      accessibilityRole="button" accessibilityLabel={`${p.title}, ${price(p.priceInr)}`}
+      onPress={() => router.push({ pathname: '/property/[slug]', params: { slug: p.slug } })}
+      style={({ pressed }) => [s.card, { backgroundColor: t.card, borderColor: pressed ? t.brand : t.line }]}
+    >
+      <View style={s.top}>
+        <Text style={[s.price, { color: t.fg }]}>{price(p.priceInr)}</Text>
+        <Text style={[s.tag, { color: ready ? t.ready : t.muted, backgroundColor: ready ? t.readyBg : t.soft }]}>{statusLabel(p.status)}</Text>
+      </View>
+      <Text style={[s.title, { color: t.fg }]}>{p.title}</Text>
+      <Text style={{ color: t.muted, fontSize: 13 }}>
+        {[typeLabel(p.type), p.bhk ? `${p.bhk} BHK` : null, `${num(p.areaSqft)} sq ft`, `₹${num(Math.round(p.priceInr / p.areaSqft))}/sq ft`].filter(Boolean).join('  ·  ')}
+      </Text>
+    </Pressable>
+  );
+}
+
+const s = StyleSheet.create({
+  card: { borderWidth: 1, borderRadius: 16, padding: 14, gap: 6 },
+  top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  price: { fontSize: 19, fontWeight: '700' },
+  tag: { fontSize: 12, paddingHorizontal: 9, paddingVertical: 3, borderRadius: 999, overflow: 'hidden' },
+  title: { fontSize: 15, fontWeight: '600', lineHeight: 20 },
+});
