@@ -53,7 +53,7 @@ export default function Locality() {
           {l.projects.map((p) => (
             <Pressable key={p.slug} accessibilityRole="button" onPress={() => router.push({ pathname: '/project/[slug]', params: { slug: p.slug } })} style={({ pressed }) => ({ borderWidth: 1, borderColor: pressed ? t.brand : t.line, backgroundColor: t.card, borderRadius: 14, padding: 12, gap: 2 })}>
               <Text style={{ color: t.fg, fontWeight: '600' }}>{p.name}</Text>
-              <Text style={{ color: t.muted, fontSize: 13 }}>{p.builder}{p.registerSource ? ' · from the RERA register' : ''}</Text>
+              <Text style={{ color: t.muted, fontSize: 13 }}>{p.brand?.name ?? p.builder}{p.registerSource ? ' · from the RERA register' : ''}</Text>
             </Pressable>
           ))}
         </View>

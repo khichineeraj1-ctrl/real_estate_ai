@@ -19,9 +19,17 @@ export interface CitySummary extends Place { state: string; localities: Place[];
 export interface LocalityDetail extends Place {
   intro: string; highlights: string[]; city: Place & { state: string }; stats: Stats;
   bhk: { bhk: number; count: number; minPrice: number | null }[]; nearby: Place[];
-  projects: (Place & { builder: string; registerSource: string | null })[];
+  projects: (Place & { builder: string; brand: Place | null; registerSource: string | null })[];
+}
+/** A builder as buyers know it, across the companies its projects are registered under. */
+export interface BuilderSummary extends Place { projects: number; cities: Place[] }
+export interface BuilderDetail extends Place {
+  registeredAs: string[]; cities: Place[];
+  projects: (Place & { builder: string; reraId: string | null; registerSource: string | null; registerStatus: string | null; registerValidUntil: string | null; homes: number; locality: Place; city: Place })[];
 }
 export interface ProjectDetail extends Place {
+  /** The builder the project is listed under; `builder` is the company name as registered. */
+  brand: Place | null;
   builder: string; description: string; status: Status; possession: string | null; reraId: string | null; totalUnits: number | null; amenities: string[];
   /** Set when the project came from a public RERA register and the builder has not confirmed it. */
   registerSource: string | null; registerName: string | null; registerStatus: string | null; registerValidUntil: string | null; sourceUrl: string | null; sourceFetchedAt: string | null;
@@ -58,6 +66,9 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
 export const getCities = () => call<CitySummary[]>('/cities');
 export const getLocality = (city: string, slug: string) => call<LocalityDetail>(`/localities/${city}/${slug}`);
 export const getListing = (city: string, locality: string) => call<Listing>(`/properties?city=${city}&locality=${locality}&pageSize=48`);
+export const getBuilders = () => call<BuilderSummary[]>('/builders');
+/** One builder's projects in a city. A builder that was merged into another answers with where it went. */
+export const getBuilder = (slug: string, city: string) => call<BuilderDetail | { movedTo: string }>(`/builders/${encodeURIComponent(slug)}?city=${encodeURIComponent(city)}`);
 export const getProject = (slug: string) => call<ProjectDetail>(`/projects/${slug}`);
 /** Leaves the buyer's details for a call back about a builder's project. */
 export const sendProjectEnquiry = (slug: string, body: { name: string; phone: string; interest?: string }) =>

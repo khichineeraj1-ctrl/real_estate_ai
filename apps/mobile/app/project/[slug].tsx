@@ -74,7 +74,8 @@ export default function Project() {
   if (error) return <Text style={{ color: t.danger, padding: 16 }}>{error}</Text>;
   if (!p) return <ActivityIndicator style={{ marginTop: 40 }} color={t.brand} />;
   const facts: [string, string][] = [
-    ['Builder', p.builder],
+    ...(p.brand ? [] : [['Builder', p.builder] as [string, string]]),
+    ...(p.brand && p.brand.name !== p.builder ? [['Registered by', p.builder] as [string, string]] : []),
     ...(p.registerSource
       ? [['RERA status', p.registerStatus ?? 'Registered'] as [string, string], ...(p.registerValidUntil ? [['Registration valid to', monthYear(p.registerValidUntil) ?? ''] as [string, string]] : [])]
       : [['Status', statusLabel(p.status)] as [string, string], ...(p.possession ? [['Possession', monthYear(p.possession) ?? ''] as [string, string]] : [])]),
@@ -105,8 +106,14 @@ export default function Project() {
         )}
 
         <View style={[s.table, { borderColor: t.line }]}>
+          {p.brand && (
+            <Pressable accessibilityRole="button" accessibilityLabel={`Builder: ${p.brand.name}. See its projects in ${p.city.name}`} onPress={() => router.push({ pathname: '/builder/[city]/[slug]', params: { city: p.city.slug, slug: p.brand!.slug } })} style={[s.fact, { borderColor: t.line, flexDirection: 'row', alignItems: 'center' }]}>
+              <View style={{ flex: 1, gap: 2 }}><Text style={{ color: t.muted, fontSize: 12 }}>Builder</Text><Text style={{ color: t.brand, fontWeight: '700' }}>{p.brand.name}</Text></View>
+              <Text style={{ color: t.brand }}>All projects in {p.city.name} ›</Text>
+            </Pressable>
+          )}
           {facts.map(([k, v], i) => (
-            <View key={k} style={[s.fact, { borderColor: t.line, borderTopWidth: i ? StyleSheet.hairlineWidth : 0 }]}>
+            <View key={k} style={[s.fact, { borderColor: t.line, borderTopWidth: i || p.brand ? StyleSheet.hairlineWidth : 0 }]}>
               <Text style={{ color: t.muted, fontSize: 12 }}>{k}</Text>
               <Text selectable style={{ color: t.fg, fontWeight: '600' }}>{v}</Text>
             </View>

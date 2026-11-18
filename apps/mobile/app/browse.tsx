@@ -23,6 +23,9 @@ export default function Browse() {
             <Text style={{ color: t.muted }}>{c.stats.count ? `${c.stats.count} homes · from ${price(c.stats.minPrice)}` : `${c.localities.length} localities · no homes listed yet`}</Text>
           </View>
           <View style={s.chips}>
+            <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/builders/[city]', params: { city: c.slug } })} style={[s.chip, { borderColor: t.brand, backgroundColor: t.card }]}>
+              <Text style={{ color: t.brand, fontSize: 15, fontWeight: '600' }}>Builders in {c.name} ›</Text>
+            </Pressable>
             {c.localities.map((l) => (
               <Pressable key={l.slug} accessibilityRole="button" onPress={() => router.push({ pathname: '/locality/[city]/[slug]', params: { city: c.slug, slug: l.slug } })} style={[s.chip, { borderColor: t.line, backgroundColor: t.soft }]}>
                 <Text style={{ color: t.fg, fontSize: 15 }}>{l.name}</Text>

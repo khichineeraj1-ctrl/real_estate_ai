@@ -16,6 +16,8 @@ export default function RootLayout() {
         <Stack.Screen name="locality/[city]/[slug]" options={{ title: 'Locality' }} />
         <Stack.Screen name="property/[slug]" options={{ title: 'Property' }} />
         <Stack.Screen name="project/[slug]" options={{ title: 'Project' }} />
+        <Stack.Screen name="builders/[city]" options={{ title: 'Builders' }} />
+        <Stack.Screen name="builder/[city]/[slug]" options={{ title: 'Builder' }} />
         <Stack.Screen name="tools/index" options={{ title: 'Tools to help you decide' }} />
         <Stack.Screen name="tools/emi" options={{ title: 'EMI calculator' }} />
         <Stack.Screen name="tools/afford" options={{ title: 'How much can I afford?' }} />
