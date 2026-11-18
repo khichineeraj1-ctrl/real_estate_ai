@@ -3,6 +3,7 @@ import { ConstructionStatus, Prisma, PropertyType } from '@prisma/client';
 import { Input } from '../admin/input';
 import { Mailer, SITE_URL } from '../mail/mailer';
 import { PrismaService } from '../prisma/prisma.service';
+import { SOURCE_NAME } from '../rera/parse';
 import { LEVEL_LABEL, Level } from '../trust/confidence';
 import { TrustService } from '../trust/trust.service';
 
@@ -97,7 +98,8 @@ export class CatalogService {
       this.stats({ city: slug }),
       this.bhkBreakdown({ city: slug }),
       Promise.all(city.localities.map(async (l) => ({ slug: l.slug, name: l.name, stats: await this.stats({ city: slug, locality: l.slug }) }))),
-      this.db.project.findMany({ where: { locality: { city: { slug } } }, select: { slug: true, name: true, builder: true, status: true, locality: { select: { name: true } } }, orderBy: { name: 'asc' } }),
+      // Projects entered by our team or builders first, then register entries; a city can have hundreds, so only the first few dozen are listed here.
+      this.db.project.findMany({ where: { locality: { city: { slug } } }, select: { slug: true, name: true, builder: true, status: true, registerSource: true, locality: { select: { name: true } } }, orderBy: [{ registerSource: { sort: 'asc', nulls: 'first' } }, { name: 'asc' }], take: 36 }),
     ]);
     return { slug: city.slug, name: city.name, state: city.state, intro: city.intro, lat: city.lat, lng: city.lng, costs: costsOf(city), stats, bhk, localities, projects };
   }
@@ -109,7 +111,7 @@ export class CatalogService {
     const [stats, bhk, projects, siblings] = await Promise.all([
       this.stats(f),
       this.bhkBreakdown(f),
-      this.db.project.findMany({ where: { localityId: locality.id }, select: { slug: true, name: true, builder: true, status: true }, orderBy: { name: 'asc' } }),
+      this.db.project.findMany({ where: { localityId: locality.id }, select: { slug: true, name: true, builder: true, status: true, registerSource: true }, orderBy: [{ registerSource: { sort: 'asc', nulls: 'first' } }, { name: 'asc' }], take: 60 }),
       this.db.locality.findMany({ where: { cityId: locality.cityId, NOT: { id: locality.id } }, select: { slug: true, name: true, lat: true, lng: true } }),
     ]);
     // Nearest first, so "nearby localities" links are the ones a buyer would actually compare.
@@ -128,8 +130,9 @@ export class CatalogService {
       this.stats({ project: slug }),
       this.bhkBreakdown({ project: slug }),
     ]);
-    const { locality, localityId, id, leadEmail, accountId, ...rest } = project; // the builder's sales address and login are for our use only
-    return { ...rest, locality: { slug: locality.slug, name: locality.name, lat: locality.lat, lng: locality.lng }, city: { slug: locality.city.slug, name: locality.city.name, state: locality.city.state }, properties, stats, bhk };
+    const { locality, localityId, id, leadEmail, accountId, ...rest } = project;
+    const registerName = project.registerSource ? SOURCE_NAME[project.registerSource] : null; // the builder's sales address and login are for our use only
+    return { ...rest, registerName, locality: { slug: locality.slug, name: locality.name, lat: locality.lat, lng: locality.lng }, city: { slug: locality.city.slug, name: locality.city.name, state: locality.city.state }, properties, stats, bhk };
   }
 
   async property(slug: string) {

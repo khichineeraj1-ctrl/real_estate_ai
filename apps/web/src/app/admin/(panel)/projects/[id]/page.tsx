@@ -4,7 +4,7 @@ import { Area, Field, STATUS, Select, localityGroups, month, type Options } from
 import { adminGet, requireStaff } from '@/lib/admin';
 import { remove, save } from '../../../actions';
 
-interface Project { id: string; slug: string; name: string; builder: string; description: string; status: string; possession: string | null; reraId: string | null; totalUnits: number; amenities: string[]; localityId: string; leadEmail: string | null; accountId: string | null; _count: { enquiries: number } }
+interface Project { id: string; slug: string; name: string; builder: string; description: string; status: string; possession: string | null; reraId: string | null; totalUnits: number | null; amenities: string[]; localityId: string; leadEmail: string | null; accountId: string | null; _count: { enquiries: number } }
 interface Builder { id: string; name: string; email: string; active: boolean }
 
 export default async function EditProject({ params }: { params: Promise<{ id: string }> }) {
@@ -29,7 +29,7 @@ export default async function EditProject({ params }: { params: Promise<{ id: st
         <Select label="Status" name="status" defaultValue={p?.status} options={STATUS} />
         <Field label="Possession month" name="possession" type="month" required={false} defaultValue={month(p?.possession)} hint="Only used while under construction." />
         <Field label="RERA number" name="reraId" required={false} defaultValue={p?.reraId} maxLength={80} />
-        <Field label="Total units" name="totalUnits" type="number" min={1} defaultValue={p?.totalUnits} />
+        <Field label="Total units" name="totalUnits" type="number" min={1} required={false} defaultValue={p?.totalUnits} />
         <Field label="Sales email for leads" name="leadEmail" type="email" required={false} defaultValue={p?.leadEmail} autoComplete="off" hint="The builder’s sales address. When filled in, every lead on this project is emailed there as it arrives. Buyers never see it." />
         <Select label="Builder login" name="accountId" required={false} defaultValue={p?.accountId} options={builders.map((b) => ({ value: b.id, label: `${b.name} (${b.email})${b.active ? '' : ' — deactivated'}` }))} hint="The builder account that can sign in and see this project’s leads. Create one under Users with the role Builder. If no sales email is set above, leads are emailed to this login." />
         <Area label="Description" name="description" rows={5} defaultValue={p?.description} />

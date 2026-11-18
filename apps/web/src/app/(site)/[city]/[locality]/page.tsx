@@ -61,7 +61,7 @@ export default async function LocalityPage({ params }: Props) {
         <section className="section">
           <h2>Projects in {l.name}</h2>
           <ul className="tiles">
-            {l.projects.map((p) => <li key={p.slug}><Link href={`/projects/${p.slug}`}><strong>{p.name}</strong><span>{p.builder}</span><span>{statusLabel(p.status)}</span></Link></li>)}
+            {l.projects.map((p) => <li key={p.slug}><Link href={`/projects/${p.slug}`}><strong>{p.name}</strong><span>{p.builder}</span><span>{p.registerSource ? 'From the RERA register' : statusLabel(p.status)}</span></Link></li>)}
           </ul>
         </section>
       )}

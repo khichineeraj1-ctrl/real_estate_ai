@@ -115,6 +115,32 @@ Every confidence display says that the checks reduce risk and are not a guarante
 home and have a lawyer check the title. **Have a lawyer review this wording, the document handling and your duties
 under India's data protection law before launch.**
 
+## Builder projects from the RERA registers
+
+Project pages can be created from the three state regulators' public registers (**RERA registers** in the admin
+panel; code in `apps/api/src/rera`). Only facts the registers publish are stored: name, promoter, registration number,
+location, status and dates. No other portal is scraped, and nothing behind a login or human check is read.
+
+- **Sources**: Haryana RERA's Gurugram list (one page), Karnataka RERA's Bengaluru Urban list (one request), and
+  MahaRERA searched by the pincodes of our own localities (`PINCODES` in `place.ts`), a page at a time with a pause.
+  An admin starts a read with "Read now"; it runs in the background, at most once every ten minutes per register,
+  retries a dropped connection once, stops at any refusal, and keeps what it had read.
+- **Placement**: every entry is kept as fetched in a staging table. It becomes a project page only when it can be
+  placed in one of our localities: by map position checked against its pincode (Maharashtra), by the sector or road
+  in its location (Haryana, with the aliases in `place.ts`), or by a locality in its registered name. Karnataka gives
+  only a taluk, which is never used. Everything else waits under "Not placed yet", where staff can place it by hand.
+  `POST /admin/register/recheck` re-applies the rules to automatically placed pages after the rules change.
+- **What the page says**: that it comes from the named register and when it was read, with a link to the register's
+  own page; that the builder has not confirmed it; a warning when the registration is marked lapsed. It shows no
+  price, floor plan or completion status, because the registers do not give them, and its lead form says our own
+  team will call. Leads go to staff until a builder login is linked to the project.
+- **First read (18 Nov 2026)**: Haryana 1,087 entries, 202 pages; Karnataka 4,152 entries, 8 pages; Maharashtra 373
+  entries (two result pages per pincode), 280 pages. Parsers are tested against saved excerpts of the real pages and
+  will need updating if a register changes its layout.
+- MahaRERA's copyright policy allows reuse with accuracy and acknowledgement of the source. No such policy page was
+  found for the Haryana or Karnataka sites; confirm reuse terms for those before launch. Set `RERA_USER_AGENT` to
+  identify your reader with a contact address in production.
+
 ## Tools that help buyers decide
 
 On the website (linked from **Tools** in the header and from each property page) and in the mobile app (**Tools**

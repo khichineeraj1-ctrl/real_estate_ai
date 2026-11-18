@@ -344,3 +344,7 @@ body:has(> .auth-page) { display: grid; place-items: center; min-height: 100vh; 
   .blob, .auth-points li, .auth-form, .auth-error, .auth-done, .auth-done-icon { animation: none; }
   .fld label, .fld-tick, .kind, .kind-icon, .progress span, .auth-submit { transition: none; }
 }
+
+.ainline select { font: inherit; font-size: .9rem; color: var(--fg); background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; max-width: 190px; }
+.atable .ainline { margin: 6px 0 0; }
+.atable .ainline .abtn { padding: 5px 12px; font-size: .85rem; }

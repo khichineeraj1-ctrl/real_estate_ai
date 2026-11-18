@@ -502,7 +502,7 @@ export class AdminService implements OnModuleInit {
       data: {
         name: i.text('name', 'Name', 120), builder: i.text('builder', 'Builder', 120), description: i.text('description', 'Description', 2000), status,
         possession: status === 'UNDER_CONSTRUCTION' ? i.optionalMonth('possession', 'Possession') : null, reraId: i.optionalText('reraId', 'RERA number', 80),
-        totalUnits: i.number('totalUnits', 'Total units', 1, 50_000), amenities: i.list('amenities', 'Amenities'), leadEmail: leadEmail ? normalEmail(leadEmail) : null, accountId, localityId,
+        totalUnits: i.optionalNumber('totalUnits', 'Total units', 1, 50_000), amenities: i.list('amenities', 'Amenities'), leadEmail: leadEmail ? normalEmail(leadEmail) : null, accountId, localityId,
       },
     };
   }

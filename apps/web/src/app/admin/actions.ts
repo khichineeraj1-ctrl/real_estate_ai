@@ -72,6 +72,30 @@ export async function removePhoto(photoId: string, propertyId: string, _: FormSt
   redirect(`/admin/properties/${propertyId}?photoDeleted=1`);
 }
 
+// ---- RERA registers
+
+/** Starts reading one state's public register in the background. */
+export async function readRegister(source: string, _: FormState, form: FormData): Promise<FormState> {
+  const r = await adminFetch('/register/read', { method: 'POST', body: { source, maxPages: Number(form.get('maxPages') ?? 5) } });
+  if (!r.ok) return failed(r);
+  redirect('/admin/register?started=1');
+}
+
+/** Places a register entry in one of our localities, which makes its project page. */
+export async function publishRegisterEntry(id: string, backTo: string, _: FormState, form: FormData): Promise<FormState> {
+  const r = await adminFetch(`/register/entries/${encodeURIComponent(id)}/publish`, { method: 'POST', body: { localityId: String(form.get('localityId') ?? '') } });
+  if (!r.ok) return failed(r);
+  revalidatePath('/', 'layout');
+  redirect(backTo.startsWith('/admin/register') ? backTo : '/admin/register');
+}
+
+export async function unpublishRegisterEntry(id: string, backTo: string, _: FormState): Promise<FormState> {
+  const r = await adminFetch(`/register/entries/${encodeURIComponent(id)}/unpublish`, { method: 'POST' });
+  if (!r.ok) return failed(r);
+  revalidatePath('/', 'layout');
+  redirect(backTo.startsWith('/admin/register') ? backTo : '/admin/register');
+}
+
 // ---- Seller verification
 
 export async function saveDealerProfile(_: FormState, form: FormData): Promise<FormState> {

@@ -33,6 +33,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           {staff && <Link href="/admin/properties?state=PENDING">Review queue</Link>}
           {staff && <Link href="/admin/import">Import</Link>}
           {staff && <Link href="/admin/projects">Projects</Link>}
+          {staff && <Link href="/admin/register">RERA registers</Link>}
           {staff && <Link href="/admin/localities">Localities</Link>}
           {staff && <Link href="/admin/cities">Cities</Link>}
           {staff && <Link href="/admin/questions">Questions</Link>}

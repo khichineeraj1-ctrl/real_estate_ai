@@ -85,8 +85,17 @@ model Project {
   status      ConstructionStatus
   possession  DateTime?
   reraId      String?
-  totalUnits  Int
+  /// Unknown for projects taken from a RERA register, which does not list it.
+  totalUnits  Int?
   amenities   String[]
+  /// Set when this project page was created from a public RERA register rather than entered by our team or the builder.
+  registerSource     RegisterSource?
+  /// The register's own status wording, e.g. "Registered", "APPROVED" or "Lapsed".
+  registerStatus     String?
+  registerValidUntil DateTime?
+  sourceUrl          String?
+  sourceFetchedAt    DateTime?
+  register           RegisterProject?
   /// The builder's sales address. When set, each lead on this project is emailed there as it arrives.
   leadEmail   String?
   /// The builder login that may see this project's leads.
@@ -390,4 +399,51 @@ model Report {
 
   @@index([status, createdAt])
   @@index([sellerId, status])
+}
+
+enum RegisterSource {
+  HARYANA
+  KARNATAKA
+  MAHARASHTRA
+}
+
+/// One project as a state RERA register lists it, kept exactly as fetched. Entries we can place in one of our
+/// localities are published as project pages; the rest wait here for a person to place or ignore.
+model RegisterProject {
+  id             String         @id @default(cuid())
+  source         RegisterSource
+  regNo          String
+  name           String
+  promoter       String
+  district       String
+  locationText   String
+  pincode        String?
+  lat            Float?
+  lng            Float?
+  projectType    String?
+  registerStatus String?
+  validUntil     DateTime?
+  sourceUrl      String
+  fetchedAt      DateTime
+  /// How the locality was decided, in words, for whoever reviews it.
+  placedHow      String?
+  projectId      String?        @unique
+  project        Project?       @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@unique([source, regNo])
+  @@index([source, projectId])
+}
+
+/// One run of the register importer, so staff can see when each register was last read and what came of it.
+model ImportRun {
+  id         String         @id @default(cuid())
+  source     RegisterSource
+  startedAt  DateTime       @default(now())
+  finishedAt DateTime?
+  fetched    Int            @default(0)
+  added      Int            @default(0)
+  published  Int            @default(0)
+  requests   Int            @default(0)
+  note       String?
+  error      String?
 }

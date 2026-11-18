@@ -10,18 +10,20 @@ interface Props {
   /** Choices for "Interested in" on a project, e.g. the sizes it offers. */
   interests?: string[];
   projectName?: string;
+  /** A project page made from a RERA register, whose builder has not joined us: our own team answers, not the builder's. */
+  unclaimed?: boolean;
 }
 
-export function EnquiryForm({ slug, kind = 'property', interests, projectName }: Props) {
+export function EnquiryForm({ slug, kind = 'property', interests, projectName, unclaimed }: Props) {
   const [state, run, pending] = useActionState<EnquiryState, FormData>(enquire.bind(null, kind, slug), {});
   const project = kind === 'project';
 
   if (state.sent) {
     return (
       <div className="enquiry-done" role="status">
-        <p><strong>{project ? 'Thank you. Your details are with the sales team.' : 'Your enquiry is sent.'}</strong></p>
+        <p><strong>{project ? (unclaimed ? 'Thank you. Our team has your details.' : 'Thank you. Your details are with the sales team.') : 'Your enquiry is sent.'}</strong></p>
         {project
-          ? <p>Someone will call you about {projectName ?? 'this project'} with prices, floor plans and site visit times.</p>
+          ? <p>{unclaimed ? `We will call you about ${projectName ?? 'this project'}. The builder has not joined us yet, so we will find out what we can for you.` : `Someone will call you about ${projectName ?? 'this project'} with prices, floor plans and site visit times.`}</p>
           : state.seller
             ? (
               <>
@@ -49,7 +51,7 @@ export function EnquiryForm({ slug, kind = 'property', interests, projectName }:
       <label className="afield wide"><span>Message <em>(optional)</em></span><textarea name="message" rows={2} maxLength={500} placeholder={project ? 'e.g. I would like to visit this weekend' : 'e.g. Is the price negotiable? When can I visit?'} /></label>
       <label className="hp" aria-hidden="true">Website<input name="website" tabIndex={-1} autoComplete="off" /></label>
       <label className="acheck wide"><input type="checkbox" name="consent" required /> <span>{project
-        ? `I agree to be contacted by phone or email about ${projectName ?? 'this project'} by the builder and this site’s team.`
+        ? unclaimed ? `I agree to be contacted by phone or email about ${projectName ?? 'this project'} by this site’s team, who may pass my enquiry to the builder.` : `I agree to be contacted by phone or email about ${projectName ?? 'this project'} by the builder and this site’s team.`
         : 'Share my name and phone number with the seller so they can contact me about this home.'}</span></label>
       <div className="aactions"><button type="submit" className="abtn" disabled={pending}>{pending ? 'Sending…' : project ? 'Request a call back' : 'Get seller’s contact'}</button></div>
     </form>

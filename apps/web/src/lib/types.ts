@@ -17,7 +17,7 @@ export interface PropertyCard {
   /** How far the home and its seller are verified, 0 (not yet) to 3 (high). */
   confidence?: number;
 }
-export interface ProjectLink extends Place { builder: string; status: Status; locality?: { name: string } }
+export interface ProjectLink extends Place { builder: string; status: Status; locality?: { name: string }; registerSource?: string | null }
 
 export interface CitySummary extends Place { state: string; intro: string; localities: Place[]; stats: Stats; costs: CityCosts | null }
 export interface CityDetail extends Place {
@@ -29,7 +29,9 @@ export interface LocalityDetail extends Place {
   stats: Stats; bhk: BhkRow[]; projects: ProjectLink[]; nearby: Place[];
 }
 export interface ProjectDetail extends Place {
-  builder: string; description: string; status: Status; possession: string | null; reraId: string | null; totalUnits: number; amenities: string[];
+  builder: string; description: string; status: Status; possession: string | null; reraId: string | null; totalUnits: number | null; amenities: string[];
+  /** Set when the page was made from a public RERA register and the builder has not confirmed it. */
+  registerSource: string | null; registerName: string | null; registerStatus: string | null; registerValidUntil: string | null; sourceUrl: string | null; sourceFetchedAt: string | null;
   locality: Place & { lat: number; lng: number }; city: Place & { state: string }; properties: PropertyCard[]; stats: Stats; bhk: BhkRow[];
 }
 export interface PropertyDetail extends Omit<PropertyCard, 'locality' | 'project' | 'confidence'> {
