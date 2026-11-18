@@ -136,6 +136,10 @@ export class CatalogService {
     return cities;
   }
 
+  logQuestion(data: { text: string; live: boolean; total: number; relaxed: string | null; page: string | null }) {
+    return this.db.question.create({ data });
+  }
+
   async sitemap() {
     const [cities, properties, projects] = await Promise.all([
       this.db.city.findMany({ select: { slug: true, localities: { select: { slug: true } } } }),

@@ -16,6 +16,8 @@ export interface AskResult {
   total: number;
   /** The indexable page that shows everything the answer is about, e.g. /gurgaon/sector-57/3-bhk-flats. */
   page: { path: string; label: string } | null;
+  /** Which filter was dropped (budget, locality or status) when nothing matched the question as asked; null for an exact match. */
+  relaxed: string | null;
 }
 
 /** Keeps only the last few turns the client sent, each short, with roles forced to user or assistant. */
@@ -120,12 +122,12 @@ export class AskService {
     if (!asked) {
       return {
         reply: `I can help you find a home in Gurgaon, Bengaluru, Mumbai or Pune. Tell me the area, the size and your budget, for example: "3 BHK in Whitefield under 1.5 crore".`,
-        live: false, properties: [], total: 0, page: null,
+        live: false, properties: [], total: 0, page: null, relaxed: null,
       };
     }
     const o = await this.search(p);
     const page = this.pageFor(o.filters, gazetteer);
-    if (o.total === 0) return { reply: `I could not find any ${this.describe(p, 2)} in ${o.place} right now. Try a different area or a wider budget.`, live: false, properties: [], total: 0, page };
+    if (o.total === 0) return { reply: `I could not find any ${this.describe(p, 2)} in ${o.place} right now. Try a different area or a wider budget.`, live: false, properties: [], total: 0, page, relaxed: null };
 
     const s = o.stats;
     const range = s.minPrice === s.maxPrice ? `priced at ${rupees(s.minPrice!)}` : `priced from ${rupees(s.minPrice!)} to ${rupees(s.maxPrice!)}`;
@@ -138,7 +140,7 @@ export class AskService {
     else reply = `I found ${o.total} ${this.describe(p, o.total)} in ${o.place}, ${range}${rate}.`;
     const top = o.items[0];
     if (top && p.intent !== 'price') reply += ` ${p.sort === 'price_asc' ? 'The cheapest' : 'The newest'} is a ${top.title.split(' in ')[0]} of ${top.areaSqft.toLocaleString('en-IN')} sq ft in ${top.locality.name} for ${rupees(top.priceInr)}.`;
-    return { reply, live: false, properties: o.items, total: o.total, page };
+    return { reply, live: false, properties: o.items, total: o.total, page, relaxed: o.relaxed };
   }
 
   private system(gazetteer: Gazetteer) {
@@ -153,6 +155,14 @@ export class AskService {
 
   /** `context` is the place the buyer is looking at (a page title such as "Sector 57, Gurgaon"), used when the question names no place. */
   async ask(who: string, message: string, history: Turn[], context = ''): Promise<AskResult> {
+    const result = await this.answer(who, message, history, context);
+    // Logged for the admin panel's "questions" screen: the words and the outcome only, nothing about who asked.
+    this.catalog.logQuestion({ text: message.trim().slice(0, MAX_MESSAGE), live: result.live, total: result.total, relaxed: result.relaxed, page: result.page?.path ?? null })
+      .catch((e: Error) => this.log.warn(`could not log question: ${e.message}`));
+    return result;
+  }
+
+  private async answer(who: string, message: string, history: Turn[], context: string): Promise<AskResult> {
     const q = message.trim().slice(0, MAX_MESSAGE);
     const gazetteer = await this.catalog.gazetteer();
     if (!this.client || !this.limiter.allow(who)) return this.scripted(q, gazetteer, context);
@@ -186,6 +196,7 @@ export class AskService {
               sort: i.sort === 'price_asc' || i.sort === 'price_desc' ? i.sort : undefined,
             });
             const unknownPlace = (i.city || i.locality) && !place.city ? 'That place is not covered yet; these results are from all covered cities.' : null;
+            if (unknownPlace) last = { ...last, relaxed: 'area (a place not covered yet)' }; // so the admin log shows demand for places we do not have
             results.push({
               type: 'tool_result', tool_use_id: c.id,
               content: JSON.stringify({
@@ -200,7 +211,7 @@ export class AskService {
         }
         const reply = res.content.filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === 'text').map((b) => b.text).join(' ').trim();
         if (!reply) throw new Error(`empty reply (${res.stop_reason})`);
-        return { reply: reply.slice(0, 900), live: true, properties: last?.items ?? [], total: last?.total ?? 0, page: last ? this.pageFor(last.filters, gazetteer) : null };
+        return { reply: reply.slice(0, 900), live: true, properties: last?.items ?? [], total: last?.total ?? 0, page: last ? this.pageFor(last.filters, gazetteer) : null, relaxed: last?.relaxed ?? null };
       }
       throw new Error('too many tool rounds');
     } catch (e) {

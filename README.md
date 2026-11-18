@@ -64,6 +64,23 @@ during the site build, because the home page is prerendered from it).
   works in the web build. Expo Go has no speech recognition module, so on phones the app points to the keyboard's
   dictation key; `apps/mobile/lib/voice.ts` is the one place to plug in a native recogniser in a development build.
 
+## Admin panel
+
+`/admin` on the site, for one shared admin login. Sign in with `ADMIN_EMAIL` and `ADMIN_PASSWORD` from `apps/api/.env`
+(`.env.example` has local development values; change both, and set a long random `ADMIN_SECRET`, anywhere public).
+
+- **Listings, projects, localities, cities**: add, edit and delete. Saving refreshes the public pages straight away.
+  Page addresses never change after creation, so renaming a listing or city does not break links. A locality or city
+  that still has content cannot be deleted; deleting a project keeps its listings and unlinks them.
+- **Questions**: what buyers asked, whether Claude or the parser answered, and which had no exact match (nothing found,
+  or found only after dropping the budget, locality or status). Only the words and outcome are stored, not who asked.
+  A question about a city that is not covered is logged as answered when the assistant offers a covered city instead.
+- The API checks a signed 12-hour session on every admin request (`apps/api/src/admin/auth.ts`); the site only carries
+  it in an http-only cookie. Without `ADMIN_SECRET`, sessions end whenever the API restarts. Sign-in is limited to
+  five attempts a minute per address; because the site signs in on the admin's behalf, that limit is shared by
+  everyone signing in through the site.
+- `/admin` is `noindex` and disallowed in `robots.txt`.
+
 ## SEO
 
 | URL | Page | Structured data |
@@ -84,5 +101,5 @@ during the site build, because the home page is prerendered from it).
 
 ## Not done yet
 
-Photos, enquiry/contact forms, accounts and saved searches, pagination beyond 48 homes per listing page, a real
+Photos, enquiry/contact forms, buyer accounts and saved searches, separate admin users with roles, bulk import, pagination beyond 48 homes per listing page, a real
 listings feed, native speech-to-text on phones, a Content-Security-Policy header, and deployment.

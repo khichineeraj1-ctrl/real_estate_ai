@@ -16,7 +16,7 @@ export interface PropertyDetail extends Omit<PropertyCard, 'locality' | 'project
   locality: Place & { highlights: string[] }; city: Place & { state: string }; project: (Place & { builder: string; reraId: string | null }) | null;
   localityStats: Stats; similar: PropertyCard[];
 }
-export interface AskResult { reply: string; live: boolean; properties: PropertyCard[]; total: number; page: { path: string; label: string } | null }
+export interface AskResult { reply: string; live: boolean; properties: PropertyCard[]; total: number; page: { path: string; label: string } | null; relaxed: string | null }
 export interface Turn { role: 'user' | 'assistant'; text: string }
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {

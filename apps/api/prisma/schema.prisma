@@ -95,3 +95,17 @@ model Property {
   @@index([localityId, bhk])
   @@index([priceInr])
 }
+
+/// What buyers asked, kept to see which searches find nothing. Text and time only: no visitor identity.
+model Question {
+  id        String   @id @default(cuid())
+  text      String
+  live      Boolean
+  total     Int
+  /// Set when nothing matched as asked and the search was widened: which filter was dropped (budget, locality, status).
+  relaxed   String?
+  page      String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}

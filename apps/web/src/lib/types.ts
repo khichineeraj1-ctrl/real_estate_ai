@@ -31,7 +31,7 @@ export interface PropertyDetail extends Omit<PropertyCard, 'locality' | 'project
   project: (Place & { builder: string; reraId: string | null }) | null; localityStats: Stats; similar: PropertyCard[];
 }
 export interface Listing { items: PropertyCard[]; total: number; page: number; pageSize: number; stats: Stats }
-export interface AskResult { reply: string; live: boolean; properties: PropertyCard[]; total: number; page: { path: string; label: string } | null }
+export interface AskResult { reply: string; live: boolean; properties: PropertyCard[]; total: number; page: { path: string; label: string } | null; relaxed: string | null }
 export interface SitemapData {
   cities: { slug: string; localities: string[] }[];
   configs: { city: string; locality: string; bhk: number; count: number }[];
