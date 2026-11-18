@@ -163,7 +163,9 @@ The figures were checked against independent calculations (EMI, affordability, a
   `ADMIN_SECRET`, anywhere public. Admins add editors and other admins under **Users**. Accounts are deactivated, not
   deleted; deactivation and role changes take effect on the next request.
 - **Self-service posting**: `/post-property` is a public, indexable page where owners, agents and builders create an
-  account. Their listings start as *waiting for review* and are not on the site, in answers or in the sitemap until staff
+  account. The sign-up, sign-in and password screens share one interactive design (`apps/web/src/components/auth`):
+  fields check themselves as you type, passwords have a show/hide switch and a strength guide, and sign-up starts with
+  an "I am an owner / agent / builder" choice that pre-fills the seller's verification profile. Their listings start as *waiting for review* and are not on the site, in answers or in the sitemap until staff
   approve them in the **Review queue**. Staff can reject with a reason the owner sees. When an owner edits a live listing
   or adds a photo it goes back to review.
 - **Email confirmation and password reset**: a new seller gets a one-time link (valid 48 hours) and cannot post until

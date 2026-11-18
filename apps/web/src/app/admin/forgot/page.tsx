@@ -1,22 +1,22 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
-import { AdminForm } from '@/components/admin/Form';
-import { Field } from '@/components/admin/fields';
-import { BRAND } from '@/lib/seo';
-import { forgotPassword } from '../actions';
+import { AuthShell } from '@/components/auth/AuthShell';
+import { ForgotForm } from '@/components/auth/AuthForms';
 
 export const metadata: Metadata = { title: 'Forgot password', robots: { index: false, follow: false } };
 
 export default function ForgotPage() {
   return (
-    <main className="wrap alogin">
-      <p><Link href="/" className="logo"><span className="orb" aria-hidden="true" />{BRAND}</Link></p>
-      <h1>Forgot your password?</h1>
-      <p className="lead">Enter the email you signed up with and we will send a link to choose a new one.</p>
-      <AdminForm action={forgotPassword} submit="Send the link" pendingLabel="Sending…">
-        <Field label="Email" name="email" type="email" autoComplete="username" />
-      </AdminForm>
-      <p><Link href="/admin/login">Back to sign in</Link></p>
-    </main>
+    <AuthShell
+      title="Forgot your password?"
+      lead="Enter the email you signed up with and we will send a link to choose a new one."
+      kicker="Back in within a couple of minutes"
+      points={[
+        { icon: '✉️', title: 'We email you a link', text: 'It works once, for one hour.' },
+        { icon: '🔑', title: 'You choose a new password', text: 'At least 10 characters.' },
+        { icon: '🚪', title: 'Other devices are signed out', text: 'So only you are signed in afterwards.' },
+      ]}
+    >
+      <ForgotForm />
+    </AuthShell>
   );
 }

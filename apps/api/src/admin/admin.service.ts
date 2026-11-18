@@ -55,7 +55,9 @@ export class AdminService implements OnModuleInit {
     const i = new Input(body);
     const data = { name: i.text('name', 'Name', 80), email: this.email(i), phone: this.phone(i, true), passwordHash: hashPassword(this.password(i)) };
     if (await this.db.user.findUnique({ where: { email: data.email }, select: { id: true } })) throw new ConflictException('An account with this email already exists. Sign in instead.');
-    const user = await this.db.user.create({ data: { ...data, role: 'AGENT' } });
+    const kind = (['OWNER', 'AGENT', 'BUILDER'] as const).find((k) => k === body.kind);
+    // What they chose under "I am" starts their verification profile, so they are not asked again later.
+    const user = await this.db.user.create({ data: { ...data, role: 'AGENT', ...(kind ? { dealer: { create: { kind } } } : {}) } });
     await this.sendVerification(user);
     return { token: issueToken(user), role: user.role, name: user.name };
   }
