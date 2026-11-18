@@ -83,6 +83,10 @@ export class AdminController {
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Get('import/sample.csv') @Header('content-type', 'text/csv; charset=utf-8') sample() { return IMPORT_SAMPLE; }
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Get('questions') questions(@Query() q: { only?: string; page?: string }) { return this.admin.questions(q); }
 
+  @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Get('builder-pages') builderPages() { return this.admin.builderPages(); }
+  @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Get('builder-pages/:id') builderPage(@Param('id') id: string) { return this.admin.builderPage(id); }
+  @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Patch('builder-pages/:id') renameBuilderPage(@Param('id') id: string, @Body() b: Json) { return this.admin.renameBuilderPage(id, b); }
+  @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Post('builder-pages/:id/merge') @HttpCode(200) mergeBuilderPage(@Param('id') id: string, @Body() b: Json) { return this.admin.mergeBuilderPage(id, b); }
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Get('builders') builders() { return this.admin.builders(); }
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Get('projects') projects() { return this.admin.projects(); }
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Get('projects/:id') project(@Param('id') id: string) { return this.admin.project(id); }

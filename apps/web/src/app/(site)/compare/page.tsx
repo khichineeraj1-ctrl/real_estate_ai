@@ -4,7 +4,7 @@ import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { api } from '@/lib/api';
 import { LOAN_DEFAULTS, buyingCosts, loanPlan } from '@/lib/finance';
 import { monthYear, num, price, rate, statusLabel, typeLabel } from '@/lib/format';
-import { media } from '@/lib/seo';
+import { media, projectPath } from '@/lib/seo';
 import type { PropertyDetail } from '@/lib/types';
 
 // A page per combination of listings would be endless near-duplicates, so comparisons are not indexed.
@@ -77,7 +77,7 @@ export default async function ComparePage({ searchParams }: Props) {
           {row('Type', homes.map((h) => typeLabel(h.type)))}
           {row('Status', homes.map((h) => (h.status === 'UNDER_CONSTRUCTION' && h.possession ? `Possession ${monthYear(h.possession)}` : statusLabel(h.status))))}
           {row('Locality', homes.map((h) => <Link key={h.slug} href={`/${h.city.slug}/${h.locality.slug}`}>{h.locality.name}, {h.city.name}</Link>))}
-          {row('Project', homes.map((h) => (h.project ? <Link key={h.slug} href={`/projects/${h.project.slug}`}>{h.project.name}</Link> : '—')))}
+          {row('Project', homes.map((h) => (h.project ? <Link key={h.slug} href={projectPath(h.project)}>{h.project.name}</Link> : '—')))}
           {row('Floor', homes.map((h) => (h.floor != null ? `${h.floor} of ${h.totalFloors}` : '—')))}
           {row('Facing', homes.map((h) => h.facing ?? '—'))}
           {row('Furnishing', homes.map((h) => h.furnishing ?? '—'))}

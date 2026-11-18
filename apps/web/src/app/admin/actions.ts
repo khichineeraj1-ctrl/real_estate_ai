@@ -191,3 +191,19 @@ export async function importCsv(_: FormState, form: FormData): Promise<FormState
   revalidatePath('/', 'layout');
   return { ok: `Imported ${r.data.imported} ${r.data.imported === 1 ? 'listing' : 'listings'}. They are live on the site.` };
 }
+
+/** Changes the name shown on a builder's public page. */
+export async function renameBuilderPage(id: string, _: FormState, form: FormData): Promise<FormState> {
+  const r = await adminFetch(`/builder-pages/${encodeURIComponent(id)}`, { method: 'PATCH', body: fields(form) });
+  if (!r.ok) return failed(r);
+  revalidatePath('/', 'layout');
+  redirect('/admin/builder-pages?saved=1');
+}
+
+/** Moves one builder page's projects onto another and removes the emptied page. Old project addresses redirect. */
+export async function mergeBuilderPage(id: string, _: FormState, form: FormData): Promise<FormState> {
+  const r = await adminFetch(`/builder-pages/${encodeURIComponent(id)}/merge`, { method: 'POST', body: fields(form) });
+  if (!r.ok) return failed(r);
+  revalidatePath('/', 'layout');
+  redirect('/admin/builder-pages?merged=1');
+}

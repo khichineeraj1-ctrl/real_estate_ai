@@ -12,6 +12,20 @@ each city's buying charges; it never deletes anything and is safe to run again. 
 RERA registers, which carry no prices. Homes and prices appear only when an owner, agent or builder posts them, so
 locality pages show no price figures until then.
 
+## Builders and project addresses
+
+Every project sits under its builder: `/builders/<builder>` lists a builder's projects and
+`/builders/<builder>/<project>` is the project page. The old `/projects/<project>` addresses redirect there.
+
+- A builder is worked out from the promoter's registered name (`apps/api/src/catalog/builders.ts`): the company form
+  ("Private Limited", "LLP") and notes in brackets are dropped, so one company written several ways is one builder.
+  A short list of large groups (DLF, Godrej, Sobha, Emaar, Elan, Vatika, Adani, Kalpataru) is joined across their
+  companies by the first word of the name. Nothing else is guessed.
+- Other companies that are really one builder are joined by a person under **Admin → Builder pages → Merge**, where the
+  displayed name can also be changed. A merged builder is kept as a pointer: its old address redirects, and later
+  projects registered under the same company name go to the builder it was merged into.
+- `npm run db:builders -w apps/api` gives a builder page to any project that has none. Safe to run again.
+
 ## Layout
 
 | Path | What | Port |

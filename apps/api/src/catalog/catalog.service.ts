@@ -24,7 +24,7 @@ export interface PropertyFilters {
 const CARD = {
   slug: true, title: true, type: true, bhk: true, bathrooms: true, priceInr: true, areaSqft: true, status: true, possession: true, listedBy: true, postedAt: true,
   locality: { select: { slug: true, name: true, city: { select: { slug: true, name: true } } } },
-  project: { select: { slug: true, name: true, builder: true } },
+  project: { select: { slug: true, name: true, builder: true, brand: { select: { slug: true, name: true } } } },
   photos: { select: { file: true }, orderBy: { position: 'asc' }, take: 1 }, // the cover photo
   confidence: true, // level 0-3; see src/trust
 } satisfies Prisma.PropertySelect;
@@ -99,7 +99,7 @@ export class CatalogService {
       this.bhkBreakdown({ city: slug }),
       Promise.all(city.localities.map(async (l) => ({ slug: l.slug, name: l.name, stats: await this.stats({ city: slug, locality: l.slug }) }))),
       // Projects entered by our team or builders first, then register entries; a city can have hundreds, so only the first few dozen are listed here.
-      this.db.project.findMany({ where: { locality: { city: { slug } } }, select: { slug: true, name: true, builder: true, status: true, registerSource: true, locality: { select: { name: true } } }, orderBy: [{ registerSource: { sort: 'asc', nulls: 'first' } }, { name: 'asc' }], take: 36 }),
+      this.db.project.findMany({ where: { locality: { city: { slug } } }, select: { slug: true, name: true, builder: true, brand: { select: { slug: true, name: true } }, status: true, registerSource: true, locality: { select: { name: true } } }, orderBy: [{ registerSource: { sort: 'asc', nulls: 'first' } }, { name: 'asc' }], take: 36 }),
     ]);
     return { slug: city.slug, name: city.name, state: city.state, intro: city.intro, lat: city.lat, lng: city.lng, costs: costsOf(city), stats, bhk, localities, projects };
   }
@@ -111,7 +111,7 @@ export class CatalogService {
     const [stats, bhk, projects, siblings] = await Promise.all([
       this.stats(f),
       this.bhkBreakdown(f),
-      this.db.project.findMany({ where: { localityId: locality.id }, select: { slug: true, name: true, builder: true, status: true, registerSource: true }, orderBy: [{ registerSource: { sort: 'asc', nulls: 'first' } }, { name: 'asc' }], take: 60 }),
+      this.db.project.findMany({ where: { localityId: locality.id }, select: { slug: true, name: true, builder: true, brand: { select: { slug: true, name: true } }, status: true, registerSource: true }, orderBy: [{ registerSource: { sort: 'asc', nulls: 'first' } }, { name: 'asc' }], take: 60 }),
       this.db.locality.findMany({ where: { cityId: locality.cityId, NOT: { id: locality.id } }, select: { slug: true, name: true, lat: true, lng: true } }),
     ]);
     // Nearest first, so "nearby localities" links are the ones a buyer would actually compare.
@@ -123,14 +123,14 @@ export class CatalogService {
   }
 
   async project(slug: string) {
-    const project = await this.db.project.findUnique({ where: { slug }, include: { locality: { include: { city: true } } } });
+    const project = await this.db.project.findUnique({ where: { slug }, include: { locality: { include: { city: true } }, brand: { select: { slug: true, name: true } } } });
     if (!project) throw new NotFoundException('Project not found');
     const [properties, stats, bhk] = await Promise.all([
       this.db.property.findMany({ where: { projectId: project.id, state: 'PUBLISHED' }, select: CARD, orderBy: { priceInr: 'asc' } }),
       this.stats({ project: slug }),
       this.bhkBreakdown({ project: slug }),
     ]);
-    const { locality, localityId, id, leadEmail, accountId, ...rest } = project;
+    const { locality, localityId, id, leadEmail, accountId, brandId, ...rest } = project;
     const registerName = project.registerSource ? SOURCE_NAME[project.registerSource] : null; // the builder's sales address and login are for our use only
     return { ...rest, registerName, locality: { slug: locality.slug, name: locality.name, lat: locality.lat, lng: locality.lng }, city: { slug: locality.city.slug, name: locality.city.name, state: locality.city.state }, properties, stats, bhk };
   }
@@ -138,7 +138,7 @@ export class CatalogService {
   async property(slug: string) {
     const p = await this.db.property.findFirst({
       where: { slug, state: 'PUBLISHED' },
-      include: { locality: { include: { city: true } }, project: { select: { slug: true, name: true, builder: true, reraId: true } }, photos: { select: { file: true, width: true, height: true }, orderBy: { position: 'asc' } }, owner: { select: { role: true } } },
+      include: { locality: { include: { city: true } }, project: { select: { slug: true, name: true, builder: true, reraId: true, brand: { select: { slug: true, name: true } } } }, photos: { select: { file: true, width: true, height: true }, orderBy: { position: 'asc' } }, owner: { select: { role: true } } },
     });
     if (!p) throw new NotFoundException('Property not found');
     const similar = await this.db.property.findMany({
@@ -240,12 +240,40 @@ export class CatalogService {
     return this.db.question.create({ data });
   }
 
+  /** Every builder that has at least one project, with how many and where. */
+  async builders() {
+    const rows = await this.db.builder.findMany({
+      where: { projects: { some: {} } }, orderBy: { name: 'asc' },
+      select: { slug: true, name: true, projects: { select: { locality: { select: { city: { select: { name: true } } } } } } },
+    });
+    return rows.map((b) => ({ slug: b.slug, name: b.name, projects: b.projects.length, cities: [...new Set(b.projects.map((p) => p.locality.city.name))].sort() }));
+  }
+
+  /** One builder's page: its projects, and the company names they are registered under. */
+  async builder(slug: string) {
+    const b = await this.db.builder.findUnique({
+      where: { slug },
+      select: {
+        slug: true, name: true, mergedInto: { select: { slug: true } },
+        projects: {
+          orderBy: [{ name: 'asc' }],
+          select: { slug: true, name: true, builder: true, status: true, reraId: true, registerSource: true, registerStatus: true, registerValidUntil: true, locality: { select: { slug: true, name: true, city: { select: { slug: true, name: true } } } }, _count: { select: { properties: { where: { state: 'PUBLISHED' } } } } },
+        },
+      },
+    });
+    if (b?.mergedInto) return { movedTo: b.mergedInto.slug }; // merged into another builder: the page sends people there
+    if (!b || !b.projects.length) throw new NotFoundException('Builder not found');
+    const projects = b.projects.map(({ _count, locality, ...p }) => ({ ...p, homes: _count.properties, locality: { slug: locality.slug, name: locality.name }, city: locality.city }));
+    return { slug: b.slug, name: b.name, registeredAs: [...new Set(b.projects.map((p) => p.builder))].sort(), cities: [...new Map(projects.map((p) => [p.city.slug, p.city])).values()], projects };
+  }
+
   async sitemap() {
     const [cities, properties, projects] = await Promise.all([
       this.db.city.findMany({ select: { slug: true, localities: { select: { slug: true } } } }),
       this.db.property.findMany({ where: { state: 'PUBLISHED' }, select: { slug: true, postedAt: true } }),
-      this.db.project.findMany({ select: { slug: true } }),
+      this.db.project.findMany({ select: { slug: true, brand: { select: { slug: true } } } }),
     ]);
+    const builders = await this.db.builder.findMany({ where: { projects: { some: {} } }, select: { slug: true } });
     const configs = await this.db.property.groupBy({ by: ['localityId', 'bhk'], where: { state: 'PUBLISHED', bhk: { gt: 0 } }, _count: true });
     const locs = await this.db.locality.findMany({ select: { id: true, slug: true, lat: true, lng: true, cityId: true, city: { select: { slug: true } } } });
     // Each locality paired with its two nearest neighbours in the same city, written alphabetically so every pair has one address.
@@ -261,7 +289,7 @@ export class CatalogService {
       cities: cities.map((c) => ({ slug: c.slug, localities: c.localities.map((l) => l.slug) })),
       configs: configs.map((c) => ({ city: byId.get(c.localityId)!.city.slug, locality: byId.get(c.localityId)!.slug, bhk: c.bhk, count: c._count })),
       comparisons: [...pairs].sort().map((p) => { const [city, pair] = p.split('/'); return { city, pair }; }),
-      properties, projects,
+      properties, projects, builders,
     };
   }
 }

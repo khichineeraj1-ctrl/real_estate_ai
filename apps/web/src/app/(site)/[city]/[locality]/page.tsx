@@ -10,7 +10,7 @@ import { Stats } from '@/components/Stats';
 import { api } from '@/lib/api';
 import { areaFaqs } from '@/lib/faqs';
 import { price, statusLabel } from '@/lib/format';
-import { comparePath, configSlug, itemListLd } from '@/lib/seo';
+import { comparePath, configSlug, itemListLd, projectPath } from '@/lib/seo';
 import type { Listing, LocalityDetail } from '@/lib/types';
 
 type Props = { params: Promise<{ city: string; locality: string }> };
@@ -62,7 +62,7 @@ export default async function LocalityPage({ params }: Props) {
         <section className="section">
           <h2>Projects in {l.name}</h2>
           <ul className="tiles">
-            {l.projects.map((p) => <li key={p.slug}><Link href={`/projects/${p.slug}`}><strong>{p.name}</strong><span>{p.builder}</span><span>{p.registerSource ? 'From the RERA register' : statusLabel(p.status)}</span></Link></li>)}
+            {l.projects.map((p) => <li key={p.slug}><Link href={projectPath(p)}><strong>{p.name}</strong><span>{p.builder}</span><span>{p.registerSource ? 'From the RERA register' : statusLabel(p.status)}</span></Link></li>)}
           </ul>
         </section>
       )}

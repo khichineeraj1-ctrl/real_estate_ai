@@ -12,7 +12,7 @@ import { JsonLd } from '@/components/JsonLd';
 import { PropertyGrid } from '@/components/PropertyCard';
 import { api } from '@/lib/api';
 import { day, monthYear, num, price, rate, statusLabel, typeLabel } from '@/lib/format';
-import { abs, configSlug, media } from '@/lib/seo';
+import { abs, configSlug, media, projectPath } from '@/lib/seo';
 import { KIND_LABEL } from '@/lib/trust';
 import type { PropertyDetail } from '@/lib/types';
 
@@ -71,7 +71,7 @@ export default async function PropertyPage({ params }: Props) {
         {p.furnishing && <div><dt>Furnishing</dt><dd>{p.furnishing}</dd></div>}
         <div><dt>Status</dt><dd>{statusLabel(p.status)}</dd></div>
         {p.possession && <div><dt>Possession</dt><dd>{monthYear(p.possession)}</dd></div>}
-        {p.project && <div><dt>Project</dt><dd><Link href={`/projects/${p.project.slug}`}>{p.project.name}</Link></dd></div>}
+        {p.project && <div><dt>Project</dt><dd><Link href={projectPath(p.project)}>{p.project.name}</Link></dd></div>}
         {p.project?.reraId && <div><dt>RERA number</dt><dd>{p.project.reraId}</dd></div>}
         <div><dt>Listed by</dt><dd>{p.listedBy[0] + p.listedBy.slice(1).toLowerCase()}</dd></div>
         <div><dt>Listed on</dt><dd>{day(p.postedAt)}</dd></div>

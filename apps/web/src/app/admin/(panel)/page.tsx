@@ -24,7 +24,7 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
                 {o.projects.map((p) => (
                   <tr key={p.id}>
                     <td><Link href={`/admin/enquiries?project=${p.id}`}>{p.name}</Link></td><td>{p.locality.name}, {p.locality.city.name}</td><td>{p.leadsNew ? <Link href={`/admin/enquiries?project=${p.id}&status=NEW`}><strong>{p.leadsNew}</strong></Link> : 0}</td><td>{p.leadsWeek}</td><td>{p.leads}</td>
-                    <td><Link href={`/projects/${p.slug}`}>View page</Link></td>
+                    <td><Link href={`/projects/${p.slug}`} /* redirects to the project's address under its builder */>View page</Link></td>
                   </tr>
                 ))}
               </tbody>

@@ -11,13 +11,13 @@ export interface PropertyCard {
   slug: string; title: string; type: PropertyType; bhk: number; bathrooms: number; priceInr: number; areaSqft: number;
   status: Status; possession: string | null; listedBy: 'OWNER' | 'BUILDER' | 'AGENT'; postedAt: string;
   locality: Place & { city: Place };
-  project: (Place & { builder: string }) | null;
+  project: (Place & { builder: string; brand: Place | null }) | null;
   /** At most one on cards (the cover); every photo on the detail page. */
   photos: { file: string; width?: number; height?: number }[];
   /** How far the home and its seller are verified, 0 (not yet) to 3 (high). */
   confidence?: number;
 }
-export interface ProjectLink extends Place { builder: string; status: Status; locality?: { name: string }; registerSource?: string | null }
+export interface ProjectLink extends Place { builder: string; brand: Place | null; status: Status; locality?: { name: string }; registerSource?: string | null }
 
 export interface CitySummary extends Place { state: string; intro: string; localities: Place[]; stats: Stats; costs: CityCosts | null }
 export interface CityDetail extends Place {
@@ -28,7 +28,15 @@ export interface LocalityDetail extends Place {
   intro: string; highlights: string[]; lat: number; lng: number; city: Place & { state: string };
   stats: Stats; bhk: BhkRow[]; projects: ProjectLink[]; nearby: Place[];
 }
+/** A builder as buyers know it, across the companies its projects are registered under. */
+export interface BuilderSummary extends Place { projects: number; cities: string[] }
+export interface BuilderDetail extends Place {
+  registeredAs: string[]; cities: Place[];
+  projects: (Place & { builder: string; status: Status; reraId: string | null; registerSource: string | null; registerStatus: string | null; registerValidUntil: string | null; homes: number; locality: Place; city: Place })[];
+}
 export interface ProjectDetail extends Place {
+  /** The promoter's name as registered. `brand` is the builder page the project is listed under. */
+  brand: Place | null;
   builder: string; description: string; status: Status; possession: string | null; reraId: string | null; totalUnits: number | null; amenities: string[];
   /** Set when the page was made from a public RERA register and the builder has not confirmed it. */
   registerSource: string | null; registerName: string | null; registerStatus: string | null; registerValidUntil: string | null; sourceUrl: string | null; sourceFetchedAt: string | null;
@@ -39,7 +47,7 @@ export interface PropertyDetail extends Omit<PropertyCard, 'locality' | 'project
   confidence: Confidence; seller: PublicDealer | null; staffVerifiedAt: string | null;
   description: string; floor: number | null; totalFloors: number | null; facing: string | null; furnishing: string | null; amenities: string[];
   locality: Place & { lat: number; lng: number; highlights: string[] }; city: Place & { state: string };
-  project: (Place & { builder: string; reraId: string | null }) | null; localityStats: Stats; similar: PropertyCard[];
+  project: (Place & { builder: string; reraId: string | null; brand: Place | null }) | null; localityStats: Stats; similar: PropertyCard[];
   /** Government charges for the home's city; null when we have none on record. */
   costs: CityCosts | null;
 }
@@ -50,5 +58,6 @@ export interface SitemapData {
   configs: { city: string; locality: string; bhk: number; count: number }[];
   comparisons: { city: string; pair: string }[];
   properties: { slug: string; postedAt: string }[];
-  projects: { slug: string }[];
+  projects: { slug: string; brand: { slug: string } | null }[];
+  builders: { slug: string }[];
 }

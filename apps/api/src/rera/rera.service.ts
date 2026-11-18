@@ -1,3 +1,4 @@
+import { ensureBuilder } from '../catalog/builders';
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma, RegisterProject, RegisterSource } from '@prisma/client';
 import { slugify } from '../admin/input';
@@ -180,7 +181,7 @@ export class RegisterService {
     const validTo = r.validUntil ? r.validUntil.toLocaleDateString('en-IN', { month: 'long', year: 'numeric', timeZone: 'UTC' }) : null;
     const description = `${name} is a project by ${builder} in ${locality.name}, ${locality.city.name}, registered with ${SOURCE_NAME[r.source]} under number ${r.regNo}.${validTo ? ` Its registration ${r.validUntil! > new Date() ? 'runs' : 'ran'} to ${validTo}.` : ''}`;
     try {
-      const project = await this.db.project.create({ data: { slug, name, builder, description, amenities: [], totalUnits: null, localityId, ...this.registerFacts(r) } });
+      const project = await this.db.project.create({ data: { slug, name, builder, brandId: await ensureBuilder(this.db, builder), description, amenities: [], totalUnits: null, localityId, ...this.registerFacts(r) } });
       await this.db.registerProject.update({ where: { id: r.id }, data: { projectId: project.id, placedHow: how } });
       return project;
     } catch (e) {
@@ -210,7 +211,7 @@ export class RegisterService {
     };
     const page = Math.max(1, Number.parseInt(q.page ?? '1', 10) || 1);
     const [items, total] = await Promise.all([
-      this.db.registerProject.findMany({ where, orderBy: [{ name: 'asc' }], skip: (page - 1) * PAGE, take: PAGE, include: { project: { select: { id: true, slug: true, locality: { select: { name: true } } } } } }),
+      this.db.registerProject.findMany({ where, orderBy: [{ name: 'asc' }], skip: (page - 1) * PAGE, take: PAGE, include: { project: { select: { id: true, slug: true, brand: { select: { slug: true } }, locality: { select: { name: true } } } } } }),
       this.db.registerProject.count({ where }),
     ]);
     return { items, total, page, pageSize: PAGE };

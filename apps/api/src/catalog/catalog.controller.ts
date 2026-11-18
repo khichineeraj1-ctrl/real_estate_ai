@@ -25,6 +25,8 @@ export class CatalogController {
   @Get('cities') cities() { return this.catalog.cities(); }
   @Get('cities/:slug') city(@Param('slug') slug: string) { return this.catalog.city(slug); }
   @Get('localities/:city/:slug') locality(@Param('city') city: string, @Param('slug') slug: string) { return this.catalog.locality(city, slug); }
+  @Get('builders') builders() { return this.catalog.builders(); }
+  @Get('builders/:slug') builder(@Param('slug') slug: string) { return this.catalog.builder(slug); }
   @Get('projects/:slug') project(@Param('slug') slug: string) { return this.catalog.project(slug); }
   @Get('properties/:slug') property(@Param('slug') slug: string) { return this.catalog.property(slug); }
   @Get('sitemap') sitemap() { return this.catalog.sitemap(); }

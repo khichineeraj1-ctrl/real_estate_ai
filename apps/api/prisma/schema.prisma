@@ -76,11 +76,28 @@ model Locality {
   @@unique([cityId, slug])
 }
 
+/// A builder as buyers know it: one page listing every project of the group, whichever of its companies registered each one.
+model Builder {
+  id       String    @id @default(cuid())
+  slug     String    @unique
+  name     String
+  projects Project[]
+  /// Set when this builder was merged into another. The row is kept so its old address leads to the other builder,
+  /// and so later projects registered under the same company name go to that builder too.
+  mergedIntoId String?
+  mergedInto   Builder?  @relation("Merged", fields: [mergedIntoId], references: [id], onDelete: SetNull)
+  mergedFrom   Builder[] @relation("Merged")
+}
+
 model Project {
   id          String             @id @default(cuid())
   slug        String             @unique
   name        String
+  /// The promoter's name as registered or entered, e.g. "DLF Home Developers Limited".
   builder     String
+  /// The builder page this project is listed under. The project's address is /builders/<builder>/<project>.
+  brandId     String?
+  brand       Builder?           @relation(fields: [brandId], references: [id], onDelete: SetNull)
   description String
   status      ConstructionStatus
   possession  DateTime?
@@ -105,6 +122,8 @@ model Project {
   locality    Locality           @relation(fields: [localityId], references: [id])
   properties  Property[]
   enquiries   Enquiry[]
+
+  @@index([brandId])
 }
 
 model Property {

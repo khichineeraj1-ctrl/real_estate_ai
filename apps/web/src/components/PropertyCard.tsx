@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { monthYear, num, price, statusLabel, typeLabel } from '@/lib/format';
-import { media } from '@/lib/seo';
+import { media, projectPath } from '@/lib/seo';
 import { ConfidenceBadge } from './Confidence';
 import { CompareToggle } from './tools/Compare';
 import type { PropertyCard as Card } from '@/lib/types';
@@ -26,7 +26,7 @@ export function PropertyCard({ p }: { p: Card }) {
       </ul>
       <p className="card-foot">
         <Link href={`/${p.locality.city.slug}/${p.locality.slug}`}>{p.locality.name}</Link>, {p.locality.city.name}
-        {p.project && <> · <Link href={`/projects/${p.project.slug}`}>{p.project.name}</Link></>}
+        {p.project && <> · <Link href={projectPath(p.project)}>{p.project.name}</Link></>}
       </p>
       <CompareToggle slug={p.slug} title={p.title} />
     </article>

@@ -10,6 +10,7 @@ export async function Header() {
       <div className="wrap">
         <Link href="/" className="logo"><span className="orb" aria-hidden="true" />{BRAND}</Link>
         <nav aria-label="Cities">{cities.map((c) => <Link key={c.slug} href={`/${c.slug}`}>{c.name}</Link>)}</nav>
+        <Link href="/builders" className="post-link">Builders</Link>
         <Link href="/tools" className="post-link">Tools</Link>
         <Link href="/post-property" className="post-link">Post property</Link>
         <Link href="/ask" className="ask-link">Ask</Link>

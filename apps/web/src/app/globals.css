@@ -419,3 +419,8 @@ body:has(> .auth-page) { display: grid; place-items: center; min-height: 100vh; 
 .atable .ainline .abtn { padding: 5px 12px; font-size: .85rem; }
 
 .empty { background: var(--soft); border: 1px dashed var(--line); border-radius: var(--radius); padding: 18px; color: var(--muted); margin: 0; }
+
+.az h3 { margin: 22px 0 6px; padding-top: 10px; border-top: 1px solid var(--line); scroll-margin-top: 80px; }
+.az ul { list-style: none; margin: 0; padding: 0; columns: 3 220px; column-gap: 24px; }
+.az li { padding: 3px 0; break-inside: avoid; }
+.az small { color: var(--muted); }

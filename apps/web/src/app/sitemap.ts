@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { api } from '@/lib/api';
-import { SITE_URL, configSlug } from '@/lib/seo';
+import { SITE_URL, configSlug, projectPath } from '@/lib/seo';
 import type { SitemapData } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -17,7 +17,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...data.cities.map((c) => ({ url: `${SITE_URL}/${c.slug}`, changeFrequency: 'daily' as const, priority: 0.9 })),
     ...data.cities.flatMap((c) => c.localities.map((l) => ({ url: `${SITE_URL}/${c.slug}/${l}`, changeFrequency: 'daily' as const, priority: 0.8 }))),
     ...data.configs.map((c) => ({ url: `${SITE_URL}/${c.city}/${c.locality}/${configSlug(c.bhk)}`, changeFrequency: 'daily' as const, priority: 0.7 })),
-    ...data.projects.map((p) => ({ url: `${SITE_URL}/projects/${p.slug}`, changeFrequency: 'weekly' as const, priority: 0.7 })),
+    { url: `${SITE_URL}/builders`, changeFrequency: 'weekly' as const, priority: 0.6 },
+    ...(data.builders ?? []).map((b) => ({ url: `${SITE_URL}/builders/${b.slug}`, changeFrequency: 'weekly' as const, priority: 0.7 })),
+    ...data.projects.map((p) => ({ url: `${SITE_URL}${projectPath(p)}`, changeFrequency: 'weekly' as const, priority: 0.7 })),
     ...data.properties.map((p) => ({ url: `${SITE_URL}/property/${p.slug}`, lastModified: new Date(p.postedAt), priority: 0.6 })),
   ];
 }

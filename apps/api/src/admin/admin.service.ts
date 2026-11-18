@@ -1,3 +1,4 @@
+import { ensureBuilder } from '../catalog/builders';
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException, OnModuleInit, UnauthorizedException } from '@nestjs/common';
 import { ConstructionStatus, LeadStatus, ListedBy, ListingState, Prisma, PropertyType, Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -479,11 +480,11 @@ export class AdminService implements OnModuleInit {
   projects() {
     return this.db.project.findMany({
       orderBy: { name: 'asc' },
-      select: { id: true, slug: true, name: true, builder: true, status: true, account: { select: { name: true } }, locality: { select: { name: true, city: { select: { name: true } } } }, _count: { select: { properties: true, enquiries: true } } },
+      select: { id: true, slug: true, name: true, builder: true, brand: { select: { slug: true, name: true } }, status: true, account: { select: { name: true } }, locality: { select: { name: true, city: { select: { name: true } } } }, _count: { select: { properties: true, enquiries: true } } },
     });
   }
   async project(id: string) {
-    const p = await this.db.project.findUnique({ where: { id }, include: { _count: { select: { enquiries: true } } } });
+    const p = await this.db.project.findUnique({ where: { id }, include: { brand: { select: { slug: true, name: true } }, _count: { select: { enquiries: true } } } });
     if (!p) throw new NotFoundException('Project not found');
     return p;
   }
@@ -510,13 +511,42 @@ export class AdminService implements OnModuleInit {
     const { data, locality } = await this.projectData(body);
     const slug = slugify(`${data.name} ${locality.name} ${locality.city.name}`);
     if (await this.db.project.findUnique({ where: { slug }, select: { id: true } })) throw new ConflictException('A project with this name already exists in that locality');
-    return this.db.project.create({ data: { ...data, slug } });
+    return this.db.project.create({ data: { ...data, slug, brandId: await ensureBuilder(this.db, data.builder) } });
   }
   async updateProject(id: string, body: Record<string, unknown>) {
     const current = await this.project(id);
     const { data } = await this.projectData(body);
     if (data.localityId !== current.localityId && (await this.db.property.count({ where: { projectId: id } }))) throw new ConflictException('This project has listings, so it cannot be moved to another locality');
-    return this.db.project.update({ where: { id }, data });
+    // A changed builder name moves the project to that builder's page; an unchanged one stays where a person may have merged it.
+    return this.db.project.update({ where: { id }, data: { ...data, ...(data.builder !== current.builder || !current.brandId ? { brandId: await ensureBuilder(this.db, data.builder) } : {}) } });
+  }
+
+  // ---- Builder pages (the public /builders/<builder> pages; not the builder logins)
+
+  builderPages() {
+    return this.db.builder.findMany({ where: { mergedIntoId: null }, orderBy: { name: 'asc' }, select: { id: true, slug: true, name: true, _count: { select: { projects: true } } } });
+  }
+  async builderPage(id: string) {
+    const b = await this.db.builder.findUnique({ where: { id }, select: { id: true, slug: true, name: true, mergedIntoId: true, projects: { orderBy: { name: 'asc' }, select: { id: true, name: true, builder: true, locality: { select: { name: true, city: { select: { name: true } } } } } } } });
+    if (!b || b.mergedIntoId) throw new NotFoundException('Builder not found');
+    return b;
+  }
+  /** Changes the name shown on a builder's page. The address stays, so links to it keep working. */
+  async renameBuilderPage(id: string, body: Record<string, unknown>) {
+    await this.builderPage(id);
+    return this.db.builder.update({ where: { id }, data: { name: new Input(body).text('name', 'Name', 120) } });
+  }
+  /**
+   * Moves every project of one builder page onto another, for companies of one group. The emptied builder is kept as a
+   * pointer, so its old address leads to the other builder and later projects under the same company name follow.
+   */
+  async mergeBuilderPage(id: string, body: Record<string, unknown>) {
+    const intoId = new Input(body).text('intoId', 'Builder to merge into');
+    if (intoId === id) throw new BadRequestException('Choose a different builder to merge into');
+    const [from, into] = await Promise.all([this.builderPage(id), this.db.builder.findFirst({ where: { id: intoId, mergedIntoId: null }, select: { id: true, name: true } })]);
+    if (!into) throw new BadRequestException('Choose a builder from the list');
+    await this.db.$transaction([this.db.project.updateMany({ where: { brandId: from.id }, data: { brandId: into.id } }), this.db.builder.updateMany({ where: { OR: [{ id: from.id }, { mergedIntoId: from.id }] }, data: { mergedIntoId: into.id } })]);
+    return { ok: true, moved: from.projects.length, into: into.name };
   }
   /** Builder logins, for the "Builder login" choice on a project. */
   builders() { return this.db.user.findMany({ where: { role: 'BUILDER' }, orderBy: { name: 'asc' }, select: { id: true, name: true, email: true, active: true } }); }

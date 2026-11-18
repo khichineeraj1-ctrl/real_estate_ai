@@ -10,7 +10,7 @@ import { Stats } from '@/components/Stats';
 import { api } from '@/lib/api';
 import { areaFaqs } from '@/lib/faqs';
 import { price, statusLabel } from '@/lib/format';
-import { itemListLd } from '@/lib/seo';
+import { itemListLd, projectPath } from '@/lib/seo';
 import type { CityDetail, Listing } from '@/lib/types';
 
 type Props = { params: Promise<{ city: string }> };
@@ -66,7 +66,7 @@ export default async function CityPage({ params }: Props) {
         <h2>Projects in {city.name}</h2>
         <ul className="tiles">
           {city.projects.map((p) => (
-            <li key={p.slug}><Link href={`/projects/${p.slug}`}><strong>{p.name}</strong><span>{p.locality?.name} · {p.builder}</span><span>{p.registerSource ? 'From the RERA register' : statusLabel(p.status)}</span></Link></li>
+            <li key={p.slug}><Link href={projectPath(p)}><strong>{p.name}</strong><span>{p.locality?.name} · {p.builder}</span><span>{p.registerSource ? 'From the RERA register' : statusLabel(p.status)}</span></Link></li>
           ))}
         </ul>
       </section>
