@@ -23,9 +23,11 @@ export default function Locality() {
     <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
       <Stack.Screen options={{ title: l.name }} />
       <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 22, fontWeight: '700' }}>Property in {l.name}, {l.city.name}</Text>
-      <Text style={{ color: t.muted }}>
-        {l.stats.count} homes · {price(l.stats.minPrice)} – {price(l.stats.maxPrice)} · avg ₹{num(l.stats.avgRate)}/sq ft
-      </Text>
+      {l.stats.count > 0 && (
+        <Text style={{ color: t.muted }}>
+          {l.stats.count} homes · {price(l.stats.minPrice)} – {price(l.stats.maxPrice)} · avg ₹{num(l.stats.avgRate)}/sq ft
+        </Text>
+      )}
       <View style={{ gap: 2 }}>{l.highlights.map((h) => <Text key={h} style={{ color: t.fg }}>• {h}</Text>)}</View>
       {l.nearby?.length > 0 && (
         <View style={{ gap: 6 }}>
@@ -40,6 +42,22 @@ export default function Locality() {
         </View>
       )}
       {listing.items.map((p) => <PropertyCard key={p.slug} p={p} />)}
+      {listing.items.length === 0 && (
+        <View style={{ borderWidth: 1, borderStyle: 'dashed', borderColor: t.line, backgroundColor: t.soft, borderRadius: 14, padding: 14 }}>
+          <Text style={{ color: t.muted, lineHeight: 21 }}>No homes are listed in {l.name} yet. Prices appear here only when a real owner, agent or builder posts a home.</Text>
+        </View>
+      )}
+      {l.projects?.length > 0 && (
+        <View style={{ gap: 8 }}>
+          <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 18, fontWeight: '700' }}>Projects in {l.name}</Text>
+          {l.projects.map((p) => (
+            <View key={p.slug} style={{ borderWidth: 1, borderColor: t.line, backgroundColor: t.card, borderRadius: 14, padding: 12, gap: 2 }}>
+              <Text style={{ color: t.fg, fontWeight: '600' }}>{p.name}</Text>
+              <Text style={{ color: t.muted, fontSize: 13 }}>{p.builder}{p.registerSource ? ' · from the RERA register' : ''}</Text>
+            </View>
+          ))}
+        </View>
+      )}
     </ScrollView>
   );
 }

@@ -19,6 +19,7 @@ export interface CitySummary extends Place { state: string; localities: Place[];
 export interface LocalityDetail extends Place {
   intro: string; highlights: string[]; city: Place & { state: string }; stats: Stats;
   bhk: { bhk: number; count: number; minPrice: number | null }[]; nearby: Place[];
+  projects: (Place & { builder: string; registerSource: string | null })[];
 }
 export interface Listing { items: PropertyCard[]; total: number; stats: Stats }
 export interface PropertyDetail extends Omit<PropertyCard, 'locality' | 'project' | 'confidence'> {

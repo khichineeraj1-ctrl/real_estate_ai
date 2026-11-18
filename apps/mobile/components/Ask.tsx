@@ -56,7 +56,7 @@ export function Ask({ header }: { header?: React.ReactNode }) {
           <View style={{ gap: 14 }}>
             {header}
             <Text style={[s.hero, { color: t.brand }]}>Ask. Find your home.</Text>
-            <Text style={{ color: t.muted, fontSize: 16, lineHeight: 23 }}>Type or speak your question and get a straight answer with matching homes in Gurgaon, Bengaluru, Mumbai and Pune.</Text>
+            <Text style={{ color: t.muted, fontSize: 16, lineHeight: 23 }}>Type or speak your question and get a straight answer about homes and builder projects in Gurgaon, Bengaluru, Mumbai and Pune.</Text>
             <View style={{ gap: 8, marginTop: 6 }}>
               {EXAMPLES.map((q) => (
                 <Pressable key={q} accessibilityRole="button" onPress={() => send(q)} style={[s.chip, { borderColor: t.line, backgroundColor: t.soft }]}>

@@ -20,7 +20,7 @@ export default function Browse() {
         <View key={c.slug} style={{ gap: 10 }}>
           <View>
             <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 20, fontWeight: '700' }}>{c.name}</Text>
-            <Text style={{ color: t.muted }}>{c.stats.count} homes · from {price(c.stats.minPrice)}</Text>
+            <Text style={{ color: t.muted }}>{c.stats.count ? `${c.stats.count} homes · from ${price(c.stats.minPrice)}` : `${c.localities.length} localities · no homes listed yet`}</Text>
           </View>
           <View style={s.chips}>
             {c.localities.map((l) => (
