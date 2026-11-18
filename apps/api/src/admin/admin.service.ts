@@ -302,14 +302,37 @@ export class AdminService implements OnModuleInit {
 
   // ---- Enquiries from buyers. Staff see all; an owner or agent sees those on their own listings.
 
-  async enquiries(user: SessionUser, q: { page?: string }) {
-    const where: Prisma.EnquiryWhereInput = isStaff(user) ? {} : { property: { ownerId: user.id } };
+  /** Staff may narrow to leads on projects, enquiries on single listings, or one project; an owner or agent only ever sees their own listings' enquiries. */
+  private enquiryWhere(user: SessionUser, q: { kind?: string; project?: string }): Prisma.EnquiryWhereInput {
+    if (!isStaff(user)) return { property: { ownerId: user.id } };
+    if (q.project) return { projectId: q.project };
+    return q.kind === 'project' ? { propertyId: null } : q.kind === 'listing' ? { propertyId: { not: null } } : {};
+  }
+
+  async enquiries(user: SessionUser, q: { page?: string; kind?: string; project?: string }) {
+    const where = this.enquiryWhere(user, q);
     const p = page(q.page);
-    const [items, total] = await Promise.all([
-      this.db.enquiry.findMany({ where, orderBy: { createdAt: 'desc' }, skip: (p - 1) * 50, take: 50, include: { property: { select: { id: true, slug: true, title: true, state: true } } } }),
+    const [items, total, project] = await Promise.all([
+      this.db.enquiry.findMany({
+        where, orderBy: { createdAt: 'desc' }, skip: (p - 1) * 50, take: 50,
+        include: { property: { select: { id: true, slug: true, title: true, state: true } }, project: { select: { id: true, slug: true, name: true } } },
+      }),
       this.db.enquiry.count({ where }),
+      isStaff(user) && q.project ? this.db.project.findUnique({ where: { id: q.project }, select: { id: true, name: true, builder: true } }) : null,
     ]);
-    return { items, total, page: p, pageSize: 50 };
+    return { items, total, page: p, pageSize: 50, project };
+  }
+
+  /** The same leads as a spreadsheet file, for handing a project's leads to its builder. Staff only. */
+  async enquiriesCsv(user: SessionUser, q: { kind?: string; project?: string }) {
+    const rows = await this.db.enquiry.findMany({
+      where: this.enquiryWhere(user, q), orderBy: { createdAt: 'desc' }, take: 5000,
+      include: { property: { select: { title: true } }, project: { select: { name: true } } },
+    });
+    // Quoted throughout; a leading apostrophe stops a spreadsheet from running a cell that starts like a formula.
+    const cell = (v: string | null | undefined) => { const t = v ?? ''; return `"${(/^[=+\-@\t\r]/.test(t) ? `'${t}` : t).replace(/"/g, '""')}"`; };
+    const lines = rows.map((e) => [e.createdAt.toISOString(), e.project?.name, e.property?.title, e.name, e.phone, e.email, e.interest, e.message].map(cell).join(','));
+    return ['"received","project","listing","name","phone","email","interested_in","message"', ...lines].join('\r\n') + '\r\n';
   }
 
   // ---- Bulk import
@@ -360,11 +383,11 @@ export class AdminService implements OnModuleInit {
   projects() {
     return this.db.project.findMany({
       orderBy: { name: 'asc' },
-      select: { id: true, slug: true, name: true, builder: true, status: true, locality: { select: { name: true, city: { select: { name: true } } } }, _count: { select: { properties: true } } },
+      select: { id: true, slug: true, name: true, builder: true, status: true, locality: { select: { name: true, city: { select: { name: true } } } }, _count: { select: { properties: true, enquiries: true } } },
     });
   }
   async project(id: string) {
-    const p = await this.db.project.findUnique({ where: { id } });
+    const p = await this.db.project.findUnique({ where: { id }, include: { _count: { select: { enquiries: true } } } });
     if (!p) throw new NotFoundException('Project not found');
     return p;
   }
@@ -374,12 +397,14 @@ export class AdminService implements OnModuleInit {
     const locality = await this.db.locality.findUnique({ where: { id: localityId }, select: { name: true, city: { select: { name: true } } } });
     if (!locality) throw new BadRequestException('Choose a locality from the list');
     const status = i.oneOf('status', 'Status', Object.values(ConstructionStatus));
+    const leadEmail = i.optionalText('leadEmail', 'Sales email for leads', 160);
+    if (leadEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(leadEmail)) throw new BadRequestException('Enter a valid sales email, or leave it empty');
     return {
       locality,
       data: {
         name: i.text('name', 'Name', 120), builder: i.text('builder', 'Builder', 120), description: i.text('description', 'Description', 2000), status,
         possession: status === 'UNDER_CONSTRUCTION' ? i.optionalMonth('possession', 'Possession') : null, reraId: i.optionalText('reraId', 'RERA number', 80),
-        totalUnits: i.number('totalUnits', 'Total units', 1, 50_000), amenities: i.list('amenities', 'Amenities'), localityId,
+        totalUnits: i.number('totalUnits', 'Total units', 1, 50_000), amenities: i.list('amenities', 'Amenities'), leadEmail: leadEmail ? normalEmail(leadEmail) : null, localityId,
       },
     };
   }

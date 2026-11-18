@@ -185,3 +185,7 @@ ol.bullets li { margin-bottom: 4px; }
 .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 .awrap { white-space: normal !important; min-width: 200px; }
 .gallery img, .card-photo img, .aphotos img { height: 100%; }
+
+.enquiry > p { color: var(--muted); margin-top: -6px; }
+.afield select { appearance: auto; }
+.atable small { color: var(--muted); }

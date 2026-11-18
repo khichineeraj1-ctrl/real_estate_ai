@@ -75,9 +75,12 @@ model Project {
   reraId      String?
   totalUnits  Int
   amenities   String[]
+  /// The builder's sales address. When set, each lead on this project is emailed there as it arrives.
+  leadEmail   String?
   localityId  String
   locality    Locality           @relation(fields: [localityId], references: [id])
   properties  Property[]
+  enquiries   Enquiry[]
 }
 
 model Property {
@@ -182,9 +185,16 @@ model Enquiry {
   phone      String
   email      String?
   message    String?
+  /// What the buyer said they want on a project lead, e.g. "3 BHK".
+  interest   String?
   createdAt  DateTime @default(now())
-  propertyId String
-  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  /// Set for an enquiry about one listing.
+  propertyId String?
+  property   Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  /// Set for a lead on a builder project, and for a listing enquiry when that listing belongs to a project.
+  projectId  String?
+  project    Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
   @@index([propertyId, createdAt])
+  @@index([projectId, createdAt])
 }

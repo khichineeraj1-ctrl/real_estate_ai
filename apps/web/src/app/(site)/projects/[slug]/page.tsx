@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AskBox } from '@/components/AskBox';
+import { EnquiryForm } from '@/components/EnquiryForm';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { JsonLd } from '@/components/JsonLd';
 import { PropertyGrid } from '@/components/PropertyCard';
@@ -39,6 +40,13 @@ export default async function ProjectPage({ params }: Props) {
         {p.reraId && <div><dt>RERA number</dt><dd>{p.reraId}</dd></div>}
         <div><dt>Locality</dt><dd><Link href={localityPath}>{p.locality.name}</Link></dd></div>
       </dl>
+
+      <section className="section enquiry" id="contact">
+        <h2>Get prices, floor plans and a site visit</h2>
+        <p>Leave your details and the sales team for {p.name} will call you back.</p>
+        <EnquiryForm kind="project" slug={p.slug} projectName={p.name} interests={p.bhk.map((b) => `${b.bhk} BHK`)} />
+      </section>
+
       <AskBox context={`${p.locality.name}, ${p.city.name}`} placeholder={`Ask about homes near ${p.name}`} />
 
       <section className="section">

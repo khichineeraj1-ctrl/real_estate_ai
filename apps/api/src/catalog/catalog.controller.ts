@@ -38,6 +38,14 @@ export class CatalogController {
     return this.catalog.enquire(slug, body);
   }
 
+  @Post('projects/:slug/enquiries')
+  @HttpCode(200)
+  enquireProject(@Param('slug') slug: string, @Body() body: Record<string, unknown> & { visitor?: unknown }, @Ip() ip: string) {
+    const who = typeof body?.visitor === 'string' && body.visitor ? body.visitor.slice(0, 64) : ip;
+    if (!this.enquiries.allow(who)) throw new HttpException('Too many enquiries in a short time. Please try again in a minute.', 429);
+    return this.catalog.enquireProject(slug, body);
+  }
+
   @Get('properties')
   properties(@Query() q: Record<string, string | undefined>) {
     const f: PropertyFilters = {

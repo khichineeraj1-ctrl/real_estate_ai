@@ -89,6 +89,11 @@ during the site build, because the home page is prerendered from it).
   name and phone, agrees to share them, and is then shown the seller's name and phone; the seller is emailed and sees
   the enquiry under **Enquiries**. Listings without a seller account (seed, imported, staff-added) tell the buyer our
   team will call, and staff see those enquiries. Limited to four a minute per visitor, with a hidden field to catch bots.
+- **Leads on builder projects**: every project page has a "Request a call back" form (name, phone, the size they want).
+  No phone number is shown to the buyer; the lead is kept for staff under **Enquiries → Builder projects**. A project
+  can have a **sales email** (set on its admin page, never shown publicly): each lead on the project, and on the
+  builder's own listings in it, is emailed there as it arrives. Staff can download a project's leads, or all
+  enquiries, as a spreadsheet (CSV). Builders do not have their own login to see leads yet.
 - **Photos**: up to 12 per listing, JPEG/PNG/WebP up to 5 MB each; the first is the cover. Each upload is re-encoded
   into two WebP files, a full size (longest side 1600px) and a 640×480 card size used in listings, which also turns
   the photo upright and removes embedded data such as GPS position. Files get random names in `apps/api/uploads`
@@ -123,7 +128,7 @@ you can copy the link from the terminal running `npm run dev:api`. Sending throu
 | `/[city]` | City overview, localities, projects | `BreadcrumbList`, `ItemList`, `FAQPage` |
 | `/[city]/[locality]` | Locality facts and all its homes | `BreadcrumbList`, `ItemList`, `FAQPage`, `Place` |
 | `/[city]/[locality]/[n]-bhk-flats` | One size in one locality | `BreadcrumbList`, `ItemList`, `FAQPage` |
-| `/projects/[slug]` | Builder project and its homes | `BreadcrumbList`, `ApartmentComplex`, `ItemList` |
+| `/projects/[slug]` | Builder project, its homes and a lead form | `BreadcrumbList`, `ApartmentComplex`, `ItemList` |
 | `/property/[slug]` | One home, with its photos | `BreadcrumbList`, `RealEstateListing` with `Offer` and `image` |
 | `/post-property` | Sign-up for owners, agents and builders | `FAQPage` |
 | `/ask?q=…` | Server-rendered answer | none; `noindex, follow` |
@@ -136,6 +141,7 @@ you can copy the link from the terminal running `npm run dev:api`. Sending throu
 
 ## Not done yet
 
-Buyer accounts and saved searches, a status on enquiries (new / contacted), reordering photos, object storage for
+Buyer accounts and saved searches, a status on enquiries (new / contacted), builder logins for viewing their own leads,
+a project screen and lead form in the mobile app, reordering photos, object storage for
 photos, pagination beyond 48 homes per listing page, a real listings feed, native speech-to-text on phones, a
 Content-Security-Policy header, and deployment.

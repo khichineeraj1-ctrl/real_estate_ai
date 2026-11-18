@@ -113,7 +113,7 @@ export class CatalogService {
       this.stats({ project: slug }),
       this.bhkBreakdown({ project: slug }),
     ]);
-    const { locality, localityId, id, ...rest } = project;
+    const { locality, localityId, id, leadEmail, ...rest } = project; // the builder's sales address is for our use only
     return { ...rest, locality: { slug: locality.slug, name: locality.name, lat: locality.lat, lng: locality.lng }, city: { slug: locality.city.slug, name: locality.city.name, state: locality.city.state }, properties, stats, bhk };
   }
 
@@ -148,22 +148,51 @@ export class CatalogService {
    * emailed, and the buyer gets the seller's name and phone in return (or is told our team will call, for listings
    * that have no seller account).
    */
-  async enquire(slug: string, body: Record<string, unknown>) {
+  private buyer(body: Record<string, unknown>) {
     const i = new Input(body);
     const name = i.text('name', 'Your name', 80);
     const phone = i.text('phone', 'Phone', 20).replace(/[\s()-]/g, '');
     if (!/^\+?\d{10,13}$/.test(phone)) throw new BadRequestException('Enter a phone number with 10 to 13 digits');
     const email = i.optionalText('email', 'Email', 160);
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new BadRequestException('Enter a valid email address, or leave it empty');
-    const message = i.optionalText('message', 'Message', 500);
-    const p = await this.db.property.findFirst({ where: { slug, state: 'PUBLISHED' }, select: { id: true, title: true, owner: { select: { name: true, phone: true, email: true, role: true, active: true } } } });
+    return { name, phone, email, message: i.optionalText('message', 'Message', 500), interest: i.optionalText('interest', 'Interested in', 40) };
+  }
+
+  /**
+   * A lead on a builder project. Unlike a listing enquiry, nobody's phone number is shown to the buyer: the lead is
+   * kept for our team and, when the project has a sales address, emailed to the builder.
+   */
+  async enquireProject(slug: string, body: Record<string, unknown>) {
+    const b = this.buyer(body);
+    const project = await this.db.project.findUnique({ where: { slug }, select: { id: true, name: true, leadEmail: true, locality: { select: { name: true, city: { select: { name: true } } } } } });
+    if (!project) throw new NotFoundException('Project not found');
+    await this.db.enquiry.create({ data: { projectId: project.id, ...b } });
+    if (project.leadEmail) {
+      await this.mail.send({
+        to: project.leadEmail, subject: `New lead: ${project.name}, ${project.locality.name}`,
+        text: `A buyer asked about ${project.name} in ${project.locality.name}, ${project.locality.city.name}.\n\nName: ${b.name}\nPhone: ${b.phone}${b.email ? `\nEmail: ${b.email}` : ''}${b.interest ? `\nInterested in: ${b.interest}` : ''}${b.message ? `\nMessage: ${b.message}` : ''}\n\nThe buyer agreed to be contacted about this project.`,
+      });
+    }
+    return { ok: true };
+  }
+
+  async enquire(slug: string, body: Record<string, unknown>) {
+    const { name, phone, email, message } = this.buyer(body);
+    const p = await this.db.property.findFirst({ where: { slug, state: 'PUBLISHED' }, select: { id: true, title: true, projectId: true, project: { select: { name: true, leadEmail: true } }, owner: { select: { name: true, phone: true, email: true, role: true, active: true } } } });
     if (!p) throw new NotFoundException('Property not found');
-    await this.db.enquiry.create({ data: { propertyId: p.id, name, phone, email, message } });
+    await this.db.enquiry.create({ data: { propertyId: p.id, projectId: p.projectId, name, phone, email, message } });
     const seller = p.owner?.active && p.owner.role === 'AGENT' && p.owner.phone ? p.owner : null;
     if (seller) {
       await this.mail.send({
         to: seller.email, subject: `New enquiry: ${p.title}`,
         text: `Hello ${seller.name},\n\n${name} is interested in your listing "${p.title}".\n\nPhone: ${phone}${email ? `\nEmail: ${email}` : ''}${message ? `\nMessage: ${message}` : ''}\n\nAll your enquiries: ${SITE_URL}/admin/enquiries`,
+      });
+    }
+    // A listing with no seller account that belongs to a builder project is the builder's own stock: the lead goes to their sales address.
+    if (!seller && p.project?.leadEmail) {
+      await this.mail.send({
+        to: p.project.leadEmail, subject: `New lead: ${p.project.name}`,
+        text: `A buyer asked about "${p.title}".\n\nName: ${name}\nPhone: ${phone}${email ? `\nEmail: ${email}` : ''}${message ? `\nMessage: ${message}` : ''}\n\nThe buyer agreed to be contacted about this home.`,
       });
     }
     return { ok: true, seller: seller ? { name: seller.name, phone: seller.phone } : null };
