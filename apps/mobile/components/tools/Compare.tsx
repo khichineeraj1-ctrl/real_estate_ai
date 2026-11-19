@@ -10,13 +10,15 @@ import { useTheme, type Theme } from '../../lib/theme';
  */
 export const MAX_COMPARE = 4;
 export type Kind = 'homes' | 'projects';
-interface Pick { slug: string; title: string }
+/** `sub` and `image` are kept when the picker knows them, so the board can show more than a name. */
+export interface Pick { slug: string; title: string; sub?: string; image?: string }
+export const setPicks = (kind: Kind, next: Pick[]) => set(kind, next.slice(0, MAX_COMPARE));
 const lists: Record<Kind, Pick[]> = { homes: [], projects: [] };
 const WORD: Record<Kind, [string, string]> = { homes: ['home', 'homes'], projects: ['project', 'projects'] };
 const listeners = new Set<() => void>();
 const set = (kind: Kind, next: Pick[]) => { lists[kind] = next; listeners.forEach((l) => l()); };
 const subscribe = (l: () => void) => { listeners.add(l); return () => { listeners.delete(l); }; };
-const usePicks = (kind: Kind) => useSyncExternalStore(subscribe, () => lists[kind], () => lists[kind]);
+export const usePicks = (kind: Kind) => useSyncExternalStore(subscribe, () => lists[kind], () => lists[kind]);
 
 export function CompareToggle({ slug, title, kind = 'homes' }: Pick & { kind?: Kind }) {
   const t = useTheme();

@@ -9,6 +9,7 @@ export default function Home() {
     <>
       <Stack.Screen options={{ headerRight: () => (
         <View style={{ flexDirection: 'row' }}>
+          <Link href="/compare" style={{ color: t.brand, fontWeight: '600', fontSize: 16, paddingHorizontal: 8 }}><Text>Compare</Text></Link>
           <Link href="/tools" style={{ color: t.brand, fontWeight: '600', fontSize: 16, paddingHorizontal: 8 }}><Text>Tools</Text></Link>
           <Link href="/browse" style={{ color: t.brand, fontWeight: '600', fontSize: 16, paddingHorizontal: 8 }}><Text>Browse</Text></Link>
         </View>

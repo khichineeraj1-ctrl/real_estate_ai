@@ -2,6 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Cover } from '../components/Cover';
+import { CompareStudio } from '../components/tools/CompareStudio';
 import { ConnectButton } from '../components/LeadForm';
 import { getCompareProjects, type CompareProject } from '../lib/api';
 import { monthYear, num, price } from '../lib/format';
@@ -31,14 +32,7 @@ export default function CompareProjects() {
 
   if (error) return <Text style={{ color: t.danger, padding: 16 }}>{error}</Text>;
   if (!ps) return <ActivityIndicator style={{ marginTop: 40 }} color={t.brand} />;
-  if (ps.length < 2) {
-    return (
-      <View style={{ padding: 16, gap: 10 }}>
-        <Text style={{ color: t.fg, fontSize: 20, fontWeight: '700' }}>Compare builder projects</Text>
-        <Text style={{ color: t.muted, fontSize: 16, lineHeight: 23 }}>Choose two to four projects: tap “⇄ Compare” on any project, then “Compare” in the bar that appears.</Text>
-      </View>
-    );
-  }
+  if (ps.length < 2) return <CompareStudio />;
 
   const st = ps.map(standing);
   const differ = (flags: boolean[]) => (flags.some(Boolean) && !flags.every(Boolean) ? flags : undefined);

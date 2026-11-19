@@ -91,6 +91,7 @@ export const getProperty = (slug: string) => call<PropertyDetail>(`/properties/$
 /** A builder project in a side-by-side comparison. */
 export type CompareProject = Omit<ProjectDetail, 'properties'> & { homes: number; builderProjects: number; localityProjects: number; highlights: string[] };
 export const getCompareProjects = (slugs: string[]) => call<CompareProject[]>(`/compare/projects?slugs=${encodeURIComponent(slugs.slice(0, 4).join(','))}`);
+export const searchProjects = (text: string, city?: string) => call<{ total: number; items: ProjectHit[] }>(`/projects?text=${encodeURIComponent(text.slice(0, 80))}${city ? `&city=${encodeURIComponent(city)}` : ''}`);
 export const getCompare = (slugs: string[]) => call<CompareHome[]>(`/compare?slugs=${encodeURIComponent(slugs.slice(0, 4).join(','))}`);
 export const ask = (message: string, history: Turn[], context?: string) =>
   call<AskResult>('/ask', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ message, history, context }) });

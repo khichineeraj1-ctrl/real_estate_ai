@@ -13,7 +13,7 @@ const TOOLS = [
   { href: '/tools/emi', icon: '🧮', ask: 'What will I pay each month?', name: 'EMI calculator', text: 'The monthly instalment on a home loan, and how much interest you pay.' },
   { href: '/tools/afford', icon: '🏠', ask: 'What is my budget?', name: 'How much home can I afford?', text: 'A budget from your income, existing EMIs and savings.' },
   { href: '/tools/cost', icon: '🧾', ask: 'What will I pay beyond the price?', name: 'True cost of buying', text: 'Stamp duty, registration and GST on top of the listed price, by city.' },
-  { href: '/compare', icon: '⚖️', ask: 'Which of these homes is better?', name: 'Compare homes', text: 'Up to four listings side by side. Tap “+ Compare” on any home to choose them.' },
+  { href: '/compare', icon: '⚖️', ask: 'Which one is better?', name: 'Compare', text: 'Projects, localities or homes side by side. Pick two and go.' },
 ] as const;
 
 /** One slider, three quick answers. Each answer opens the full tool for the detail. */

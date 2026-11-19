@@ -1,6 +1,7 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { CompareStudio } from '../components/tools/CompareStudio';
 import { getCompare, type CompareHome } from '../lib/api';
 import { LOAN_DEFAULTS, buyingCosts, loanPlan } from '../lib/finance';
 import { num, price, statusLabel, typeLabel } from '../lib/format';
@@ -11,7 +12,7 @@ const COL = 170;
 export default function Compare() {
   const t = useTheme();
   const router = useRouter();
-  const { ids } = useLocalSearchParams<{ ids?: string }>();
+  const { ids, tab } = useLocalSearchParams<{ ids?: string; tab?: string }>();
   const [homes, setHomes] = useState<CompareHome[] | null>(null);
   const [error, setError] = useState('');
   useEffect(() => {
@@ -22,14 +23,7 @@ export default function Compare() {
 
   if (error) return <Text style={{ color: t.danger, padding: 16 }}>{error}</Text>;
   if (!homes) return <ActivityIndicator style={{ marginTop: 40 }} color={t.brand} />;
-  if (homes.length < 2) {
-    return (
-      <View style={{ padding: 16, gap: 10 }}>
-        <Text style={{ color: t.fg, fontSize: 20, fontWeight: '700' }}>Compare homes side by side</Text>
-        <Text style={{ color: t.muted, fontSize: 16, lineHeight: 23 }}>Choose two to four homes: tap “+ Compare” on any listing, then “Compare” in the bar that appears.</Text>
-      </View>
-    );
-  }
+  if (homes.length < 2) return <><Stack.Screen options={{ title: 'Compare' }} /><CompareStudio start={tab === 'localities' || tab === 'homes' ? tab : 'projects'} /></>;
 
   const perSqft = (h: CompareHome) => Math.round(h.priceInr / h.areaSqft);
   const vsArea = (h: CompareHome) => (h.localityStats.avgRate ? Math.round(((perSqft(h) - h.localityStats.avgRate) / h.localityStats.avgRate) * 100) : null);
