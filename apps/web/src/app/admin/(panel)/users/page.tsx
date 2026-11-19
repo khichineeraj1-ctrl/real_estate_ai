@@ -5,7 +5,7 @@ import { day } from '@/lib/format';
 
 export const metadata = { title: 'Users' };
 interface Row { id: string; email: string; name: string; phone: string | null; role: string; active: boolean; createdAt: string; _count: { properties: number; projects: number } }
-const ROLE: Record<string, string> = { ADMIN: 'Admin', EDITOR: 'Editor', AGENT: 'Owner / agent', BUILDER: 'Builder' };
+const ROLE: Record<string, string> = { ADMIN: 'Admin', EDITOR: 'Editor', AGENT: 'Owner / agent', BUILDER: 'Builder', WRITER: 'Writer' };
 
 export default async function Users({ searchParams }: { searchParams: Promise<{ saved?: string }> }) {
   const rows = await adminGet<Row[]>('/users');

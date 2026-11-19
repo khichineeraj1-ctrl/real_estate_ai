@@ -978,3 +978,29 @@ p.follow-consent { margin: 0; }
   .aside-nav { display: none; flex: 1 1 100%; } .aside-nav.is-open { display: block; padding-top: 8px; }
   .atop { padding: 8px 14px; } .atop-me small { display: none; } .ashell .admin { padding: 16px 14px 48px; }
 }
+
+/* Writing: the editor beside a live preview, and how a written piece reads on the site. */
+.editor { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.editor-form { display: grid; gap: 14px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; box-shadow: var(--shadow); }
+.editor-form .afield em { font-style: normal; font-weight: 400; color: var(--muted); font-size: .8rem; }
+.editor-body { font-family: ui-monospace, SFMono-Regular, Menlo, monospace !important; font-size: .9rem !important; line-height: 1.6; resize: vertical; min-height: 360px; }
+.editor-help { font-size: .88rem; color: var(--muted); } .editor-help summary { cursor: pointer; font-weight: 600; color: var(--brand); } .editor-help ul { margin: 8px 0 0; padding-left: 1.1rem; display: grid; gap: 4px; } .editor-help code { background: var(--soft); border-radius: 6px; padding: 1px 6px; color: var(--fg); }
+.editor-preview { position: sticky; top: 74px; max-height: calc(100vh - 96px); overflow-y: auto; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 22px 24px; box-shadow: var(--shadow); }
+.editor-label { margin: 0 0 10px; font-size: .72rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.editor-status { margin: 0 0 14px; padding: 10px 14px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--muted); } .editor-status.is-submitted { border-left-color: #d97706; } .editor-status.is-published { border-left-color: var(--ready); }
+.editor-acts { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; margin-top: 18px; } .ashell .editor-acts .aform { padding: 12px; margin: 0; max-width: 360px; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.stats-cards { list-style: none; margin: 16px 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; } .stats-cards a { display: grid; gap: 2px; padding: 16px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; color: var(--fg); box-shadow: var(--shadow); } .stats-cards a:hover { border-color: var(--brand); text-decoration: none; } .stats-cards strong { font-size: 1.6rem; } .stats-cards span { color: var(--muted); font-size: .9rem; }
+@media (max-width: 1000px) { .editor { grid-template-columns: minmax(0, 1fr); } .editor-preview { position: static; max-height: none; } }
+.article-body h2 { display: flex; align-items: center; gap: 12px; margin: 30px 0 .6rem; font-size: 1.3rem; scroll-margin-top: 90px; } .article-body h2 span { flex: none; width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center; font-size: .85rem; font-weight: 800; color: var(--accent, var(--brand)); background: color-mix(in srgb, var(--accent, var(--brand)) 12%, transparent); }
+.article-body p, .article-body li { line-height: 1.75; font-size: 1.02rem; } .article-body ul { margin: 0 0 1rem; padding-left: 1.2rem; display: grid; gap: 6px; }
+
+/* Pieces by our writers: cards, the blog's lead post, and a guide page without a contents rail when it has no sections. */
+.acards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+.acards a { display: grid; gap: 6px; align-content: start; height: 100%; padding: 18px; color: var(--fg); background: var(--card); border: 1px solid var(--line); border-radius: 18px; transition: border-color .15s, transform .15s, box-shadow .15s; }
+.acards a:hover { border-color: var(--brand); transform: translateY(-3px); box-shadow: 0 14px 28px -18px color-mix(in srgb, var(--brand) 70%, transparent); text-decoration: none; }
+.acards strong { font-size: 1.05rem; line-height: 1.35; } .acards span { color: var(--muted); font-size: .9rem; line-height: 1.5; } .acards b { margin-top: 4px; color: var(--brand); font-size: .82rem; font-weight: 600; }
+.post-lead { display: grid; gap: 8px; margin: 16px 0 18px; padding: 28px; border-radius: 24px; color: #fff; background: radial-gradient(110% 140% at 100% 0%, #14b8a6 0%, transparent 55%), linear-gradient(135deg, #134e4a, #0f766e); transition: transform .18s; } .post-lead:hover { transform: translateY(-3px); text-decoration: none; }
+.post-lead strong { font-size: clamp(1.4rem, 3vw, 2rem); line-height: 1.25; max-width: 26ch; } .post-lead > span:not(.post-tag) { color: rgba(255, 255, 255, .88); max-width: 62ch; } .post-lead small { color: rgba(255, 255, 255, .72); }
+.post-tag { justify-self: start; font-size: .72rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; background: rgba(255, 255, 255, .18); border-radius: 999px; padding: 3px 10px; }
+.guide-cols.is-plain { grid-template-columns: minmax(0, 1fr); } .guide-more { margin-top: 36px; } .guide-more h2 { font-size: 1.15rem; }
+@media (prefers-reduced-motion: reduce) { .acards a, .post-lead { transition: none; } .acards a:hover, .post-lead:hover { transform: none; } }

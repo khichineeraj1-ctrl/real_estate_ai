@@ -10,6 +10,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const data = await api<SitemapData>('/sitemap');
   if (!data) return [{ url: SITE_URL }];
   const guides = (await api<{ slug: string }[]>('/guides')) ?? [];
+  const [posts, writtenGuides] = await Promise.all([api<{ slug: string }[]>('/articles?kind=BLOG'), api<{ slug: string }[]>('/articles?kind=GUIDE')]);
   return [
     { url: SITE_URL, changeFrequency: 'daily', priority: 1 },
     { url: `${SITE_URL}/post-property`, changeFrequency: 'monthly', priority: 0.5 },
@@ -17,6 +18,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/new-launches`, changeFrequency: 'weekly' as const, priority: 0.7 },
     { url: `${SITE_URL}/guides`, changeFrequency: 'monthly' as const, priority: 0.6 },
     ...guides.map((g) => ({ url: `${SITE_URL}/guides/${g.slug}`, changeFrequency: 'monthly' as const, priority: 0.6 })),
+    ...(writtenGuides ?? []).map((g) => ({ url: `${SITE_URL}/guides/${g.slug}`, changeFrequency: 'monthly' as const, priority: 0.6 })),
+    { url: `${SITE_URL}/blog`, changeFrequency: 'weekly' as const, priority: 0.6 },
+    ...(posts ?? []).map((g) => ({ url: `${SITE_URL}/blog/${g.slug}`, changeFrequency: 'monthly' as const, priority: 0.5 })),
     ...(data.comparisons ?? []).map((c) => ({ url: `${SITE_URL}/${c.city}/compare/${c.pair}`, changeFrequency: 'weekly' as const, priority: 0.6 })),
     ...data.cities.map((c) => ({ url: `${SITE_URL}/${c.slug}`, changeFrequency: 'daily' as const, priority: 0.9 })),
     ...data.cities.flatMap((c) => c.localities.map((l) => ({ url: `${SITE_URL}/${c.slug}/${l}`, changeFrequency: 'daily' as const, priority: 0.8 }))),

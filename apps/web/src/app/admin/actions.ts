@@ -321,3 +321,30 @@ export async function upcomingRegistered(id: string, _: FormState, form: FormDat
   revalidatePath('/', 'layout');
   redirect(`/admin/upcoming?status=APPROVED&told=${r.data.told}`);
 }
+
+/** A writer saves a new piece as a draft, or saves changes to one. */
+export async function saveArticle(id: string | null, _: FormState, form: FormData): Promise<FormState> {
+  const r = id ? await adminFetch(`/articles/${encodeURIComponent(id)}`, { method: 'PUT', body: fields(form) }) : await adminFetch<{ id: string }>('/articles', { method: 'POST', body: fields(form) });
+  if (!r.ok) return failed(r);
+  if (!id) redirect(`/admin/articles/${(r.data as { id: string }).id}?saved=1`);
+  revalidatePath('/', 'layout');
+  return { ok: 'Saved.' };
+}
+export async function submitArticle(id: string, _: FormState): Promise<FormState> {
+  const r = await adminFetch(`/articles/${encodeURIComponent(id)}/submit`, { method: 'POST' });
+  if (!r.ok) return failed(r);
+  redirect(`/admin/articles/${id}?sent=1`);
+}
+/** An editor publishes a piece, sends it back with a note, or takes a published one down. */
+export async function decideArticle(id: string, decision: 'PUBLISH' | 'SEND_BACK' | 'TAKE_DOWN', _: FormState, form: FormData): Promise<FormState> {
+  const r = await adminFetch(`/articles/${encodeURIComponent(id)}/decide`, { method: 'POST', body: { decision, note: String(form.get('note') ?? '') } });
+  if (!r.ok) return failed(r);
+  revalidatePath('/', 'layout');
+  redirect(`/admin/articles/${id}?decided=${decision}`);
+}
+export async function removeArticle(id: string, _: FormState): Promise<FormState> {
+  const r = await adminFetch(`/articles/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  if (!r.ok) return failed(r);
+  revalidatePath('/', 'layout');
+  redirect('/admin/articles?removed=1');
+}

@@ -6,6 +6,7 @@ import { GuideNav } from '@/components/GuideNav';
 import { JsonLd } from '@/components/JsonLd';
 import { api } from '@/lib/api';
 import { BRAND, abs, faqLd, pageMeta } from '@/lib/seo';
+import { ArticlePage, articlePath, type Article } from '@/components/ArticlePage';
 import type { GuideCard } from '../page';
 
 interface Guide extends GuideCard {
@@ -17,17 +18,21 @@ type Props = { params: Promise<{ slug: string }> };
 export const revalidate = 3600;
 export async function generateStaticParams() { return ((await api<GuideCard[]>('/guides')) ?? []).map((g) => ({ slug: g.slug })); }
 const load = async (params: Props['params']) => api<Guide>(`/guides/${(await params).slug}`, { revalidate: 3600 });
+/** A guide a writer wrote, when the address is not one of the guides built into the product. */
+const written = async (params: Props['params']) => { const a = await api<Article>(`/articles/${(await params).slug}`, { revalidate: 300 }); return a?.kind === 'GUIDE' ? a : null; };
 const anchor = (h: string) => h.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const tint = (accent: string) => ({ '--accent': accent } as React.CSSProperties);
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const g = await load(params);
-  return g ? pageMeta({ title: g.title, description: g.summary, path: `/guides/${g.slug}` }) : {};
+  if (g) return pageMeta({ title: g.title, description: g.summary, path: `/guides/${g.slug}` });
+  const a = await written(params);
+  return a ? pageMeta({ title: a.title, description: a.summary, path: articlePath(a) }) : {};
 }
 
 export default async function GuidePage({ params }: Props) {
   const g = await load(params);
-  if (!g) notFound();
+  if (!g) { const a = await written(params); if (!a) notFound(); return <ArticlePage a={a} />; }
   const reviewed = new Date(g.reviewed).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
   const sections = g.sections.map((s) => ({ ...s, id: anchor(s.heading) }));
   return (

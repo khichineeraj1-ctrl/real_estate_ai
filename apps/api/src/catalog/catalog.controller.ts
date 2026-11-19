@@ -1,3 +1,4 @@
+import { ArticleService } from '../articles/articles.service';
 import { UpcomingService } from './upcoming';
 import { STAGES, guideBySlug, guideCards } from '../guides/guides';
 import { AlertService } from './alerts';
@@ -24,7 +25,7 @@ const oneOf = <T extends string>(v: string | undefined, allowed: readonly T[], n
 export class CatalogController {
   // A few enquiries a minute per visitor is plenty for a person and too slow for a script.
   private enquiries = new Limiter(4, 5_000);
-  constructor(private readonly catalog: CatalogService, private readonly watch: WatchService, private readonly buyers: BuyerService, private readonly alerts: AlertService, private readonly upcoming: UpcomingService) {}
+  constructor(private readonly catalog: CatalogService, private readonly watch: WatchService, private readonly buyers: BuyerService, private readonly alerts: AlertService, private readonly upcoming: UpcomingService, private readonly articleList: ArticleService) {}
 
   @Get('health') health() { return { ok: true }; }
   @Get('upcoming') upcomingList(@Query('city') city?: string) { return this.upcoming.list(city && /^[a-z0-9-]{1,60}$/.test(city) ? city : undefined); }
@@ -37,6 +38,8 @@ export class CatalogController {
   }
   /** The home page asks for the first few; the New launches page asks for all of them. */
   @Get('launches') launches(@Query('city') city?: string, @Query('all') all?: string) { return this.catalog.launches(city && /^[a-z0-9-]{1,60}$/.test(city) ? city : undefined, all ? 200 : 12); }
+  @Get('articles') articles(@Query('kind') kind?: string) { return this.articleList.list(kind ?? 'BLOG'); }
+  @Get('articles/:slug') article(@Param('slug') slug: string) { return this.articleList.one(slug); }
   @Get('guides') guides() { return guideCards(); }
   @Get('guide-stages') guideStages() { const cards = guideCards(); return STAGES.map((st) => ({ ...st, guides: cards.filter((g) => g.stage === st.key) })); }
   @Get('guides/:slug') guide(@Param('slug') slug: string) { const g = guideBySlug(slug); if (!g) throw new NotFoundException('Guide not found'); const cards = guideCards(); const order = STAGES.flatMap((st) => cards.filter((c) => c.stage === st.key)); const i = order.findIndex((c) => c.slug === slug); return { ...g, stageInfo: STAGES.find((st) => st.key === g.stage), prev: order[i - 1] ?? null, next: order[i + 1] ?? null, more: cards.filter((x) => x.slug !== slug) }; }

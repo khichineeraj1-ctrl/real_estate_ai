@@ -1,5 +1,6 @@
+import { ArticleService } from '../articles/articles.service';
 import { UpcomingService } from '../catalog/upcoming';
-import { Body, Controller, Delete, Get, Header, HttpCode, HttpException, Ip, Param, Patch, Post, Query, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Header, HttpCode, HttpException, Ip, Param, Patch, Post, Query, UploadedFiles, UseGuards, UseInterceptors, Put } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { Limiter } from '../ask/ask.service';
 import { AdminService } from './admin.service';
@@ -26,7 +27,7 @@ export class AdminController {
   private signups = new Limiter(20, 5_000);
   private emails = new Limiter(2, 10_000); // per account or email: emails cost money and can be used to pester someone
   private key = (v: unknown) => (typeof v === 'string' ? v.trim().toLowerCase().slice(0, 160) : '');
-  constructor(private readonly admin: AdminService, private readonly reminders: Reminders, private readonly upcoming: UpcomingService) {}
+  constructor(private readonly admin: AdminService, private readonly reminders: Reminders, private readonly upcoming: UpcomingService, private readonly articles: ArticleService) {}
 
   @Post('login')
   @HttpCode(200)
@@ -60,7 +61,7 @@ export class AdminController {
 
   @UseGuards(AdminGuard) @Get('me') me(@CurrentUser() u: SessionUser) { return this.admin.me(u); }
   @UseGuards(AdminGuard) @Post('me/password') @HttpCode(200) changePassword(@CurrentUser() u: SessionUser, @Body() b: Json) { return this.admin.changePassword(u, b); }
-  @UseGuards(AdminGuard) @Get('overview') overview(@CurrentUser() u: SessionUser) { return this.admin.overview(u); }
+  @UseGuards(AdminGuard) @Get('overview') async overview(@CurrentUser() u: SessionUser) { return u.role === 'WRITER' ? { role: 'WRITER' as const, name: u.name, articles: await this.articles.counts(u) } : this.admin.overview(u); }
   @UseGuards(AdminGuard) @Get('options') options() { return this.admin.options(); }
 
   // Listings: staff, and owners/agents limited to their own. Builder logins have no listings.
@@ -107,6 +108,13 @@ export class AdminController {
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Get('upcoming') allUpcoming(@Query() q: { status?: string }) { return this.upcoming.all(q.status); }
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Post('upcoming/:id/decide') @HttpCode(200) decideUpcoming(@Param('id') id: string, @Body() b: Json) { return this.upcoming.decide(id, b); }
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Post('upcoming/:id/registered') @HttpCode(200) upcomingRegistered(@Param('id') id: string, @Body() b: Json) { return this.upcoming.registered(id, b); }
+  @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR', 'WRITER') @Get('articles') myArticles(@CurrentUser() u: SessionUser, @Query() q: { status?: string }) { return this.articles.mine(u, q.status); }
+  @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR', 'WRITER') @Get('articles/:id') getArticle(@CurrentUser() u: SessionUser, @Param('id') id: string) { return this.articles.get(u, id); }
+  @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR', 'WRITER') @Post('articles') createArticle(@CurrentUser() u: SessionUser, @Body() b: Json) { return this.articles.create(u, b); }
+  @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR', 'WRITER') @Put('articles/:id') updateArticle(@CurrentUser() u: SessionUser, @Param('id') id: string, @Body() b: Json) { return this.articles.update(u, id, b); }
+  @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR', 'WRITER') @Post('articles/:id/submit') @HttpCode(200) submitArticle(@CurrentUser() u: SessionUser, @Param('id') id: string) { return this.articles.submit(u, id); }
+  @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Post('articles/:id/decide') @HttpCode(200) decideArticle(@CurrentUser() u: SessionUser, @Param('id') id: string, @Body() b: Json) { return this.articles.decide(u, id, b); }
+  @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR', 'WRITER') @Delete('articles/:id') removeArticle(@CurrentUser() u: SessionUser, @Param('id') id: string) { return this.articles.remove(u, id); }
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Get('project-sellers') projectSellers(@Query() q: { status?: string }) { return this.admin.projectSellers(q); }
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Post('project-sellers/:id/decide') @HttpCode(200) decideProjectSeller(@CurrentUser() u: SessionUser, @Param('id') id: string, @Body() b: Json) { return this.admin.decideProjectSeller(u, id, b); }
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Get('builder-pages') builderPages() { return this.admin.builderPages(); }

@@ -24,6 +24,7 @@ enum Role {
   EDITOR /// all content and approvals, but not users
   AGENT /// an owner or agent posting their own listings, which staff approve
   BUILDER /// a builder's sales team: sees the leads on the projects staff have assigned to them, nothing else
+  WRITER /// writes guides and blog posts; staff publish them. Sees nothing else.
 }
 
 enum ListingState {
@@ -217,6 +218,7 @@ model User {
   assignedLeads Enquiry[]  @relation("AssignedLeads")
   videosAdded Video[] @relation("VideosAdded")
   upcomingSubmitted UpcomingProject[] @relation("UpcomingSubmitted")
+  articles Article[] @relation("ArticlesWritten")
 }
 
 enum ProjectSellerStatus {
@@ -669,6 +671,30 @@ model UpcomingWatch {
   createdAt  DateTime @default(now())
 
   @@unique([email, upcomingId])
+}
+
+/// A guide or blog post written by a member of the team with a writer's login. It is a draft until the writer sends
+/// it for review, and buyers see it only once an editor or admin publishes it.
+model Article {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  /// "GUIDE" or "BLOG".
+  kind        String
+  title       String
+  summary     String
+  /// Plain text with a little markup: "## " for a heading, "- " for a list item, **bold**, [text](link).
+  body        String
+  /// "DRAFT", "SUBMITTED" or "PUBLISHED".
+  status      String    @default("DRAFT")
+  /// What the reviewer asked to be changed, when a piece is sent back.
+  reviewNote  String?
+  authorId    String?
+  author      User?     @relation("ArticlesWritten", fields: [authorId], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  publishedAt DateTime?
+
+  @@index([status, kind, publishedAt])
 }
 
 /// A buyer following a project: they are emailed when its RERA registration changes (lapses, is extended, or ends).

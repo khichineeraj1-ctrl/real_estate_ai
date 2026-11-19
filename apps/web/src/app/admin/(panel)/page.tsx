@@ -3,6 +3,7 @@ import { adminGet } from '@/lib/admin';
 
 interface BuilderProject { id: string; slug: string; name: string; leads: number; leadsNew: number; leadsWeek: number; locality: { name: string; city: { name: string } } }
 type Overview =
+  | { role: 'WRITER'; name: string; articles: { draft: number; submitted: number; published: number } }
   | { role: 'BUILDER'; name: string; projects: BuilderProject[] }
   | { role: 'AGENT'; name: string; enquiries: number; enquiriesNew: number; mine: { published: number; pending: number; rejected: number } }
   | { role: 'ADMIN' | 'EDITOR'; name: string; enquiries: number; enquiriesNew: number; reportsNew: number; sellersWaiting: number; cities: number; localities: number; projects: number; properties: number; pending: number; questions: number; questionsWeek: number; emptyWeek: number };
@@ -11,6 +12,20 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
   const [o, sp] = await Promise.all([adminGet<Overview>('/overview'), searchParams]);
   const notice = sp.verified ? <p role="status" className="anotice">Your email is confirmed. You can post your property now.</p> : sp.welcome ? <p role="status" className="anotice">Your account is ready. Confirm your email with the link we sent you, then post your property.</p> : null;
 
+  if (o.role === 'WRITER') {
+    return (
+      <>
+        <h1>Welcome, {o.name}</h1>
+        <p className="lead">Write guides and blog posts for home buyers. Save a draft, send it for review, and an editor publishes it.</p>
+        <ul className="stats-cards">
+          <li><Link href="/admin/articles?status=DRAFT"><strong>{o.articles.draft}</strong><span>Drafts</span></Link></li>
+          <li><Link href="/admin/articles?status=SUBMITTED"><strong>{o.articles.submitted}</strong><span>With the team for review</span></Link></li>
+          <li><Link href="/admin/articles?status=PUBLISHED"><strong>{o.articles.published}</strong><span>Published</span></Link></li>
+        </ul>
+        <p><Link className="abtn" href="/admin/articles/new">Write a new piece</Link></p>
+      </>
+    );
+  }
   if (o.role === 'BUILDER') {
     return (
       <>

@@ -12,7 +12,8 @@ export const metadata: Metadata = pageMeta({ title: 'Home Buying Guides — RERA
 const tint = (accent: string) => ({ '--accent': accent } as React.CSSProperties);
 
 export default async function Guides() {
-  const stages = (await api<Stage[]>('/guide-stages', { revalidate: 3600 })) ?? [];
+  const [stageData, written] = await Promise.all([api<Stage[]>('/guide-stages', { revalidate: 3600 }), api<{ slug: string; title: string; summary: string; minutes: number; by: string | null }[]>('/articles?kind=GUIDE', { revalidate: 300 })]);
+  const stages = stageData ?? [];
   const all = stages.flatMap((s) => s.guides);
   const minutes = all.reduce((n, g) => n + g.minutes, 0);
   const first = all[0];
@@ -57,6 +58,13 @@ export default async function Guides() {
           </section>
         ))}
       </div>
+      {(written?.length ?? 0) > 0 && (
+        <section className="section">
+          <h2>More guides from our writers</h2>
+          <ul className="acards">{written!.map((a) => <li key={a.slug}><Link href={`/guides/${a.slug}`}><strong>{a.title}</strong><span>{a.summary}</span><b>{a.by ? `${a.by} · ` : ''}{a.minutes} min read →</b></Link></li>)}</ul>
+        </section>
+      )}
+      <p className="section">Looking for news and notes? <Link href="/blog">Read the blog</Link>.</p>
       <p className="calc-note">General information about buying a home in India, not legal advice. Laws and rates change and differ by state; have your own lawyer read your papers.</p>
     </>
   );

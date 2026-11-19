@@ -43,6 +43,15 @@ The row appears on the web and app home screens only when there is at least one 
 
 Seven short guides (carpet area, RERA registration, the 10% rule and the agreement, reading a cost sheet, under construction against ready, delayed possession, the occupation certificate). The text lives once, in `apps/api/src/guides/guides.ts`, and is served by `GET /guides` and `GET /guides/:slug` to the website (`/guides`, each with Article and FAQ structured data, in the sitemap) and the app (Tools → Home buying guides). Each guide has a summary box, sections, a link to the tool that puts it to use, and common questions. They describe Indian law as we understand it and say they are not legal advice: have someone qualified review them before launch, and update `reviewed` when the text is next checked.
 
+## Writers, written guides and the blog
+
+A **Writer** login is for people who write guides and blog posts and nothing else. An admin makes one in Admin → Users (role "Writer"); the writer signs in at `/admin/login` like everyone else and sees only Overview and "Guides and blog".
+
+- **Writing.** Admin → Guides and blog → Write a new piece: choose Blog post or Guide, give a title and summary, and write in plain text beside a live preview. A little markup is understood: `## ` for a heading, `- ` for a list item, `**bold**`, `[words](link)`. The text is never treated as HTML, and links go only to this site or to http(s) addresses.
+- **Review.** A piece is a draft until the writer sends it for review. An editor or admin publishes it, or sends it back with a note. Once published, only the team can change it or take it down, so what buyers read is what was approved.
+- **Where it shows.** Blog posts at `/blog` and `/blog/<slug>`; a writer's guide at `/guides/<slug>` and under "More guides from our writers" on the guides page. Both are in the sitemap with article structured data. The seven journey guides stay in `apps/api/src/guides/guides.ts`, since their layout (steps, key figures) is fixed.
+- **In code.** `Article` rows; `apps/api/src/articles`; public `GET /articles?kind=` and `GET /articles/:slug`; admin routes under `/admin/articles`. There are no images in pieces yet, and the app does not show the blog.
+
 ## Help for buyers that comes from the registers
 
 Worked out from the RERA registers we already read, and stated as facts and questions to ask, never as a rating.

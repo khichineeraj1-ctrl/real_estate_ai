@@ -5,7 +5,7 @@ import { notFound, redirect } from 'next/navigation';
 export const API_URL = process.env.API_URL || 'http://localhost:4100';
 export const ADMIN_COOKIE = 'admin_session';
 
-export type Role = 'ADMIN' | 'EDITOR' | 'AGENT' | 'BUILDER';
+export type Role = 'ADMIN' | 'EDITOR' | 'AGENT' | 'BUILDER' | 'WRITER';
 export interface Me { id: string; email: string; name: string; phone: string | null; role: Role; active: boolean; emailVerified: string | null }
 export const isStaff = (role: Role) => role === 'ADMIN' || role === 'EDITOR';
 

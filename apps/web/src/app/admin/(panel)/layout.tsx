@@ -15,8 +15,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const me = await getMe(); // the API confirms the session and the role; the menu below only reflects it
   const staff = isStaff(me.role);
   const builder = me.role === 'BUILDER';
+  const writer = me.role === 'WRITER';
   const item = (href: string, label: string, icon: string): NavItem => ({ href, label, icon });
-  const groups: NavGroup[] = [
+  const groups: NavGroup[] = writer ? [{ title: 'Writing', items: [item('/admin', 'Overview', '🏠'), item('/admin/articles', 'Guides and blog', '✍️'), item('/admin/articles/new', 'Write a new piece', '➕')] }] : [
     { title: 'Work', items: [
       item('/admin', 'Overview', '🏠'),
       ...(!builder ? [item('/admin/properties', staff ? 'Listings' : 'My listings', '🏘️')] : []),
@@ -30,10 +31,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     ] },
     ...(staff ? [
       { title: 'Catalogue', items: [item('/admin/projects', 'Projects', '🏗️'), item('/admin/builder-pages', 'Builder pages', '🏢'), item('/admin/register', 'RERA registers', '📚'), item('/admin/localities', 'Localities', '📍'), item('/admin/cities', 'Cities', '🌆')] },
-      { title: 'Site', items: [item('/admin/questions', 'Questions', '💬'), item('/admin/import', 'Import', '⬆️'), ...(me.role === 'ADMIN' ? [item('/admin/users', 'Users', '👥')] : [])] },
+      { title: 'Site', items: [item('/admin/articles', 'Guides and blog', '✍️'), item('/admin/questions', 'Questions', '💬'), item('/admin/import', 'Import', '⬆️'), ...(me.role === 'ADMIN' ? [item('/admin/users', 'Users', '👥')] : [])] },
     ] : []),
   ];
-  const role = staff ? 'Admin' : builder ? 'Builder leads' : 'My listings';
+  const role = staff ? 'Admin' : builder ? 'Builder leads' : writer ? 'Writer' : 'My listings';
   return (
     <div className="ashell">
       <aside className="aside">
