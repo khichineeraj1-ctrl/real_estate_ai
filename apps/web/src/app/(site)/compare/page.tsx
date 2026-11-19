@@ -5,8 +5,7 @@ import { api } from '@/lib/api';
 import { LOAN_DEFAULTS, buyingCosts, loanPlan } from '@/lib/finance';
 import { monthYear, num, price, rate, statusLabel, typeLabel } from '@/lib/format';
 import { media, projectPath, pageMeta } from '@/lib/seo';
-import { Shortlists } from '@/components/tools/Compare';
-import { LocalityPicker } from '@/components/tools/Hub';
+import { CompareStudio } from '@/components/tools/CompareStudio';
 import type { CitySummary, PropertyDetail } from '@/lib/types';
 
 // A page per combination of listings would be endless near-duplicates, so comparisons are not indexed.
@@ -26,24 +25,9 @@ export default async function ComparePage({ searchParams }: Props) {
       <>
         <Breadcrumbs crumbs={[{ name: 'Compare', path: '/compare' }]} />
         <h1>Compare before you decide</h1>
-        <p className="lead">Put builder projects, localities or homes next to each other and see where they differ, with nothing left out: where a fact is not known, the table says so.</p>
+        <p className="lead">Pick two or more and see them side by side.</p>
         {homes.length === 1 && <p className="astatus">You have chosen one home. Choose at least one more to compare homes.</p>}
-
-        <section className="section">
-          <h2>Your shortlist</h2>
-          <Shortlists />
-        </section>
-
-        <section className="section">
-          <h2>Three things you can compare</h2>
-          <ul className="tools">
-            <li><Link href="/builders"><em>Which project is on firmer ground?</em><strong>Builder projects</strong><span>RERA registration and how it stands, the builder’s other projects, verified agents and homes for sale. Press “⇄ Compare” on up to four project cards.</span><b aria-hidden="true">Find projects <i>→</i></b></Link></li>
-            <li><a href="#localities"><em>Which area suits me?</em><strong>Localities</strong><span>Asking rates, what is for sale by size, registered projects and what each area is known for.</span><b aria-hidden="true">Pick two below <i>↓</i></b></a></li>
-            <li><Link href="/"><em>Which of these homes is better?</em><strong>Homes</strong><span>Price, rate per sq ft against the area, the full cost with stamp duty, and EMI. Press “⇄ Compare” on up to four listings.</span><b aria-hidden="true">Browse homes <i>→</i></b></Link></li>
-          </ul>
-        </section>
-
-        <div id="localities"><LocalityPicker cities={cities.map((c) => ({ slug: c.slug, name: c.name, localities: (c.localities ?? []).map((l) => ({ slug: l.slug, name: l.name })) }))} /></div>
+        <CompareStudio cities={cities.map((c) => ({ slug: c.slug, name: c.name, localities: (c.localities ?? []).map((l) => ({ slug: l.slug, name: l.name })) }))} />
       </>
     );
   }

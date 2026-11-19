@@ -2,6 +2,7 @@
 
 import { noteCompared } from '@/lib/intent';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useSyncExternalStore } from 'react';
 
 /**
@@ -10,11 +11,13 @@ import { useSyncExternalStore } from 'react';
  */
 export type Kind = 'homes' | 'projects';
 const MAX = 4;
+export const MAX_COMPARE = MAX;
 const EVENT = 'compare-changed';
 const KEY: Record<Kind, string> = { homes: 'compare-homes', projects: 'compare-projects' };
 const WORD: Record<Kind, [string, string]> = { homes: ['home', 'homes'], projects: ['project', 'projects'] };
 export const comparePage = (kind: Kind, slugs: string[]) => `${kind === 'projects' ? '/compare/projects' : '/compare'}?ids=${slugs.join(',')}`;
-interface Pick { slug: string; title: string }
+/** `sub` and `image` are remembered when the picker knows them, so the board can show more than a name. */
+export interface Pick { slug: string; title: string; sub?: string; image?: string }
 
 function read(kind: Kind): Pick[] {
   try {
@@ -39,7 +42,8 @@ function subscribe(onChange: () => void) {
   window.addEventListener('storage', changed);
   return () => { window.removeEventListener(EVENT, changed); window.removeEventListener('storage', changed); };
 }
-const usePicks = (kind: Kind) => useSyncExternalStore(subscribe, () => (cache[kind] ??= read(kind)), () => EMPTY);
+export const setPicks = (kind: Kind, picks: Pick[]) => write(kind, picks.slice(0, MAX));
+export const usePicks = (kind: Kind) => useSyncExternalStore(subscribe, () => (cache[kind] ??= read(kind)), () => EMPTY);
 
 export function CompareToggle({ slug, title, kind = 'homes' }: Pick & { kind?: Kind }) {
   const picks = usePicks(kind);
@@ -86,7 +90,9 @@ function Row({ kind }: { kind: Kind }) {
 /** A bar at the bottom of the screen once something is shortlisted, naming what is in it. */
 export function CompareBar() {
   const any = usePicks('homes').length + usePicks('projects').length;
-  if (!any) return null;
+  const path = usePathname();
+  // The compare pages show the shortlist themselves.
+  if (!any || path.startsWith('/compare')) return null;
   return (
     <aside className="compare-bar" aria-label="Chosen to compare">
       <Row kind="projects" />
