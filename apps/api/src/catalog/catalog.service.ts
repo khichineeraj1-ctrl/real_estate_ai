@@ -1,3 +1,4 @@
+import { compareInsights, scorecard, standingOf, type Facts } from './insights';
 import { BAND_LABEL, intentInWords, readIntent, scoreLead } from '../leads/score';
 import { displayName } from '../rera/parse';
 import { builderFor } from './builders';
@@ -209,6 +210,29 @@ export class CatalogService {
       ]);
       return { ...p, homes: properties.length, builderProjects, localityProjects, highlights: locality?.highlights ?? [] };
     }));
+  }
+
+  /**
+   * The same comparison with what a buyer should notice about it: a scorecard for each project and the differences
+   * that matter, worked out in insights.ts from the register, the builder's other projects and listed homes.
+   */
+  async compareProjectInsights(slugs: string[]) {
+    const projects = await this.compareProjects(slugs);
+    const now = new Date();
+    const facts: Facts[] = await Promise.all(projects.map(async (p) => {
+      const [others, area] = await Promise.all([
+        p.brand ? this.db.project.findMany({ where: { brand: { slug: p.brand.slug }, slug: { not: p.slug }, locality: { city: { slug: p.city.slug } } }, select: { registerStatus: true, registerValidUntil: true } }) : [],
+        this.stats({ city: p.city.slug, locality: p.locality.slug }),
+      ]);
+      const track = { total: others.length, current: 0, ended: 0, lapsed: 0 };
+      for (const o of others) { const k = standingOf(o, now); if (k !== 'unknown') track[k] += 1; }
+      return {
+        slug: p.slug, name: p.name, builder: { slug: p.brand?.slug ?? null, name: p.brand?.name ?? p.builder }, locality: p.locality, city: p.city,
+        registerStatus: p.registerStatus, registerValidUntil: p.registerValidUntil, reraId: p.reraId, track,
+        homes: p.homes, minPrice: p.stats.minPrice, maxPrice: p.stats.maxPrice, localityRate: area.avgRate, highlights: p.highlights, agents: p.agents.length,
+      };
+    }));
+    return { projects, scorecards: facts.map((f) => scorecard(f, now)), insights: compareInsights(facts, now) };
   }
 
   /** Names the question parser and the assistant match against. Small enough to read on every question. */

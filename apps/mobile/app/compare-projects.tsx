@@ -4,12 +4,19 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { Cover } from '../components/Cover';
 import { CompareStudio } from '../components/tools/CompareStudio';
 import { ConnectButton } from '../components/LeadForm';
-import { getCompareProjects, type CompareProject } from '../lib/api';
+import { getProjectInsights, type CompareProject, type Insight, type Scorecard, type Tone } from '../lib/api';
 import { monthYear, num, price } from '../lib/format';
-import { useTheme } from '../lib/theme';
+import { useTheme, type Theme } from '../lib/theme';
 
 const COL = 180;
-const list = (xs: string[]) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
+const MARK: Record<Tone, string> = { good: '✓', warn: '!', info: 'i', none: '–' };
+/** The ink and wash for a tone: green for good, amber for something to check, brand for a plain note. */
+function tone(t: Theme, k: Tone, dark: boolean): { ink: string; bg: string } {
+  if (k === 'good') return { ink: t.ready, bg: t.readyBg };
+  if (k === 'warn') return dark ? { ink: '#fdb022', bg: '#2b2110' } : { ink: '#b54708', bg: '#fff4e5' };
+  if (k === 'info') return { ink: t.brand, bg: t.soft };
+  return { ink: t.muted, bg: t.soft };
+}
 
 /** Where a registration stands today, from the register's own status and end date. */
 function standing(p: CompareProject): { key: 'current' | 'ended' | 'lapsed' | 'unknown'; text: string } {
@@ -23,11 +30,13 @@ export default function CompareProjects() {
   const router = useRouter();
   const { ids } = useLocalSearchParams<{ ids?: string }>();
   const [ps, setPs] = useState<CompareProject[] | null>(null);
+  const [cards, setCards] = useState<Scorecard[]>([]);
+  const [insights, setInsights] = useState<Insight[]>([]);
   const [error, setError] = useState('');
   useEffect(() => {
     if (!ids) { setPs([]); return; }
     setPs(null);
-    getCompareProjects(ids.split(',')).then(setPs).catch((e: Error) => setError(e.message));
+    getProjectInsights(ids.split(',')).then((d) => { setCards(d.scorecards); setInsights(d.insights); setPs(d.projects); }).catch((e: Error) => setError(e.message));
   }, [ids]);
 
   if (error) return <Text style={{ color: t.danger, padding: 16 }}>{error}</Text>;
@@ -50,18 +59,62 @@ export default function CompareProjects() {
     { label: 'Agents we have verified', cells: ps.map((p) => (p.agents?.length ? `${p.agents.length} (${p.agents.map((a) => a.name).join(', ')})` : 'None yet')), marks: most(ps.map((p) => p.agents?.length ?? 0)) },
     { label: 'The locality is known for', cells: ps.map((p) => (p.highlights.length ? p.highlights.join('\n') : '—')) },
   ];
-  const current = ps.filter((_, i) => st[i].key === 'current'); const lapsed = ps.filter((_, i) => st[i].key === 'lapsed'); const ended = ps.filter((_, i) => st[i].key === 'ended');
-  const verdict = [
-    new Set(ps.map((p) => p.locality.slug)).size === 1 ? `All ${ps.length} are in ${ps[0].locality.name}, ${ps[0].city.name}.` : `They are in ${list([...new Set(ps.map((p) => `${p.locality.name}, ${p.city.name}`))])}.`,
-    current.length === ps.length ? 'Every one has a RERA registration that is still running.' : current.length ? `${list(current.map((p) => p.name))} ${current.length === 1 ? 'has a registration' : 'have registrations'} still running.` : '',
-    ended.length ? `${list(ended.map((p) => p.name))} ${ended.length === 1 ? 'is' : 'are'} past the end of the registration period, which often means the building is complete; confirm with the builder.` : '',
-    lapsed.length ? `${list(lapsed.map((p) => p.name))} ${lapsed.length === 1 ? 'is' : 'are'} marked lapsed by the register: ask the builder about this before paying anything.` : '',
-  ].filter(Boolean).join(' ');
+  const dark = t.bg !== '#ffffff';
+  const warnings = insights.filter((x) => x.tone === 'warn');
+  const ordered = [...warnings, ...insights.filter((x) => x.tone !== 'warn')];
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 14 }}>
       <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 21, fontWeight: '700' }}>Comparing {ps.length} projects</Text>
-      <Text style={{ color: t.fg, fontSize: 15, lineHeight: 22 }}>{verdict}</Text>
+      <Text style={{ color: t.muted, fontSize: 15 }}>{warnings.length ? `${warnings.length} thing${warnings.length === 1 ? '' : 's'} to check before you choose, and ${insights.length - warnings.length} more worth knowing.` : `${insights.length} things worth knowing before you choose.`}</Text>
+
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -16 }} contentContainerStyle={{ gap: 12, paddingHorizontal: 16 }}>
+        {ps.map((p, i) => {
+          const card = cards[i]; if (!card) return null;
+          const tag = tone(t, card.tag.tone, dark);
+          return (
+            <View key={p.slug} style={[s.card, { backgroundColor: t.card, borderColor: t.line, borderTopColor: tag.ink }]}>
+              <Pressable accessibilityRole="button" accessibilityLabel={`Open ${p.name}`} onPress={() => router.push({ pathname: '/project/[slug]', params: { slug: p.slug } })} style={{ gap: 4 }}>
+                {p.photos?.[0] ? <Cover photo={p.photos[0]} label={`${p.name}: photo`} /> : null}
+                <View style={{ alignSelf: 'flex-start', backgroundColor: tag.bg, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 }}><Text style={{ color: tag.ink, fontSize: 12, fontWeight: '700' }}>{card.tag.text}</Text></View>
+                <Text style={{ color: t.fg, fontSize: 17, fontWeight: '700' }}>{p.name}</Text>
+                <Text style={{ color: t.muted, fontSize: 13 }}>{p.brand?.name ?? p.builder} · {p.locality.name}</Text>
+              </Pressable>
+              <View>
+                {card.checks.map((c) => {
+                  const k = tone(t, c.tone, dark);
+                  return (
+                    <View key={c.label} accessible accessibilityLabel={`${c.label}: ${c.text}`} style={[s.check, { borderColor: t.line }]}>
+                      <View style={[s.mark, { backgroundColor: k.bg }]}><Text style={{ color: k.ink, fontSize: 11, fontWeight: '800' }}>{MARK[c.tone]}</Text></View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: t.muted, fontSize: 12 }}>{c.label}</Text>
+                        <Text style={{ color: c.tone === 'none' ? t.muted : t.fg, fontSize: 14, fontWeight: c.tone === 'none' ? '400' : '600' }}>{c.text}</Text>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+              <ConnectButton kind="project" slug={p.slug} name={p.name} mode={p.agents?.length ? 'agent' : 'callback'} agents={p.agents?.length} unclaimed={!!p.registerSource} />
+            </View>
+          );
+        })}
+      </ScrollView>
+
+      <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 18, fontWeight: '700', marginTop: 6 }}>What separates them</Text>
+      {ordered.map((x) => {
+        const k = tone(t, x.tone, dark);
+        return (
+          <View key={x.key} style={[s.insight, { backgroundColor: k.bg, borderColor: x.tone === 'warn' ? k.ink : t.line }]}>
+            <View style={[s.icon, { backgroundColor: t.card }]}><Text style={{ fontSize: 19 }}>{x.icon}</Text></View>
+            <View style={{ flex: 1, gap: 3 }}>
+              <Text style={{ color: x.tone === 'warn' ? k.ink : t.fg, fontSize: 15, fontWeight: '700' }}>{x.title}</Text>
+              <Text style={{ color: t.fg, fontSize: 14, lineHeight: 20 }}>{x.text}</Text>
+            </View>
+          </View>
+        );
+      })}
+
+      <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 18, fontWeight: '700', marginTop: 6 }}>Every fact, side by side</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator contentContainerStyle={{ flexDirection: 'column' }}>
         <View style={s.line}>
           {ps.map((p) => (
@@ -85,12 +138,17 @@ export default function CompareProjects() {
           {ps.map((p) => <View key={p.slug} style={s.cell}><ConnectButton kind="project" slug={p.slug} name={p.name} mode={p.agents?.length ? 'agent' : 'callback'} agents={p.agents?.length} unclaimed={!!p.registerSource} /></View>)}
         </View>
       </ScrollView>
-      <Text style={{ color: t.muted, fontSize: 12, lineHeight: 17 }}>Registration facts are as published on the public RERA registers, which give no prices. A highlighted cell is where the projects differ, not a recommendation.</Text>
+      <Text style={{ color: t.muted, fontSize: 12, lineHeight: 17 }}>These notes are worked out from the public RERA registers and from homes listed with us; they are not advice or a rating. A registration’s end date is the completion date the builder gave RERA, not a possession date.</Text>
     </ScrollView>
   );
 }
 
 const s = StyleSheet.create({
+  card: { width: 250, borderWidth: 1, borderTopWidth: 4, borderRadius: 16, padding: 12, gap: 10 },
+  check: { flexDirection: 'row', gap: 8, alignItems: 'flex-start', paddingVertical: 7, borderTopWidth: StyleSheet.hairlineWidth },
+  mark: { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
+  insight: { flexDirection: 'row', gap: 12, borderWidth: 1, borderRadius: 16, padding: 12 },
+  icon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   line: { flexDirection: 'row' },
   cell: { width: COL, padding: 8, fontSize: 14, lineHeight: 20 },
 });

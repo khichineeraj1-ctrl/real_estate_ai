@@ -12,6 +12,10 @@ import type { ProjectDetail } from '@/lib/types';
 export const metadata: Metadata = pageMeta({ title: 'Compare builder projects side by side', description: 'Put up to four builder projects side by side: builder, location, RERA registration and how it stands, verified agents and homes for sale.', path: '/compare/projects', noindex: true });
 
 type Row = Omit<ProjectDetail, 'more' | 'properties'> & { homes: number; builderProjects: number; localityProjects: number; highlights: string[] };
+type Tone = 'good' | 'warn' | 'info' | 'none';
+interface Scorecard { slug: string; tag: { tone: Tone; text: string }; checks: { label: string; tone: Tone; text: string }[] }
+interface Insight { key: string; tone: Tone; icon: string; title: string; text: string; slugs: string[] }
+const MARK: Record<Tone, string> = { good: '✓', warn: '!', info: 'i', none: '–' };
 type Props = { searchParams: Promise<{ ids?: string | string[] }> };
 
 /** Where a registration stands today, from the register's own status and end date. */
@@ -20,12 +24,12 @@ function standing(p: Row): { key: 'current' | 'ended' | 'lapsed' | 'unknown'; te
   if (!p.registerValidUntil) return { key: 'unknown', text: p.reraId ? 'Registered' : 'Not on a register we read' };
   return new Date(p.registerValidUntil) < new Date() ? { key: 'ended', text: 'Registration period over' } : { key: 'current', text: 'Registration current' };
 }
-const list = (xs: string[]) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
 
 export default async function CompareProjects({ searchParams }: Props) {
   const raw = (await searchParams).ids;
   const ids = (Array.isArray(raw) ? raw.join(',') : raw ?? '').split(',').map((s) => s.trim()).filter(Boolean).slice(0, 4);
-  const ps = ids.length ? (await api<Row[]>(`/compare/projects?slugs=${encodeURIComponent(ids.join(','))}`, { revalidate: 60 })) ?? [] : [];
+  const found = ids.length ? await api<{ projects: Row[]; scorecards: Scorecard[]; insights: Insight[] }>(`/compare/projects/insights?slugs=${encodeURIComponent(ids.join(','))}`, { revalidate: 60 }) : null;
+  const ps = found?.projects ?? [];
   const crumbs = [{ name: 'Compare', path: '/compare' }, { name: 'Builder projects', path: '/compare/projects' }];
 
   if (ps.length < 2) {
@@ -49,21 +53,46 @@ export default async function CompareProjects({ searchParams }: Props) {
   const most = (values: number[]) => { const top = Math.max(...values); return differ(values.map((v) => v === top && top > 0)); };
   const allAmenities = [...new Set(ps.flatMap((p) => p.amenities))].sort();
 
-  // What the comparison shows, in a few plain sentences, from the same facts as the table.
-  const current = ps.filter((_, i) => st[i].key === 'current'); const lapsed = ps.filter((_, i) => st[i].key === 'lapsed'); const ended = ps.filter((_, i) => st[i].key === 'ended');
-  const sameLocality = new Set(ps.map((p) => p.locality.slug)).size === 1;
-  const verdict = [
-    sameLocality ? `All ${ps.length} are in ${ps[0].locality.name}, ${ps[0].city.name}.` : `They are in ${list([...new Set(ps.map((p) => `${p.locality.name}, ${p.city.name}`))])}.`,
-    current.length === ps.length ? 'Every one has a RERA registration that is still running.' : current.length ? `${list(current.map((p) => p.name))} ${current.length === 1 ? 'has a registration' : 'have registrations'} still running.` : '',
-    ended.length ? `${list(ended.map((p) => p.name))} ${ended.length === 1 ? 'is' : 'are'} past the end of the registration period, which often means the building is complete; confirm with the builder.` : '',
-    lapsed.length ? `${list(lapsed.map((p) => p.name))} ${lapsed.length === 1 ? 'is' : 'are'} marked lapsed by the register: ask the builder about this before paying anything.` : '',
-  ].filter(Boolean).join(' ');
+  const { scorecards, insights } = found!;
+  const warnings = insights.filter((x) => x.tone === 'warn').length;
 
   return (
     <>
       <Breadcrumbs crumbs={crumbs} />
       <h1>Comparing {ps.length} projects</h1>
-      <p className="lead">{verdict}</p>
+      <p className="lead">{warnings ? `${warnings} thing${warnings === 1 ? '' : 's'} to check before you choose, and ${insights.length - warnings} more worth knowing.` : `${insights.length} things worth knowing before you choose.`}</p>
+
+      <ul className={`cards-vs cards-${ps.length}`}>
+        {ps.map((p, i) => {
+          const card = scorecards[i];
+          return (
+            <li key={p.slug} className={`vcard tone-${card.tag.tone}`}>
+              {p.photos?.[0] ? <img src={media(p.photos[0].file, 'card')} alt={`${p.name}: photo`} width={640} height={480} loading="lazy" /> : <span className="vcard-letter" aria-hidden="true">{p.name.charAt(0).toUpperCase()}</span>}
+              <span className={`vtag tone-${card.tag.tone}`}>{card.tag.text}</span>
+              <h2><Link href={projectPath(p.city.slug, p)}>{p.name}</Link></h2>
+              <p className="vcard-sub">{p.brand?.name ?? p.builder} · {p.locality.name}</p>
+              <ul className="vchecks">
+                {card.checks.map((c) => <li key={c.label} className={`tone-${c.tone}`}><i aria-hidden="true">{MARK[c.tone]}</i><span>{c.label}</span><strong>{c.text}</strong></li>)}
+              </ul>
+              <ConnectButton kind="project" slug={p.slug} name={p.name} mode={p.agents.length ? 'agent' : 'callback'} agents={p.agents.length} unclaimed={!!p.registerSource} />
+            </li>
+          );
+        })}
+      </ul>
+
+      <section className="section">
+        <h2>What separates them</h2>
+        <ul className="insights">
+          {insights.map((x) => (
+            <li key={x.key} className={`insight tone-${x.tone}`}>
+              <span className="insight-icon" aria-hidden="true">{x.icon}</span>
+              <div><h3>{x.title}</h3><p>{x.text}</p></div>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <h2 className="section">Every fact, side by side</h2>
       <div className="atable compare"><table>
         <thead>
           <tr>
@@ -95,7 +124,7 @@ export default async function CompareProjects({ searchParams }: Props) {
           {row('', ps.map((p) => <ConnectButton key={p.slug} kind="project" slug={p.slug} name={p.name} mode={p.agents.length ? 'agent' : 'callback'} agents={p.agents.length} unclaimed={!!p.registerSource} />))}
         </tbody>
       </table></div>
-      <p className="calc-note">Registration facts are as published on the public RERA registers. The registers give no prices, sizes or possession dates, so a row shows a price only when a builder or seller has listed homes here. A highlighted cell is where the projects differ, not a recommendation.</p>
+      <p className="calc-note">These notes are worked out from the public RERA registers and from homes listed with us; they are not advice or a rating. A registration’s end date is the completion date the builder gave RERA, not a possession date. The registers give no prices or sizes.</p>
       <p className="section"><Link href="/compare">Compare something else</Link> · <Link href="/builders">All builders</Link></p>
     </>
   );

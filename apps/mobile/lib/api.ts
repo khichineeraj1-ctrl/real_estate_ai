@@ -91,6 +91,11 @@ export const getProperty = (slug: string) => call<PropertyDetail>(`/properties/$
 /** A builder project in a side-by-side comparison. */
 export type CompareProject = Omit<ProjectDetail, 'properties'> & { homes: number; builderProjects: number; localityProjects: number; highlights: string[] };
 export const getCompareProjects = (slugs: string[]) => call<CompareProject[]>(`/compare/projects?slugs=${encodeURIComponent(slugs.slice(0, 4).join(','))}`);
+export type Tone = 'good' | 'warn' | 'info' | 'none';
+export interface Scorecard { slug: string; tag: { tone: Tone; text: string }; checks: { label: string; tone: Tone; text: string }[] }
+export interface Insight { key: string; tone: Tone; icon: string; title: string; text: string; slugs: string[] }
+/** A comparison with what a buyer should notice about it. */
+export const getProjectInsights = (slugs: string[]) => call<{ projects: CompareProject[]; scorecards: Scorecard[]; insights: Insight[] }>(`/compare/projects/insights?slugs=${encodeURIComponent(slugs.slice(0, 4).join(','))}`);
 export const searchProjects = (text: string, city?: string) => call<{ total: number; items: ProjectHit[] }>(`/projects?text=${encodeURIComponent(text.slice(0, 80))}${city ? `&city=${encodeURIComponent(city)}` : ''}`);
 export const getCompare = (slugs: string[]) => call<CompareHome[]>(`/compare?slugs=${encodeURIComponent(slugs.slice(0, 4).join(','))}`);
 export const ask = (message: string, history: Turn[], context?: string) =>
