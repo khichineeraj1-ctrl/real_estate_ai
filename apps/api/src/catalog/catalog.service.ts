@@ -1,3 +1,4 @@
+import { beforeYouPay, builderRecord } from './guidance';
 import { homeInsights, homeScorecards, type Home } from './home-insights';
 import { areaScorecard, localityInsights, type Area } from './locality-insights';
 import { compareInsights, scorecard, standingOf, type Facts } from './insights';
@@ -160,7 +161,13 @@ export class CatalogService {
       this.db.project.findMany({ where: { localityId, id: { not: id }, ...(brandId ? { NOT: { brandId } } : {}) }, select: link, orderBy: { name: 'asc' }, take: 8 }),
     ]);
     const registerName = project.registerSource ? SOURCE_NAME[project.registerSource] : null; // the builder's sales address and login are for our use only
-    return { ...rest, registerName, locality: { slug: locality.slug, name: locality.name, lat: locality.lat, lng: locality.lng }, city: { slug: locality.city.slug, name: locality.city.name, state: locality.city.state }, properties, stats, bhk, more: { byBuilder: byBuilder.map(withAgents), inLocality: inLocality.map(withAgents) }, agents: await this.projectAgents(id) };
+    const others = brandId ? await this.db.project.findMany({ where: { brandId, id: { not: id }, locality: { cityId: locality.cityId } }, select: { registerStatus: true, registerValidUntil: true } }) : [];
+    const agents = await this.projectAgents(id);
+    const checklist = beforeYouPay({
+      name: project.name, builder: project.brand?.name ?? project.builder, city: locality.city.name, registerStatus: project.registerStatus, registerValidUntil: project.registerValidUntil, reraId: project.reraId,
+      sourceUrl: project.sourceUrl, registerName, othersLapsed: others.filter((o) => standingOf(o) === 'lapsed').length, others: others.length, priced: stats.count > 0, agents: agents.length,
+    });
+    return { ...rest, registerName, locality: { slug: locality.slug, name: locality.name, lat: locality.lat, lng: locality.lng }, city: { slug: locality.city.slug, name: locality.city.name, state: locality.city.state }, properties, stats, bhk, more: { byBuilder: byBuilder.map(withAgents), inLocality: inLocality.map(withAgents) }, agents, checklist };
   }
 
   async property(slug: string) {
@@ -480,7 +487,12 @@ export class CatalogService {
     const unplaced = city && city in SOURCE ? (await this.unplacedByBuilder(SOURCE[city as keyof typeof SOURCE])).get(`${city}/${b.slug}`) ?? [] : [];
     const alsoRegistered = unplaced.sort((x, y) => x.name.localeCompare(y.name)).slice(0, 40).map((r) => ({ name: displayName(r.name), location: displayName(r.locationText), regNo: r.regNo, status: r.registerStatus, validUntil: r.validUntil, sourceUrl: r.sourceUrl, registerName: SOURCE_NAME[r.source] }));
     const indexable = this.worthIndexing(shown.length, shown.reduce((n, p) => n + p.homes, 0), unplaced.length);
-    return { slug: b.slug, name: b.name, registeredAs: [...new Set(shown.map((p) => p.builder))].sort(), cities, projects: shown, alsoRegistered, alsoRegisteredTotal: unplaced.length, indexable };
+    // The track record counts every registration we hold for the builder here, with or without a page of its own.
+    const record = builderRecord(b.name, city ? shown[0].city.name : 'the cities we cover', [
+      ...shown.map((p) => ({ name: p.name, registerStatus: p.registerStatus, registerValidUntil: p.registerValidUntil, reraId: p.reraId })),
+      ...unplaced.map((r) => ({ name: displayName(r.name), registerStatus: r.registerStatus, registerValidUntil: r.validUntil, reraId: r.regNo })),
+    ]);
+    return { slug: b.slug, name: b.name, registeredAs: [...new Set(shown.map((p) => p.builder))].sort(), cities, projects: shown, alsoRegistered, alsoRegisteredTotal: unplaced.length, indexable, record };
   }
 
   async sitemap() {

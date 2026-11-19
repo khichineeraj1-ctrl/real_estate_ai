@@ -12,6 +12,8 @@ const TOOLS = [
   { href: '/tools/emi', icon: '🧮', name: 'EMI calculator', ask: 'What will I pay each month?' },
   { href: '/tools/afford', icon: '🏠', name: 'How much can I afford?', ask: 'What is my budget?' },
   { href: '/tools/cost', icon: '🧾', name: 'True cost of buying', ask: 'Stamp duty, registration and GST' },
+  { href: '/tools/true-price', icon: '📐', name: 'True price of a quote', ask: 'Per carpet sq ft, and compare quotes' },
+  { href: '/tools/delay-cost', icon: '⏳', name: 'Cost of a delay', ask: 'If possession runs late' },
 ] as const;
 const COMPARE = [{ tab: 'projects', icon: '🏗️', label: 'Projects' }, { tab: 'localities', icon: '📍', label: 'Localities' }, { tab: 'homes', icon: '🏠', label: 'Homes' }] as const;
 

@@ -1,3 +1,4 @@
+import { WatchService } from './watch';
 import { BadRequestException, Body, Controller, Get, HttpCode, HttpException, Ip, Param, Post, Query } from '@nestjs/common';
 import { Limiter } from '../ask/ask.service';
 import { ConstructionStatus, PropertyType } from '@prisma/client';
@@ -19,7 +20,7 @@ const oneOf = <T extends string>(v: string | undefined, allowed: readonly T[], n
 export class CatalogController {
   // A few enquiries a minute per visitor is plenty for a person and too slow for a script.
   private enquiries = new Limiter(4, 5_000);
-  constructor(private readonly catalog: CatalogService) {}
+  constructor(private readonly catalog: CatalogService, private readonly watch: WatchService) {}
 
   @Get('health') health() { return { ok: true }; }
   @Get('cities') cities() { return this.catalog.cities(); }
@@ -45,6 +46,15 @@ export class CatalogController {
     if (!this.enquiries.allow(who)) throw new HttpException('Too many enquiries in a short time. Please try again in a minute.', 429);
     return this.catalog.enquire(slug, body);
   }
+
+  @Post('projects/:slug/follow')
+  @HttpCode(200)
+  follow(@Param('slug') slug: string, @Body() body: Record<string, unknown> & { visitor?: unknown }, @Ip() ip: string) {
+    const who = typeof body?.visitor === 'string' && body.visitor ? body.visitor.slice(0, 64) : ip;
+    if (!this.enquiries.allow(who)) throw new HttpException('Too many requests in a short time. Please try again in a minute.', 429);
+    return this.watch.follow(slug, body);
+  }
+  @Post('unfollow') @HttpCode(200) unfollow(@Body() body: { token?: string }) { return this.watch.unfollow(body?.token ?? ''); }
 
   @Post('projects/:slug/enquiries')
   @HttpCode(200)

@@ -1,3 +1,4 @@
+import { TrackRecord } from '@/components/TrackRecord';
 import { ProjectTile } from '@/components/ProjectTile';
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -66,6 +67,7 @@ export function BuilderCityView({ b, city, others = [] }: { b: BuilderDetail; ci
         {b.name} has {count(b.projects.length)} in {city.name} listed here, in {list(groups.map((g) => g.locality.name))}.
         {otherNames.length > 0 && ` ${otherNames.length === 1 ? 'They are registered under the company name' : 'They are registered under these company names:'} ${list(otherNames)}.`}
       </p>
+      <TrackRecord name={b.name} place={city.name} r={b.record} />
       <dl className="stats">
         <div><dt>Registered projects in {city.name}</dt><dd>{total}</dd></div>
         <div><dt>Localities</dt><dd>{groups.length}{b.alsoRegisteredTotal ? '+' : ''}</dd></div>

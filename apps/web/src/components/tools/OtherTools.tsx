@@ -4,6 +4,8 @@ const TOOLS = [
   { href: '/tools/emi-calculator', name: 'Home loan EMI calculator' },
   { href: '/tools/home-affordability', name: 'How much home can I afford?' },
   { href: '/tools/cost-of-buying', name: 'Stamp duty, registration and GST calculator' },
+  { href: '/tools/true-price', name: 'True price of a builder’s quote' },
+  { href: '/tools/delay-cost', name: 'What a possession delay costs' },
 ];
 
 /** Links from one tool to the others and on to the places a buyer goes next. */

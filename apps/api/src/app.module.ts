@@ -1,3 +1,4 @@
+import { WatchService } from './catalog/watch';
 import { Module } from '@nestjs/common';
 import { AdminController } from './admin/admin.controller';
 import { AdminService } from './admin/admin.service';
@@ -15,6 +16,6 @@ import { PrismaService } from './prisma/prisma.service';
 
 @Module({
   controllers: [CatalogController, AskController, AdminController, TrustController, RegisterController],
-  providers: [PrismaService, Mailer, TrustService, CatalogService, AskService, AdminService, Reminders, RegisterService],
+  providers: [PrismaService, Mailer, TrustService, CatalogService, AskService, AdminService, Reminders, RegisterService, WatchService],
 })
 export class AppModule {}

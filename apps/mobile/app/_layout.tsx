@@ -22,6 +22,8 @@ export default function RootLayout() {
         <Stack.Screen name="tools/emi" options={{ title: 'EMI calculator' }} />
         <Stack.Screen name="tools/afford" options={{ title: 'How much can I afford?' }} />
         <Stack.Screen name="tools/cost" options={{ title: 'True cost of buying' }} />
+        <Stack.Screen name="tools/true-price" options={{ title: 'True price of a quote' }} />
+        <Stack.Screen name="tools/delay-cost" options={{ title: 'Cost of a delay' }} />
         <Stack.Screen name="compare" options={{ title: 'Compare homes' }} />
         <Stack.Screen name="compare-projects" options={{ title: 'Compare projects' }} />
         <Stack.Screen name="compare-localities/[city]/[pair]" options={{ title: 'Compare localities' }} />

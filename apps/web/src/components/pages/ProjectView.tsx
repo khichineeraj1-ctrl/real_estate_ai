@@ -1,4 +1,6 @@
 import { CompareToggle } from '@/components/tools/Compare';
+import { Checklist } from '@/components/Checklist';
+import { Follow } from '@/components/Follow';
 import { Gallery } from '@/components/Gallery';
 import { ConnectButton } from '@/components/ConnectButton';
 import { ProjectTile } from '@/components/ProjectTile';
@@ -68,6 +70,9 @@ export function ProjectView({ p }: { p: ProjectDetail }) {
           <p><ConnectButton kind="project" slug={p.slug} name={p.name} mode="agent" agents={p.agents.length} unclaimed={!!p.registerSource} /></p>
         </section>
       )}
+
+      <Checklist slug={p.slug} name={p.name} items={p.checklist} />
+      {p.registerSource && <Follow slug={p.slug} name={p.name} />}
 
       <section className="section compare-cta">
         <h2>How does {p.name} compare?</h2>

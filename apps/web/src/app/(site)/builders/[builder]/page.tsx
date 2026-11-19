@@ -1,3 +1,4 @@
+import { TrackRecord } from '@/components/TrackRecord';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, permanentRedirect } from 'next/navigation';
@@ -44,6 +45,7 @@ export default async function BuilderPage({ params }: Props) {
         {b.name} has {count(b.projects.length)} listed here{b.cities.length > 1 ? `, across ${list(b.cities.map((c) => c.name))}` : ''}.
         {otherNames.length > 0 && ` ${otherNames.length === 1 ? 'They are registered under the company name' : 'They are registered under these company names:'} ${list(otherNames)}.`}
       </p>
+      <TrackRecord name={b.name} place={list(b.cities.map((c) => c.name))} r={b.record} />
       {fromRegister && <p className="calc-note">Project details come from the public RERA registers and have not been confirmed by the builder. The registers do not give prices.</p>}
 
       {b.cities.map((city) => {

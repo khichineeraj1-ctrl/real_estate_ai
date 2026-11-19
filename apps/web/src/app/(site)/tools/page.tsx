@@ -15,6 +15,8 @@ export const metadata: Metadata = pageMeta({ title, description, path: '/tools' 
 const ICONS = {
   emi: <><rect x="4" y="3" width="16" height="18" rx="3" /><path d="M8 7h8M8 12h2M12 12h4M8 16h2M12 16h4" /></>,
   afford: <><path d="M3 11.5 12 4l9 7.5" /><path d="M5.5 10v10h13V10" /><path d="M10 13h4M10 13c3 0 3 3.5 0 3.5l3 3" /></>,
+  quote: <><path d="M4 20V8l8-5 8 5v12" /><path d="M9 20v-6h6v6" /><path d="M9 10h6" /></>,
+  delay: <><circle cx="12" cy="13" r="8" /><path d="M12 9v4l3 2M9 3h6" /></>,
   cost: <><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z" /><path d="M9 8h6M9 12h6" /></>,
 };
 
@@ -22,6 +24,8 @@ const TOOLS = [
   { href: '/tools/emi-calculator', icon: ICONS.emi, name: 'EMI calculator', ask: 'What will I pay each month?' },
   { href: '/tools/home-affordability', icon: ICONS.afford, name: 'How much can I afford?', ask: 'What is my budget?' },
   { href: '/tools/cost-of-buying', icon: ICONS.cost, name: 'True cost of buying', ask: 'Stamp duty, registration and GST' },
+  { href: '/tools/true-price', icon: ICONS.quote, name: 'True price of a quote', ask: 'Per carpet sq ft, and compare quotes' },
+  { href: '/tools/delay-cost', icon: ICONS.delay, name: 'Cost of a delay', ask: 'If possession runs late' },
 ];
 
 export default async function Tools() {

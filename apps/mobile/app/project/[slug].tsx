@@ -1,3 +1,4 @@
+import { Checklist, Follow } from '../../components/Guidance';
 import { CompareToggle } from '../../components/tools/Compare';
 import { Photos } from '../../components/Photos';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -76,6 +77,9 @@ export default function Project() {
             <ConnectButton kind="project" slug={p.slug} name={p.name} mode="agent" agents={p.agents!.length} unclaimed={!!p.registerSource} />
           </View>
         )}
+
+        <Checklist key={`check-${p.slug}`} slug={p.slug} name={p.name} items={p.checklist} />
+        {p.registerSource ? <Follow key={`follow-${p.slug}`} slug={p.slug} name={p.name} /> : null}
 
         <View style={[s.box, { backgroundColor: t.card, borderColor: t.line }]}>
           <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 17, fontWeight: '700' }}>How does {p.name} compare?</Text>

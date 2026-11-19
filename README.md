@@ -12,6 +12,18 @@ each city's buying charges; it never deletes anything and is safe to run again. 
 RERA registers, which carry no prices. Homes and prices appear only when an owner, agent or builder posts them, so
 locality pages show no price figures until then.
 
+## Help for buyers that comes from the registers
+
+Worked out from the RERA registers we already read, and stated as facts and questions to ask, never as a rating.
+
+- **Builder track record** (builder pages, web and app): every registration we hold for the builder in the city, split into being built, past the completion date and lapsed, with a plain verdict. `builderRecord` in `apps/api/src/catalog/guidance.ts`; served as `record` on `GET /builders/:slug`.
+- **Before you pay** (project pages): a checklist built from the project's own facts (lapsed, past its date, the builder's other lapsed projects), plus the standing checks (carpet area, full cost sheet, 10% before agreement, project account, title, bank approval). Ticks are kept in the browser, or while the app is open. `beforeYouPay` in the same file; served as `checklist` on `GET /projects/:slug`.
+- **True price of a quote** (`/tools/true-price`, app: Tools): one to three builder quotes put on the same footing, as price per carpet sq ft with every charge in, and the whole bill. Arithmetic in `lib/quote.ts` (the web and app copies must match). Where no carpet area is entered, 30% loading is assumed and said.
+- **Cost of a delay** (`/tools/delay-cost`): the rent paid while possession is late, the interest the builder owes under RERA, and rent plus EMI each month.
+- **Follow a project**: a buyer leaves an email on a register project and is told when its registration lapses, is extended or reaches its end date. `ProjectWatch` rows; `WatchService` (`catalog/watch.ts`) runs after every register read. Emails are only logged until `SMTP_URL` is set. Each email carries an `/unfollow?token=` link.
+
+Not built: RERA complaints and quarterly progress filings. The register listings we read do not carry them; they would need each project's detail pages read, which is a separate piece of work.
+
 ## Comparing, side by side
 
 Comparison is the thing this site does that the large portals do not, so it is offered wherever a buyer is choosing:

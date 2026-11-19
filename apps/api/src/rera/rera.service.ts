@@ -1,3 +1,4 @@
+import { WatchService } from '../catalog/watch';
 import { builderFor, ensureBuilder } from '../catalog/builders';
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma, RegisterProject, RegisterSource } from '@prisma/client';
@@ -23,7 +24,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export class RegisterService {
   private log = new Logger('Register');
   private running = new Set<RegisterSource>();
-  constructor(private readonly db: PrismaService) {}
+  constructor(private readonly db: PrismaService, private readonly watch: WatchService) {}
 
   // ---- Fetching
 
@@ -109,6 +110,7 @@ export class RegisterService {
       const note = stopped ? `Incomplete: ${stopped}. What was read before that has been kept.` : source === 'MAHARASHTRA' ? `Read up to ${maxPages} pages for each of our localities’ pincodes.` : source === 'KARNATAKA' ? 'Karnataka gives only the taluk, so most entries need placing by hand.' : null;
       await this.db.importRun.update({ where: { id: runId }, data: { finishedAt: new Date(), fetched: entries.length, added: fresh.length, published, requests, note } });
       this.log.log(`${SOURCE_NAME[source]}: ${entries.length} entries read in ${requests} request(s), ${fresh.length} new, ${published} project pages created.`);
+      await this.watch.notifyChanges().catch((e: Error) => this.log.error(`Followers were not told of changes: ${e.message}`));
     } catch (e) {
       const message = e instanceof Error ? e.message : 'The import failed';
       this.log.error(`${SOURCE_NAME[source]}: ${message}`);

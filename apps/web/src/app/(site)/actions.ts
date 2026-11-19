@@ -48,3 +48,25 @@ export async function enquire(kind: 'property' | 'project', slug: string, via: '
     return { error: 'Your enquiry could not be sent. Please try again.' };
   }
 }
+
+export interface FollowState { done?: boolean; error?: string }
+/** Follow a project: the buyer is emailed when its RERA registration changes. */
+export async function followProject(slug: string, _: FollowState, form: FormData): Promise<FollowState> {
+  if (form.get('website')) return { done: true };
+  if (!form.get('consent')) return { error: 'Tick the box to agree to be emailed' };
+  const visitor = (await headers()).get('x-forwarded-for')?.split(',')[0].trim();
+  try {
+    const res = await fetch(`${API_URL}/projects/${encodeURIComponent(slug)}/follow`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: form.get('email'), consent: true, visitor }), cache: 'no-store' });
+    const data = (await res.json().catch(() => null)) as { message?: string } | null;
+    return res.ok ? { done: true } : { error: data?.message || 'That did not work. Please try again.' };
+  } catch {
+    return { error: 'That did not work. Please try again.' };
+  }
+}
+/** The link at the foot of every alert email. */
+export async function unfollow(token: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_URL}/unfollow`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ token }), cache: 'no-store' });
+    return res.ok;
+  } catch { return false; }
+}

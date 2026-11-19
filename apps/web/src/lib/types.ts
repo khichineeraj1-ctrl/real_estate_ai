@@ -34,7 +34,13 @@ export interface LocalityDetail extends Place {
 }
 /** A builder as buyers know it, across the companies its projects are registered under. */
 export interface BuilderSummary extends Place { projects: number; cities: Place[] }
+export type Tone = 'good' | 'warn' | 'info' | 'none';
+/** A builder's registrations by where each stands, with a plain verdict (see the API's guidance.ts). */
+export interface BuilderRecord { total: number; current: number; ended: number; lapsed: number; unknown: number; since: number | null; latest: number | null; nextDue: { name: string; date: string } | null; lapsedNames: string[]; verdict: { tone: Tone; title: string; text: string } }
+/** One thing to check, ask for or refuse before paying for a project. */
+export interface CheckItem { key: string; tone: Tone; title: string; why: string; link?: { href: string; label: string } }
 export interface BuilderDetail extends Place {
+  record: BuilderRecord;
   registeredAs: string[]; cities: Place[];
   projects: (Place & { builder: string; status: Status; reraId: string | null; registerSource: string | null; registerStatus: string | null; registerValidUntil: string | null; homes: number; agents?: number; photos?: { file: string }[]; locality: Place; city: Place })[];
   /** Projects the register lists for this builder in the city that we have no page for (outside the localities we cover). */
@@ -44,6 +50,7 @@ export interface BuilderDetail extends Place {
   indexable: boolean;
 }
 export interface ProjectDetail extends Place {
+  checklist: CheckItem[];
   /** Every photo of the project, cover first. */
   photos: { file: string; width: number; height: number; category?: string | null }[];
   videos?: { youtubeId: string; title: string | null }[];

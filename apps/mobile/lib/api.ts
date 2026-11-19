@@ -25,11 +25,15 @@ export interface LocalityDetail extends Place {
 }
 /** A builder as buyers know it, across the companies its projects are registered under. */
 export interface BuilderSummary extends Place { projects: number; cities: Place[] }
+export interface BuilderRecord { total: number; current: number; ended: number; lapsed: number; unknown: number; since: number | null; latest: number | null; nextDue: { name: string; date: string } | null; lapsedNames: string[]; verdict: { tone: Tone; title: string; text: string } }
+export interface CheckItem { key: string; tone: Tone; title: string; why: string; link?: { href: string; label: string } }
 export interface BuilderDetail extends Place {
+  record: BuilderRecord;
   registeredAs: string[]; cities: Place[];
   projects: (Place & { builder: string; reraId: string | null; registerSource: string | null; registerStatus: string | null; registerValidUntil: string | null; homes: number; agents?: number; photos?: { file: string; width?: number; height?: number }[]; locality: Place; city: Place })[];
 }
 export interface ProjectDetail extends Place {
+  checklist: CheckItem[];
   /** The builder the project is listed under; `builder` is the company name as registered. */
   brand: Place | null;
   builder: string; description: string; status: Status; possession: string | null; reraId: string | null; totalUnits: number | null; amenities: string[];
@@ -98,6 +102,7 @@ export interface Insight { key: string; tone: Tone; icon: string; title: string;
 export const getProjectInsights = (slugs: string[]) => call<{ projects: CompareProject[]; scorecards: Scorecard[]; insights: Insight[] }>(`/compare/projects/insights?slugs=${encodeURIComponent(slugs.slice(0, 4).join(','))}`);
 export const getLocalityInsights = (city: string, a: string, b: string) => call<{ localities: [LocalityDetail, LocalityDetail]; scorecards: Scorecard[]; insights: Insight[] }>(`/compare/localities/${encodeURIComponent(city)}?a=${encodeURIComponent(a)}&b=${encodeURIComponent(b)}`);
 export const getHomeInsights = (slugs: string[]) => call<{ homes: CompareHome[]; scorecards: Scorecard[]; insights: Insight[] }>(`/compare/insights?slugs=${encodeURIComponent(slugs.slice(0, 4).join(','))}`);
+export const followProject = (slug: string, email: string) => call<{ ok: true }>(`/projects/${slug}/follow`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email, consent: true }) });
 export const searchProjects = (text: string, city?: string) => call<{ total: number; items: ProjectHit[] }>(`/projects?text=${encodeURIComponent(text.slice(0, 80))}${city ? `&city=${encodeURIComponent(city)}` : ''}`);
 export const getCompare = (slugs: string[]) => call<CompareHome[]>(`/compare?slugs=${encodeURIComponent(slugs.slice(0, 4).join(','))}`);
 export const ask = (message: string, history: Turn[], context?: string) =>

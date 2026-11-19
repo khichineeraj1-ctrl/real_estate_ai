@@ -1,3 +1,4 @@
+import { TrackRecord } from '../../../components/Guidance';
 import { CompareToggle } from '../../../components/tools/Compare';
 import { Cover } from '../../../components/Cover';
 import { ConnectButton } from '../../../components/LeadForm';
@@ -43,6 +44,7 @@ export default function Builder() {
         {b.name} has {count(b.projects.length)} in {cityName} listed here, in {list(byLocality.map((g) => g.name))}.
         {otherNames.length > 0 ? ` ${otherNames.length === 1 ? 'They are registered under the company name' : 'They are registered under these company names:'} ${list(otherNames)}.` : ''}
       </Text>
+      <TrackRecord name={b.name} place={cityName} r={b.record} />
       {b.projects.some((p) => p.registerSource) ? <Text style={{ color: t.muted, fontSize: 13, lineHeight: 19 }}>Project details come from the public RERA register and have not been confirmed by the builder. The register does not give prices.</Text> : null}
 
       {byLocality.map((g) => (

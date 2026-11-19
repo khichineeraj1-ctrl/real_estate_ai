@@ -113,6 +113,7 @@ model Project {
   sourceUrl          String?
   sourceFetchedAt    DateTime?
   register           RegisterProject?
+  watches            ProjectWatch[]
   /// The builder's sales address. When set, each lead on this project is emailed there as it arrives.
   leadEmail   String?
   /// The builder login that may see this project's leads.
@@ -527,6 +528,23 @@ model RegisterProject {
 
   @@unique([source, regNo])
   @@index([source, projectId])
+}
+
+/// A buyer following a project: they are emailed when its RERA registration changes (lapses, is extended, or ends).
+model ProjectWatch {
+  id        String   @id @default(cuid())
+  email     String
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  /// Sent in every email, so one click stops the alerts without signing in.
+  token     String   @unique
+  /// What the register said when they started following, or when we last told them.
+  lastStatus     String?
+  lastValidUntil DateTime?
+  createdAt  DateTime  @default(now())
+  notifiedAt DateTime?
+
+  @@unique([email, projectId])
 }
 
 /// One run of the register importer, so staff can see when each register was last read and what came of it.
