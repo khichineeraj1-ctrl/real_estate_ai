@@ -477,6 +477,9 @@ in India, placed by state, district and town or village rather than by the four 
 - Companies post what they are looking for (`/land/wanted/post`); owners answer. The company name is hidden unless asked.
 - Posters' phone numbers are never public. Enquiries and answers go to staff ("Enquiries and answers" in `/admin/land`),
   who introduce the two sides.
+- A listing can carry up to 8 photos, chosen in the form or added later from the private link. They are made smaller
+  in the browser, re-encoded by the API (which drops GPS data), and shown only after staff approve the listing. Photos
+  added to a live listing send it back for checking.
 - Sizes are shown in the poster's unit. Acre, hectare, sq ft, sq yd, sq m, guntha, cent, kanal and ground convert;
   bigha, katha, biswa and marla vary by region and are never converted.
 - State and district pages (`/land/rajasthan`, `/land/rajasthan/alwar`) appear as listings arrive. Districts are typed

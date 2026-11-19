@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useColorScheme } from 'react-native';
-import { getLandPlaces, replyLand, type LandItem, type Place, type WantedItem } from '../lib/api';
+import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useColorScheme } from 'react-native';
+import { getLandPlaces, photoUrl, replyLand, type LandItem, type Place, type WantedItem } from '../lib/api';
 import { price } from '../lib/format';
 import { useTheme } from '../lib/theme';
 
@@ -31,6 +31,12 @@ export function LandCard({ l }: { l: LandItem }) {
   const road = roadText(l);
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={`${l.title}. ${landPrice(l)}. Open`} onPress={() => router.push({ pathname: '/land/listing/[slug]', params: { slug: l.slug } })} style={({ pressed }) => [s.card, { backgroundColor: t.card, borderColor: pressed ? ink : t.line }]}>
+      {l.photos[0] ? (
+        <View style={{ height: 170, backgroundColor: t.soft }}>
+          <Image source={{ uri: photoUrl(l.photos[0].file, 'card') }} resizeMode="cover" style={StyleSheet.absoluteFill} accessibilityIgnoresInvertColors />
+          {l.photos.length > 1 ? <View style={s.count}><Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>▣ {l.photos.length}</Text></View> : null}
+        </View>
+      ) : null}
       <View style={[s.art, { backgroundColor: bg }]}>
         <Text style={{ fontSize: 30 }}>{KIND_ICON[l.kind]}</Text>
         <View style={{ flex: 1 }}><Text style={{ color: ink, fontSize: 19, fontWeight: '800' }}>{l.area}</Text>{l.areaAlso ? <Text style={{ color: t.muted, fontSize: 12 }}>about {l.areaAlso}</Text> : null}</View>
@@ -195,4 +201,7 @@ export const s = StyleSheet.create({
   sheet: { maxHeight: '70%', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 24 },
   panel: { borderWidth: 1, borderRadius: 16, padding: 14, gap: 10 },
   fact: { paddingHorizontal: 12, paddingVertical: 10, gap: 2 },
+  count: { position: 'absolute', right: 8, bottom: 8, backgroundColor: 'rgba(10,12,16,0.7)', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
+  thumb: { width: 84, height: 84, borderRadius: 12, overflow: 'hidden' },
+  x: { position: 'absolute', top: 4, right: 4, width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(10,12,16,0.72)', alignItems: 'center', justifyContent: 'center' },
 });

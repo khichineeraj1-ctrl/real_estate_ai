@@ -1134,3 +1134,13 @@ html, body { overflow-x: clip; }
   .land-kinds, .land-choice.big { grid-template-columns: 1fr 1fr; } .land-ctas, .land-fields { grid-template-columns: 1fr; } .land-cta { grid-template-columns: auto 1fr; } .land-cta b { grid-column: 2; }
   .land-top { grid-template-columns: 1fr; } .land-top-icon { font-size: 2rem; } .land-ask .abtn { width: 100%; } .land-facts > div { grid-template-columns: 1fr; gap: 0; }
 }
+/* Land photos */
+.land-photo { position: relative; aspect-ratio: 16 / 10; background: var(--soft); } .land-photo img { width: 100%; height: 100%; object-fit: cover; display: block; } .land-photo span { position: absolute; right: 8px; bottom: 8px; background: rgba(10, 12, 16, .7); color: #fff; font-size: .78rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+.land-gallery { margin-top: 12px; }
+.land-opt { font-style: normal; font-weight: 400; color: var(--muted); font-size: .88rem; }
+.land-photos { display: grid; gap: 10px; }
+.land-thumbs { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; } .land-thumbs li { position: relative; aspect-ratio: 1; border-radius: 12px; overflow: hidden; background: var(--soft); } .land-thumbs img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.land-thumbs button { position: absolute; top: 4px; right: 4px; width: 28px; height: 28px; min-height: 0; border-radius: 50%; border: 0; background: rgba(10, 12, 16, .72); color: #fff; font-size: 1.1rem; line-height: 1; cursor: pointer; }
+.land-addphoto { position: relative; display: grid; grid-template-columns: auto 1fr; column-gap: 12px; align-items: center; padding: 14px 16px; border: 1.5px dashed var(--brand); border-radius: var(--radius); cursor: pointer; background: color-mix(in srgb, var(--brand) 5%, var(--bg)); } .land-addphoto:hover { border-style: solid; } .land-addphoto.is-busy { opacity: .6; cursor: progress; }
+.land-addphoto input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; } .land-addphoto span { font-size: 1.7rem; grid-row: span 2; } .land-addphoto b { color: var(--brand); } .land-addphoto small { color: var(--muted); } .land-addphoto:focus-within { outline: 2px solid var(--brand); outline-offset: 2px; }
+.land-review-photos { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; } .land-review-photos img { width: 84px; height: 64px; object-fit: cover; border-radius: 8px; display: block; }

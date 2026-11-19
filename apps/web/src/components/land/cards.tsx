@@ -1,9 +1,10 @@
 import Link from 'next/link';
 import { price } from '@/lib/format';
+import { media } from '@/lib/seo';
 
 export interface LandItem {
   slug: string; kind: string; deal: string; title: string; kindLabel: string; state: string; stateSlug: string; district: string; districtSlug: string; place: string;
-  area: string; areaAlso: string | null; rate: string | null; priceInr: number | null; roadFt: number | null; highway: string | null; highwayKm: number | null; landUse: string | null; posterIs: string; createdAt: string;
+  area: string; areaAlso: string | null; rate: string | null; priceInr: number | null; roadFt: number | null; highway: string | null; highwayKm: number | null; landUse: string | null; posterIs: string; createdAt: string; photos: { file: string; width: number; height: number }[];
 }
 export interface WantedItem {
   slug: string; kind: string; deal: string; purpose: string; purposeLabel: string; kindLabel: string; title: string; details: string | null; state: string; stateSlug: string; where: string | null;
@@ -28,6 +29,7 @@ export function LandCard({ l }: { l: LandItem }) {
   return (
     <li className={`land-card kind-${l.kind.toLowerCase()}`}>
       <Link href={`/land/listing/${l.slug}`} className="land-card-link">
+        {l.photos[0] && <div className="land-photo"><img src={media(l.photos[0].file, 'card')} alt={`${l.title}: photo`} width={640} height={480} loading="lazy" decoding="async" />{l.photos.length > 1 && <span>▣ {l.photos.length}</span>}</div>}
         <div className="land-art"><span aria-hidden="true">{KIND_ICON[l.kind]}</span><b>{l.area}</b>{l.areaAlso && <small>about {l.areaAlso}</small>}</div>
         <div className="land-body">
           <p className="land-tags"><span>{l.kindLabel}</span><span className={l.deal === 'LEASE' ? 'rent' : ''}>{l.deal === 'LEASE' ? 'For rent' : 'For sale'}</span></p>

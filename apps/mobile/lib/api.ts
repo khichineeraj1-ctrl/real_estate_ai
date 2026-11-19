@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { authHeader, endSession, sessionReady } from './session';
 import { API_URL } from './config';
 import type { CityCosts } from './finance';
@@ -158,7 +159,7 @@ export const sendEnquiry = (slug: string, body: { name: string; phone: string; m
 // ---- Land and commercial space: listings anywhere in India, and what companies are looking for
 export interface LandItem {
   slug: string; kind: string; deal: string; title: string; kindLabel: string; state: string; stateSlug: string; district: string; districtSlug: string; place: string;
-  area: string; areaAlso: string | null; rate: string | null; priceInr: number | null; roadFt: number | null; highway: string | null; highwayKm: number | null; landUse: string | null; posterIs: string; createdAt: string;
+  area: string; areaAlso: string | null; rate: string | null; priceInr: number | null; roadFt: number | null; highway: string | null; highwayKm: number | null; landUse: string | null; posterIs: string; createdAt: string; photos: { file: string; width: number; height: number }[];
 }
 export type LandDetail = LandItem & { description: string | null; closed: boolean; features: string[]; clearHeightFt: number | null; powerKva: number | null; docks: number | null; checks: { key: string; title: string; why: string }[]; nearby: LandItem[] };
 export interface WantedItem { slug: string; kind: string; deal: string; purpose: string; purposeLabel: string; kindLabel: string; title: string; details: string | null; state: string; stateSlug: string; where: string | null; size: string; budgetInr: number | null; by: string | null; answers: number; createdAt: string }
@@ -174,3 +175,14 @@ export const postLand = (type: 'listing' | 'wanted', body: Record<string, unknow
 export const replyLand = (type: 'listing' | 'wanted', slug: string, body: { name: string; phone: string; message?: string }) => call<{ ok: true }>(type === 'listing' ? `/land/listing/${encodeURIComponent(slug)}/enquire` : `/land/wanted/${encodeURIComponent(slug)}/answer`, { ...JSON_POST, body: JSON.stringify({ ...body, consent: true }) });
 export const landMine = (token: string) => call<LandMine>('/land/manage', { ...JSON_POST, body: JSON.stringify({ token }) });
 export const closeLand = (token: string) => call<{ ok: true }>('/land/manage', { ...JSON_POST, body: JSON.stringify({ token, close: true }) });
+/**
+ * Sends one photo for a listing, with the key that came back when it was posted. On a phone the picker gives a file
+ * address, which the upload reads directly; in the web preview the same address is turned into the file's bytes first.
+ */
+export async function uploadLandPhoto(token: string, photo: { uri: string; mimeType?: string | null }): Promise<void> {
+  const form = new FormData();
+  form.append('token', token);
+  if (Platform.OS === 'web') form.append('photos', await (await fetch(photo.uri)).blob(), 'photo.jpg');
+  else form.append('photos', { uri: photo.uri, name: 'photo.jpg', type: photo.mimeType ?? 'image/jpeg' } as unknown as Blob);
+  await call<{ ok: true }>('/land/photos', { method: 'POST', body: form });
+}

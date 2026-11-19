@@ -1,11 +1,14 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { createHash, randomBytes } from 'node:crypto';
 import { Input, slugify } from '../admin/input';
+import { MAX_PHOTO_BYTES, processPhoto, removePhoto, savePhoto, sniffImage, type ProcessedPhoto } from '../admin/photos';
 import { cleanEmail } from '../buyer/buyer.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { DEALS, FEATURES, KINDS, KIND_LABEL, LAND_USES, POSTERS, PURPOSES, PURPOSE_LABEL, STATES, UNITS, areaAlso, areaText, cleanDistrict, landChecks, listingTitle, rate, stateBySlug, toSqft, type Kind } from './rules';
 
 type Body = Record<string, unknown>;
+export const MAX_LAND_PHOTOS = 8;
+const PHOTOS = { orderBy: { position: 'asc' }, select: { file: true, width: true, height: true } } as const;
 const hash = (token: string) => createHash('sha256').update(token).digest('hex');
 const num = (v: bigint | null) => (v == null ? null : Number(v));
 const pick = <T extends string>(v: unknown, allowed: readonly T[]): T | undefined => (allowed.includes(v as T) ? (v as T) : undefined);
@@ -38,11 +41,11 @@ export class LandService {
 
   // ---- Listings, for everyone
 
-  private shape(l: { slug: string; kind: string; deal: string; title: string; state: string; stateSlug: string; district: string; districtSlug: string; place: string; areaValue: number; areaUnit: string; priceInr: bigint | null; roadFt: number | null; highway: string | null; highwayKm: number | null; landUse: string | null; posterIs: string; createdAt: Date }) {
+  private shape(l: { slug: string; kind: string; deal: string; title: string; state: string; stateSlug: string; district: string; districtSlug: string; place: string; areaValue: number; areaUnit: string; priceInr: bigint | null; roadFt: number | null; highway: string | null; highwayKm: number | null; landUse: string | null; posterIs: string; createdAt: Date; photos: { file: string; width: number; height: number }[] }) {
     const priceInr = num(l.priceInr);
     return { ...l, priceInr, kindLabel: KIND_LABEL[l.kind as Kind], area: areaText(l.areaValue, l.areaUnit), areaAlso: areaAlso(l.areaValue, l.areaUnit), rate: rate({ ...l, priceInr }) };
   }
-  private card = { slug: true, kind: true, deal: true, title: true, state: true, stateSlug: true, district: true, districtSlug: true, place: true, areaValue: true, areaUnit: true, priceInr: true, roadFt: true, highway: true, highwayKm: true, landUse: true, posterIs: true, createdAt: true } as const;
+  private card = { slug: true, kind: true, deal: true, title: true, state: true, stateSlug: true, district: true, districtSlug: true, place: true, areaValue: true, areaUnit: true, priceInr: true, roadFt: true, highway: true, highwayKm: true, landUse: true, posterIs: true, createdAt: true, photos: PHOTOS } as const;
 
   async list(q: { kind?: string; deal?: string; state?: string; district?: string; take?: number }) {
     const where = { status: 'LIVE', kind: pick(q.kind, KINDS), deal: pick(q.deal, DEALS), stateSlug: q.state || undefined, districtSlug: q.district || undefined };
@@ -187,16 +190,47 @@ export class LandService {
   private async mine(token: string) {
     const h = hash(String(token).slice(0, 80));
     const [l, w] = await Promise.all([
-      this.db.landListing.findUnique({ where: { manageHash: h }, select: { id: true, slug: true, title: true, status: true, decisionNote: true, _count: { select: { replies: true } } } }),
+      this.db.landListing.findUnique({ where: { manageHash: h }, select: { id: true, slug: true, title: true, status: true, decisionNote: true, photos: PHOTOS, _count: { select: { replies: true } } } }),
       this.db.landWanted.findUnique({ where: { manageHash: h }, select: { id: true, slug: true, title: true, status: true, decisionNote: true, _count: { select: { replies: true } } } }),
     ]);
     if (l) return { type: 'listing' as const, ...l };
-    if (w) return { type: 'wanted' as const, ...w };
+    if (w) return { type: 'wanted' as const, ...w, photos: [] as { file: string; width: number; height: number }[] };
     throw new NotFoundException('This link is not valid');
   }
   async manage(token: string) {
     const m = await this.mine(token);
-    return { type: m.type, slug: m.slug, title: m.title, status: m.status, note: m.decisionNote, replies: m._count.replies };
+    return { type: m.type, slug: m.slug, title: m.title, status: m.status, note: m.decisionNote, replies: m._count.replies, photos: m.photos, maxPhotos: MAX_LAND_PHOTOS };
+  }
+  /**
+   * The poster adds photos with their private link. Each is decoded and re-encoded before it is stored, which also
+   * drops the camera's GPS position. Photos added to a listing that is already showing send it back for checking,
+   * so no picture reaches the site unseen.
+   */
+  async addPhotos(token: string, files: { buffer: Buffer; size: number }[]) {
+    const m = await this.mine(token);
+    if (m.type !== 'listing') throw new BadRequestException('Photos can be added to a listing only');
+    if (m.status !== 'PENDING' && m.status !== 'LIVE') throw new BadRequestException('This listing is closed');
+    if (!files?.length) throw new BadRequestException('Choose at least one photo');
+    if (m.photos.length + files.length > MAX_LAND_PHOTOS) throw new BadRequestException(`A listing can have at most ${MAX_LAND_PHOTOS} photos; this one has ${m.photos.length}`);
+    if (files.some((f) => !sniffImage(f.buffer))) throw new BadRequestException('Photos must be JPEG, PNG or WebP images');
+    if (files.some((f) => f.size > MAX_PHOTO_BYTES)) throw new BadRequestException('Each photo must be under 5 MB');
+    const processed: ProcessedPhoto[] = [];
+    for (const f of files) {
+      try { processed.push(await processPhoto(f.buffer)); } catch { throw new BadRequestException('One of the photos could not be read. Save it again as a JPEG or PNG and retry.'); }
+    }
+    const last = await this.db.photo.aggregate({ where: { landId: m.id }, _max: { position: true } });
+    let position = (last._max.position ?? -1) + 1;
+    for (const ph of processed) await this.db.photo.create({ data: { landId: m.id, file: await savePhoto(ph), width: ph.width, height: ph.height, position: position++ } });
+    if (m.status === 'LIVE') await this.db.landListing.update({ where: { id: m.id }, data: { status: 'PENDING' } });
+    return { ok: true as const, added: files.length, recheck: m.status === 'LIVE' };
+  }
+  async removePhoto(token: string, file: string) {
+    const m = await this.mine(token);
+    const photo = m.type === 'listing' ? await this.db.photo.findFirst({ where: { landId: m.id, file: String(file) }, select: { id: true, file: true } }) : null;
+    if (!photo) throw new NotFoundException('Not found');
+    await this.db.photo.delete({ where: { id: photo.id } });
+    await removePhoto(photo.file);
+    return { ok: true as const };
   }
   async close(token: string) {
     const m = await this.mine(token);
@@ -210,7 +244,7 @@ export class LandService {
   async queue(status?: string) {
     const s = pick(status, ['PENDING', 'LIVE', 'REJECTED', 'CLOSED'] as const) ?? 'PENDING';
     const [listings, wanted] = await Promise.all([
-      this.db.landListing.findMany({ where: { status: s }, orderBy: { createdAt: 'desc' }, take: 100 }),
+      this.db.landListing.findMany({ where: { status: s }, orderBy: { createdAt: 'desc' }, take: 100, include: { photos: PHOTOS } }),
       this.db.landWanted.findMany({ where: { status: s }, orderBy: { createdAt: 'desc' }, take: 100 }),
     ]);
     return {

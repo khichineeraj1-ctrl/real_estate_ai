@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
+import { Gallery } from '@/components/Gallery';
 import { KIND_ICON, LandGrid, ago, landPrice, roadText, type LandItem } from '@/components/land/cards';
 import { ReplyButton } from '@/components/land/forms';
 import { api } from '@/lib/api';
@@ -49,6 +50,8 @@ export default async function LandListing({ params }: Props) {
         </div>
       </div>
 
+      {l.photos.length > 0 && <div className="land-gallery"><Gallery photos={l.photos} name={l.title} /></div>}
+
       <div className="land-stats">
         <div><small>Size</small><strong>{l.area}</strong>{l.areaAlso && <span>about {l.areaAlso}</span>}</div>
         <div><small>{l.deal === 'LEASE' ? 'Rent' : 'Price'}</small><strong>{landPrice(l)}</strong>{l.rate && <span>{l.rate}</span>}</div>
@@ -68,7 +71,7 @@ export default async function LandListing({ params }: Props) {
       <section className="section">
         <h2>Details</h2>
         <dl className="land-facts">{facts.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
-        <p className="calc-note">Everything here is as told to us by the lister. We check that a listing is genuine and complete, but we have not seen the ownership papers or measured the land.</p>
+        <p className="calc-note">Everything here is as told to us by the lister. We check that a listing is genuine and complete, but we have not seen the ownership papers or measured the land{l.photos.length ? ', and the photos are the lister’s own' : ''}.</p>
       </section>
 
       <section className="section">

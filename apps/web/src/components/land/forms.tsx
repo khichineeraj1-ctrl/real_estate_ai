@@ -1,6 +1,8 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useActionState, useEffect, useRef, useState } from 'react';
+import { PhotoPicker, uploadPhotos } from './photos';
 import { closeLand, postLand, postWanted, replyLand, type LandState } from '@/app/(site)/land/actions';
 import { KIND_ICON, PURPOSE_ICON } from './cards';
 
@@ -61,7 +63,20 @@ export function PostLandForm({ o }: { o: LandOptions }) {
   const [deal, setDeal] = useState('SALE');
   const [unit, setUnit] = useState('acre');
   const pickKind = (k: string) => { setKind(k); if (k === 'BUILT') { setUnit('sqft'); setDeal('LEASE'); } else if (unit === 'sqft') setUnit('acre'); };
+  const router = useRouter();
+  const [files, setFiles] = useState<File[]>([]);
+  const [sending, setSending] = useState('');
+  // The listing is made first; its photos follow one at a time with the key that came back, then the private page opens.
+  useEffect(() => {
+    if (!state.token) return;
+    const token = state.token;
+    void (async () => {
+      const failed = files.length ? await uploadPhotos(token, files, (n) => setSending(`Sending photo ${n} of ${files.length}…`)) : 0;
+      router.push(`/land/manage?token=${encodeURIComponent(token)}&new=1${failed ? `&missed=${failed}` : ''}`);
+    })();
+  }, [state.token]); // eslint-disable-line react-hooks/exhaustive-deps
   if (state.done) return <p className="astatus" role="status">Thank you. Our team will look at it.</p>;
+  if (state.token) return <p className="astatus" role="status">{sending || 'Saved. Opening your listing…'}</p>;
   return (
     <form action={run} className="land-form">
       <Choice name="kind" legend="What are you listing?" value={kind} set={pickKind} options={o.kinds.map((k) => ({ ...k, icon: KIND_ICON[k.code], hint: KIND_HINT[k.code] }))} />
@@ -93,6 +108,9 @@ export function PostLandForm({ o }: { o: LandOptions }) {
         </fieldset>
         <label className="afield wide"><span>Anything else a buyer should know <em>(optional)</em></span><textarea name="description" rows={3} maxLength={1000} placeholder="e.g. Two sides open, canal on the east, 4 km from the mandi" /></label>
 
+        <h2>Photos <em className="land-opt">(optional, up to 8)</em></h2>
+        <PhotoPicker files={files} set={setFiles} max={8} />
+
         <h2>About you</h2>
         <label className="afield wide"><span>You are</span><select name="posterIs" defaultValue="OWNER"><option value="OWNER">The owner, or family of the owner</option><option value="DEALER">A dealer or agent</option><option value="COMPANY">A company</option></select></label>
         <Contact who="a buyer asks about it" />
@@ -116,6 +134,9 @@ export function PostWantedForm({ o }: { o: LandOptions }) {
     if (p === 'DARK_STORE' || p === 'RETAIL') { setKind('BUILT'); setDeal('LEASE'); setUnit('sqft'); }
     else if (p === 'FARMING') { setKind('FARM'); setUnit('acre'); } else if (p === 'HOUSING') { setKind('PLOT'); setUnit('sqyd'); } else { setKind('INDUSTRIAL'); setUnit('acre'); }
   };
+  const router = useRouter();
+  useEffect(() => { if (state.token) router.push(`/land/manage?token=${encodeURIComponent(state.token)}&new=1`); }, [state.token, router]);
+  if (state.token) return <p className="astatus" role="status">Saved. Opening your requirement…</p>;
   if (state.done) return <p className="astatus" role="status">Thank you. Our team will look at it.</p>;
   return (
     <form action={run} className="land-form">

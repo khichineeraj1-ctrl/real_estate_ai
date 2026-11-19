@@ -1,11 +1,10 @@
 'use server';
 
 import { headers } from 'next/headers';
-import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 
 const API_URL = process.env.API_URL || 'http://localhost:4100';
-export interface LandState { error?: string; done?: boolean }
+export interface LandState { error?: string; done?: boolean; token?: string }
 
 async function send(path: string, body: Record<string, unknown>): Promise<{ ok: boolean; data: Record<string, unknown> | null }> {
   const visitor = (await headers()).get('x-forwarded-for')?.split(',')[0].trim();
@@ -26,7 +25,8 @@ async function post(path: string, form: FormData): Promise<LandState> {
   if (!r.ok) return { error: message(r.data) };
   // A filled honeypot is answered as if it worked, with nothing made.
   if (!r.data?.token) return { done: true };
-  redirect(`/land/manage?token=${encodeURIComponent(String(r.data.token))}&new=1`);
+  // The form then sends any photos with this key, and opens the poster's private page.
+  return { token: String(r.data.token) };
 }
 export async function postLand(_: LandState, form: FormData): Promise<LandState> { return post('/land', form); }
 export async function postWanted(_: LandState, form: FormData): Promise<LandState> { return post('/land/wanted', form); }
@@ -41,4 +41,8 @@ export async function closeLand(token: string, _: LandState): Promise<LandState>
   if (!r.ok) return { error: message(r.data) };
   revalidatePath('/land', 'layout');
   return { done: true };
+}
+export async function removeLandPhoto(token: string, file: string): Promise<LandState> {
+  const r = await send('/land/photos/remove', { token, file });
+  return r.ok ? { done: true } : { error: message(r.data) };
 }

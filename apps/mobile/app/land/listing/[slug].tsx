@@ -2,6 +2,7 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { KIND_ICON, LandCard, ReplyBox, Tag, ago, landPrice, s, useTint } from '../../../components/Land';
+import { Photos } from '../../../components/Photos';
 import { getLandOne, type LandDetail } from '../../../lib/api';
 import { useTheme } from '../../../lib/theme';
 
@@ -40,6 +41,7 @@ export default function LandListing() {
           <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 21, fontWeight: '800', lineHeight: 27 }}>{l.title.charAt(0).toUpperCase() + l.title.slice(1)}</Text>
           <Text style={{ color: t.muted }}>{l.place}, {l.district}, {l.state}</Text>
         </View>
+        {l.photos.length > 0 ? <Photos photos={l.photos} name={l.title} /> : null}
         <View style={{ flexDirection: 'row', gap: 10 }}>
           <View style={[s.panel, { flex: 1, gap: 0, borderColor: t.line, backgroundColor: t.card }]}><Text style={{ color: t.muted, fontSize: 12 }}>Size</Text><Text style={{ color: ink, fontSize: 18, fontWeight: '800' }}>{l.area}</Text>{l.areaAlso ? <Text style={{ color: t.muted, fontSize: 12 }}>about {l.areaAlso}</Text> : null}</View>
           <View style={[s.panel, { flex: 1, gap: 0, borderColor: t.line, backgroundColor: t.card }]}><Text style={{ color: t.muted, fontSize: 12 }}>{l.deal === 'LEASE' ? 'Rent' : 'Price'}</Text><Text style={{ color: t.fg, fontSize: 18, fontWeight: '800' }}>{landPrice(l)}</Text>{l.rate ? <Text style={{ color: t.muted, fontSize: 12 }}>{l.rate}</Text> : null}</View>

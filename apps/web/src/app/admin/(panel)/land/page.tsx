@@ -3,12 +3,13 @@ import { ActionButton, AdminForm } from '@/components/admin/Form';
 import { Field } from '@/components/admin/fields';
 import { adminGet } from '@/lib/admin';
 import { price } from '@/lib/format';
+import { media } from '@/lib/seo';
 import { decideLand, landReplyDone } from '../../actions';
 
 export const metadata = { title: 'Land' };
 
 interface Poster { posterIs?: string; posterName: string; posterPhone: string; posterEmail: string | null }
-interface Listing extends Poster { id: string; slug: string; kind: string; deal: string; title: string; description: string | null; state: string; district: string; place: string; area: string; rate: string | null; priceInr: number | null; roadFt: number | null; highway: string | null; highwayKm: number | null; landUse: string | null; features: string[]; status: string; decisionNote: string | null; createdAt: string }
+interface Listing extends Poster { id: string; slug: string; kind: string; deal: string; title: string; description: string | null; state: string; district: string; place: string; area: string; rate: string | null; priceInr: number | null; roadFt: number | null; highway: string | null; highwayKm: number | null; landUse: string | null; features: string[]; photos: { file: string }[]; status: string; decisionNote: string | null; createdAt: string }
 interface Wanted extends Poster { id: string; slug: string; kind: string; deal: string; purpose: string; title: string; details: string | null; state: string; where: string | null; areaMin: number; areaMax: number | null; areaUnit: string; budgetInr: number | null; company: string | null; showCompany: boolean; status: string; createdAt: string }
 interface Reply { id: string; name: string; phone: string; message: string | null; createdAt: string; listing: { slug: string; title: string; posterName: string; posterPhone: string } | null; wanted: { slug: string; title: string; posterName: string; posterPhone: string; company: string | null } | null }
 const TABS = [['PENDING', 'Waiting'], ['LIVE', 'Live'], ['REJECTED', 'Turned down'], ['CLOSED', 'Closed']] as const;
@@ -60,7 +61,7 @@ export default async function Land({ searchParams }: { searchParams: Promise<{ s
               <tbody>{queue.listings.map((l) => (
                 <tr key={l.id}>
                   <td className="awrap">{l.status === 'LIVE' ? <Link href={`/land/listing/${l.slug}`}>{l.title}</Link> : l.title}<br /><small>{l.place}, {l.district}, {l.state} · {when(l.createdAt)}</small></td>
-                  <td className="awrap">{l.area} · {l.priceInr ? price(l.priceInr) : 'no price'}{l.rate ? ` (${l.rate})` : ''}<br /><small>{[l.roadFt ? `${l.roadFt} ft road` : null, l.highway ? `${l.highway}${l.highwayKm != null ? ` ${l.highwayKm} km` : ''}` : null, l.landUse?.toLowerCase(), ...l.features].filter(Boolean).join(' · ') || '—'}</small>{l.description ? <><br /><small>{l.description}</small></> : null}</td>
+                  <td className="awrap">{l.area} · {l.priceInr ? price(l.priceInr) : 'no price'}{l.rate ? ` (${l.rate})` : ''}<br /><small>{[l.roadFt ? `${l.roadFt} ft road` : null, l.highway ? `${l.highway}${l.highwayKm != null ? ` ${l.highwayKm} km` : ''}` : null, l.landUse?.toLowerCase(), ...l.features].filter(Boolean).join(' · ') || '—'}</small>{l.description ? <><br /><small>{l.description}</small></> : null}{l.photos.length > 0 && <span className="land-review-photos">{l.photos.map((ph, i) => <a key={ph.file} href={media(ph.file)} target="_blank" rel="noopener noreferrer"><img src={media(ph.file, 'card')} alt={`Photo ${i + 1}`} loading="lazy" /></a>)}</span>}</td>
                   <td>{who(l)}</td>
                   <td>{l.status === 'CLOSED' ? 'Closed by the poster' : decide('listing', l.id, l.status, l.district)}{l.decisionNote ? <small>{l.decisionNote}</small> : null}</td>
                 </tr>))}</tbody>

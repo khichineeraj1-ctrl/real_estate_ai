@@ -1,7 +1,9 @@
-import { Body, Controller, Get, HttpCode, HttpException, Ip, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpException, Ip, Param, Post, Query, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { MAX_PHOTO_BYTES } from '../admin/photos';
 import { AdminGuard, Roles } from '../admin/auth';
 import { Limiter } from '../ask/ask.service';
-import { LandService } from './land.service';
+import { LandService, MAX_LAND_PHOTOS } from './land.service';
 import { FEATURES, KINDS, KIND_LABEL, LAND_USES, LOCAL_UNITS, PURPOSES, PURPOSE_LABEL, STATES, UNITS, UNIT_LABEL } from './rules';
 
 type Json = Record<string, unknown>;
@@ -12,6 +14,7 @@ export class LandController {
   // Posting is rare for a real person; a handful a minute per visitor stops a script filling the review queue.
   private posts = new Limiter(3, 2_000);
   private replies = new Limiter(4, 5_000);
+  private uploads = new Limiter(30, 20_000);
   constructor(private readonly land: LandService) {}
   private guard(limit: Limiter, body: Json | undefined, ip: string) {
     const who = typeof body?.visitor === 'string' && body.visitor ? body.visitor.slice(0, 64) : ip;
@@ -33,6 +36,13 @@ export class LandController {
   @Get('land/wanted/:slug') wantedOne(@Param('slug') slug: string) { return this.land.wantedOne(slug); }
   @Post('land/wanted/:slug/answer') @HttpCode(200) answer(@Param('slug') slug: string, @Body() b: Json, @Ip() ip: string) { this.guard(this.replies, b, ip); return this.land.answer(slug, b ?? {}); }
   @Post('land/manage') @HttpCode(200) manage(@Body() b: { token?: string; close?: boolean }) { return b?.close ? this.land.close(b.token ?? '') : this.land.manage(b?.token ?? ''); }
+  /** Photos for a listing, sent with the poster's private key. The key is the permission; the limit only slows a script. */
+  @Post('land/photos') @HttpCode(200) @UseInterceptors(FilesInterceptor('photos', MAX_LAND_PHOTOS, { limits: { fileSize: MAX_PHOTO_BYTES } }))
+  addPhotos(@UploadedFiles() files: { buffer: Buffer; size: number }[], @Body() b: Json, @Ip() ip: string) {
+    if (!this.uploads.allow(ip)) throw new HttpException('Too many uploads in a short time. Please try again in a minute.', 429);
+    return this.land.addPhotos(String(b?.token ?? ''), files);
+  }
+  @Post('land/photos/remove') @HttpCode(200) removePhoto(@Body() b: { token?: string; file?: string }) { return this.land.removePhoto(b?.token ?? '', b?.file ?? ''); }
   @Get('land/listing/:slug') one(@Param('slug') slug: string) { return this.land.one(slug); }
   @Post('land/listing/:slug/enquire') @HttpCode(200) enquire(@Param('slug') slug: string, @Body() b: Json, @Ip() ip: string) { this.guard(this.replies, b, ip); return this.land.enquire(slug, b ?? {}); }
 

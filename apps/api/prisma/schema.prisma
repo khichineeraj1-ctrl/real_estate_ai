@@ -280,7 +280,9 @@ model Photo {
   height     Int
   /// What the photo shows, for grouping in the gallery: one of the codes in src/admin/photos.ts, or empty.
   category   String?
-  /// A photo belongs to one home, or to one builder's project: exactly one of the two is set.
+  /// A photo belongs to one home, one builder's project, or one land listing: exactly one of the three is set.
+  landId     String?
+  land       LandListing? @relation(fields: [landId], references: [id], onDelete: Cascade)
   propertyId String?
   property   Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   projectId  String?
@@ -288,6 +290,7 @@ model Photo {
 
   @@index([propertyId, position])
   @@index([projectId, position])
+  @@index([landId, position])
 }
 
 enum EmailTokenKind {
@@ -778,6 +781,7 @@ model LandListing {
   createdAt   DateTime @default(now())
   decidedAt   DateTime?
   replies     LandReply[]
+  photos      Photo[]
 
   @@index([status, stateSlug, districtSlug])
   @@index([status, kind, createdAt])
