@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { AskBox } from '@/components/AskBox';
+import { KIND_ICON, KIND_PLURAL, type Places } from '@/components/land/cards';
 import { Upcoming, type UpcomingItem } from '@/components/Upcoming';
 import { Launches, type Launch } from '@/components/Launches';
 import { CompareStudio } from '@/components/tools/CompareStudio';
@@ -20,7 +21,7 @@ export const metadata: Metadata = {
 const EXAMPLES = ['3 BHK in Whitefield', 'M3M projects in Gurgaon', 'Average rate in Powai?', 'Cheapest 2 BHK in Pune'];
 
 export default async function Home() {
-  const [cities, latest, builders, stages, launches, upcoming] = await Promise.all([api<CitySummary[]>('/cities'), api<Listing>('/properties?pageSize=6'), api<BuilderSummary[]>('/builders'), api<{ key: string; title: string; guides: { slug: string; short: string; summary: string; icon: string; minutes: number; accent: string }[] }[]>('/guide-stages'), api<{ total: number; months: number; items: Launch[] }>('/launches'), api<{ notice: string; items: UpcomingItem[] }>('/upcoming', { revalidate: 60 })]);
+  const [cities, latest, builders, stages, launches, upcoming, land] = await Promise.all([api<CitySummary[]>('/cities'), api<Listing>('/properties?pageSize=6'), api<BuilderSummary[]>('/builders'), api<{ key: string; title: string; guides: { slug: string; short: string; summary: string; icon: string; minutes: number; accent: string }[] }[]>('/guide-stages'), api<{ total: number; months: number; items: Launch[] }>('/launches'), api<{ notice: string; items: UpcomingItem[] }>('/upcoming', { revalidate: 60 }), api<Places>('/land/places', { revalidate: 60 })]);
   const topBuilders = [...(builders ?? [])].sort((a, b) => b.projects - a.projects || a.name.localeCompare(b.name)).slice(0, 12);
   return (
     <>
@@ -45,6 +46,19 @@ export default async function Home() {
           <Upcoming items={upcoming.items} notice={upcoming.notice} />
         </section>
       )}
+
+      <section className="section land-home" id="land">
+        <div className="know-head">
+          <div><h2>Land, plots and warehouses, across India</h2><p className="lead">Beyond the big cities: farm land, plots, industrial land and space for warehouses and dark stores.</p></div>
+          <Link className="launch-all" href="/land">See all →</Link>
+        </div>
+        <ul className="land-kinds">
+          {(land?.kinds ?? []).map((k) => (
+            <li key={k.kind}><Link href={`/land?kind=${k.kind}#listings`} className={`kind-${k.kind.toLowerCase()}`}><span aria-hidden="true">{KIND_ICON[k.kind]}</span><strong>{KIND_PLURAL[k.kind] ?? k.label}</strong><em>{k.count ? `${k.count} listed` : 'List yours'}</em></Link></li>
+          ))}
+        </ul>
+        <p className="land-home-acts"><Link className="abtn" href="/land/post">List your land free</Link><Link className="abtn quiet" href="/land/wanted/post">Company? Post what you need</Link>{land?.wanted ? <Link href="/land/wanted">{land.wanted} open requirement{land.wanted === 1 ? '' : 's'} →</Link> : null}</p>
+      </section>
 
       <section className="section usp">
         <h2>Compare before you decide</h2>

@@ -466,3 +466,20 @@ assigning a lead to a particular staff member, builders editing their own projec
 a project screen and lead form in the mobile app, reordering photos, object storage for
 photos, pagination beyond 48 homes per listing page, a real listings feed, native speech-to-text on phones, a
 Content-Security-Policy header, and deployment.
+
+## Land and commercial space
+
+`/land` on the website: farm land, plots, industrial land and built space (warehouses, shops) for sale or rent anywhere
+in India, placed by state, district and town or village rather than by the four cities.
+
+- Anyone posts without an account (`/land/post`); nothing shows until staff approve it at `/admin/land`. After posting,
+  the poster gets a private link (`/land/manage?token=…`) to see its status and take it down.
+- Companies post what they are looking for (`/land/wanted/post`); owners answer. The company name is hidden unless asked.
+- Posters' phone numbers are never public. Enquiries and answers go to staff ("Enquiries and answers" in `/admin/land`),
+  who introduce the two sides.
+- Sizes are shown in the poster's unit. Acre, hectare, sq ft, sq yd, sq m, guntha, cent, kanal and ground convert;
+  bigha, katha, biswa and marla vary by region and are never converted.
+- State and district pages (`/land/rajasthan`, `/land/rajasthan/alwar`) appear as listings arrive. Districts are typed
+  freely and tidied; staff can correct the spelling on approval.
+- Rules and the "before you pay" checks are pure functions in `apps/api/src/land/rules.ts`. The checks are general
+  questions to ask, not legal advice, and have not been reviewed by a lawyer.

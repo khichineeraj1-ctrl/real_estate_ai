@@ -348,3 +348,16 @@ export async function removeArticle(id: string, _: FormState): Promise<FormState
   revalidatePath('/', 'layout');
   redirect('/admin/articles?removed=1');
 }
+
+/** Staff approve or turn down a land listing or a requirement; on a listing they may correct the district's spelling. */
+export async function decideLand(type: 'listing' | 'wanted', id: string, decision: 'LIVE' | 'REJECTED', _: FormState, form: FormData): Promise<FormState> {
+  const r = await adminFetch(`/land/${type}/${encodeURIComponent(id)}/decide`, { method: 'POST', body: { decision, note: String(form.get('note') ?? ''), district: String(form.get('district') ?? '') } });
+  if (!r.ok) return failed(r);
+  revalidatePath('/land', 'layout'); revalidatePath('/', 'layout');
+  redirect('/admin/land?saved=1');
+}
+export async function landReplyDone(id: string, _: FormState): Promise<FormState> {
+  const r = await adminFetch(`/land/replies/${encodeURIComponent(id)}/done`, { method: 'POST' });
+  if (!r.ok) return failed(r);
+  redirect('/admin/land?tab=replies&saved=1');
+}

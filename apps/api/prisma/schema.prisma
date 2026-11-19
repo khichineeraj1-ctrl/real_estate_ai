@@ -727,3 +727,109 @@ model ImportRun {
   note       String?
   error      String?
 }
+
+/// Land and commercial space anywhere in India: farm land, plots, industrial land, and built space to rent. Kept apart
+/// from homes because it is placed by state, district and village rather than by the cities we cover, and is posted
+/// by owners who have no account. Rules live in src/land.
+model LandListing {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  /// "FARM", "PLOT", "INDUSTRIAL" or "BUILT" (a ready warehouse, shed or shop).
+  kind        String
+  /// "SALE" or "LEASE".
+  deal        String
+  title       String
+  description String?
+  stateSlug    String
+  state        String
+  districtSlug String
+  district     String
+  /// Town or village, in the poster's words.
+  place        String
+  /// The size as the poster gave it, in the unit they use locally.
+  areaValue   Float
+  areaUnit    String
+  /// The same size in square feet when the unit has one fixed size everywhere; null for units that vary by region.
+  areaSqft    Float?
+  /// Asking price for a sale, or the monthly rent for a lease, in rupees. Null means "ask".
+  priceInr    BigInt?
+  /// Width of the road the land or building opens on, in feet.
+  roadFt      Int?
+  /// The nearest highway or main road, and how far it is, in the poster's words: "NH-48" and 3.5.
+  highway     String?
+  highwayKm   Float?
+  /// What the land records allow, as the poster says: "AGRICULTURAL", "RESIDENTIAL", "COMMERCIAL", "INDUSTRIAL" or null if they do not know.
+  landUse     String?
+  features    String[]
+  /// Built space only.
+  clearHeightFt Int?
+  powerKva      Int?
+  docks         Int?
+  /// "OWNER", "DEALER" or "COMPANY".
+  posterIs    String
+  posterName  String
+  posterPhone String
+  posterEmail String?
+  /// Hash of the private link the poster uses to mark it sold or take it down.
+  manageHash  String   @unique
+  /// "PENDING", "LIVE", "REJECTED" or "CLOSED" (sold, let, or withdrawn by the poster).
+  status      String   @default("PENDING")
+  decisionNote String?
+  createdAt   DateTime @default(now())
+  decidedAt   DateTime?
+  replies     LandReply[]
+
+  @@index([status, stateSlug, districtSlug])
+  @@index([status, kind, createdAt])
+}
+
+/// A requirement: someone, usually a company, says what land or space they are looking for so owners can answer.
+model LandWanted {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  kind        String
+  deal        String
+  /// What it is for: "WAREHOUSE", "DARK_STORE", "FACTORY", "RETAIL", "FARMING", "HOUSING" or "OTHER".
+  purpose     String
+  title       String
+  details     String?
+  stateSlug   String
+  state       String
+  /// Districts or towns they will consider, in their words. Empty means anywhere in the state.
+  where       String?
+  areaMin     Float
+  areaMax     Float?
+  areaUnit    String
+  budgetInr   BigInt?
+  /// Shown publicly only if they ask for it to be.
+  company     String?
+  showCompany Boolean  @default(false)
+  posterName  String
+  posterPhone String
+  posterEmail String?
+  manageHash  String   @unique
+  status      String   @default("PENDING")
+  decisionNote String?
+  createdAt   DateTime @default(now())
+  decidedAt   DateTime?
+  replies     LandReply[]
+
+  @@index([status, stateSlug, createdAt])
+}
+
+/// A buyer's enquiry on a listing, or an owner's answer to a requirement. Read by our team, who make the introduction.
+model LandReply {
+  id        String   @id @default(cuid())
+  listingId String?
+  listing   LandListing? @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  wantedId  String?
+  wanted    LandWanted?  @relation(fields: [wantedId], references: [id], onDelete: Cascade)
+  name      String
+  phone     String
+  message   String?
+  /// "NEW" or "DONE": whether our team has followed it up.
+  status    String   @default("NEW")
+  createdAt DateTime @default(now())
+
+  @@index([status, createdAt])
+}
