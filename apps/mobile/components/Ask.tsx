@@ -1,3 +1,4 @@
+import { CompareToggle } from './tools/Compare';
 import { Cover } from './Cover';
 import { ConnectButton } from './LeadForm';
 import { useRouter } from 'expo-router';
@@ -93,11 +94,23 @@ export function Ask({ header }: { header?: React.ReactNode }) {
                         <Text style={{ color: t.fg, fontWeight: '600' }}>{p.name}</Text>
                         <Text style={{ color: t.muted, fontSize: 13 }}>{p.locality.name}, {p.city.name} · {p.brand?.name ?? p.builder}</Text>
                       </Pressable>
-                      <ConnectButton kind="project" slug={p.slug} name={p.name} mode={(p.agents ?? 0) > 0 ? 'agent' : 'callback'} agents={p.agents} unclaimed={!!p.registerSource} />
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                        <ConnectButton kind="project" slug={p.slug} name={p.name} mode={(p.agents ?? 0) > 0 ? 'agent' : 'callback'} agents={p.agents} unclaimed={!!p.registerSource} />
+                        <CompareToggle kind="projects" slug={p.slug} title={p.name} />
+                      </View>
                     </View>
                   ))}
                   {(e.result.projectsTotal ?? 0) > (e.result.projects?.length ?? 0) && <Text style={{ color: t.muted, fontSize: 13 }}>Showing {e.result.projects!.length} of {e.result.projectsTotal} projects. Name an area to narrow it down.</Text>}
                   {e.result.total > e.result.properties.length && <Text style={{ color: t.muted, fontSize: 13 }}>Showing {e.result.properties.length} of {e.result.total}. Ask to narrow it down.</Text>}
+                  {(() => {
+                    // "X vs Y" for projects points at /compare/projects?ids=a,b; open the same comparison in the app.
+                    const ids = /^\/compare\/projects\?ids=([a-z0-9,-]+)$/.exec(e.result.page?.path ?? '')?.[1];
+                    return ids ? (
+                      <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/compare-projects', params: { ids } })} style={{ alignSelf: 'flex-start', borderWidth: 1.5, borderColor: t.brand, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8 }}>
+                        <Text style={{ color: t.brand, fontWeight: '700' }}>See them side by side ›</Text>
+                      </Pressable>
+                    ) : null;
+                  })()}
                   {(() => {
                     // An "X vs Y" answer points at /city/compare/a-vs-b; open the same comparison in the app.
                     const m = /^\/([a-z0-9-]+)\/compare\/([a-z0-9-]+-vs-[a-z0-9-]+)$/.exec(e.result.page?.path ?? '');

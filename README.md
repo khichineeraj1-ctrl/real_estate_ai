@@ -267,7 +267,7 @@ location, status and dates. No other portal is scraped, and nothing behind a log
 On the website (linked from **Tools** in the header and from each property page) and in the mobile app (**Tools**
 in the header of the ask screen, and on each property screen). The app uses a copy of the same maths
 (`apps/mobile/lib/finance.ts` mirrors `apps/web/src/lib/finance.ts`; change both together) and shows the same figures.
-In the app the comparison shortlist is kept in memory, so it is forgotten when the app is closed.
+In the app the comparison shortlist is kept in memory, so it is forgotten when the app is closed. The app compares builder projects too: the same "⇄ Compare" button on project rows (locality, builder and assistant answers) and on the project screen, and a `compare-projects` screen with the same rows as the web page.
 
 - **EMI calculator** (`/tools/emi-calculator`, and on every property page filled in with that home's price): monthly
   instalment, loan amount and total interest from price, down payment, rate and period. The starting interest rate

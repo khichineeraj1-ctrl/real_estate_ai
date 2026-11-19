@@ -1,3 +1,4 @@
+import { CompareToggle } from '../../components/tools/Compare';
 import { Photos } from '../../components/Photos';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -75,6 +76,12 @@ export default function Project() {
             <ConnectButton kind="project" slug={p.slug} name={p.name} mode="agent" agents={p.agents!.length} unclaimed={!!p.registerSource} />
           </View>
         )}
+
+        <View style={[s.box, { backgroundColor: t.card, borderColor: t.line }]}>
+          <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 17, fontWeight: '700' }}>How does {p.name} compare?</Text>
+          <Text style={{ color: t.muted, lineHeight: 20 }}>Add it, then add other projects, to see them side by side: builder, RERA standing, verified agents and homes for sale.</Text>
+          <CompareToggle kind="projects" slug={p.slug} title={p.name} />
+        </View>
 
         <View style={[s.box, { backgroundColor: t.soft, borderColor: t.line }]}>
           <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 18, fontWeight: '700' }}>{p.registerSource ? 'Interested in this project?' : 'Get prices, floor plans and a site visit'}</Text>

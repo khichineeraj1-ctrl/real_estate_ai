@@ -23,6 +23,7 @@ export default function RootLayout() {
         <Stack.Screen name="tools/afford" options={{ title: 'How much can I afford?' }} />
         <Stack.Screen name="tools/cost" options={{ title: 'True cost of buying' }} />
         <Stack.Screen name="compare" options={{ title: 'Compare homes' }} />
+        <Stack.Screen name="compare-projects" options={{ title: 'Compare projects' }} />
         <Stack.Screen name="compare-localities/[city]/[pair]" options={{ title: 'Compare localities' }} />
       </Stack>
       <CompareBar />

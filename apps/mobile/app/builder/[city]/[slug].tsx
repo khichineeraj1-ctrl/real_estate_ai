@@ -1,3 +1,4 @@
+import { CompareToggle } from '../../../components/tools/Compare';
 import { Cover } from '../../../components/Cover';
 import { ConnectButton } from '../../../components/LeadForm';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -60,7 +61,10 @@ export default function Builder() {
                 </View>
                 <Text style={{ color: t.brand, fontSize: 20 }}>›</Text>
               </Pressable>
-              <ConnectButton kind="project" slug={p.slug} name={p.name} mode={(p.agents ?? 0) > 0 ? 'agent' : 'callback'} agents={p.agents} unclaimed={!!p.registerSource} />
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                <ConnectButton kind="project" slug={p.slug} name={p.name} mode={(p.agents ?? 0) > 0 ? 'agent' : 'callback'} agents={p.agents} unclaimed={!!p.registerSource} />
+                <CompareToggle kind="projects" slug={p.slug} title={p.name} />
+              </View>
             </View>
           ))}
         </View>
