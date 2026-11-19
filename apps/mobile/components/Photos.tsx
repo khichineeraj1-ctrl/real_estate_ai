@@ -43,10 +43,13 @@ export function Photos({ photos, videos = [], name }: { photos: Photo[]; videos?
   if (!photos.length) return <VideoRow videos={videos} name={name} />;
   const show = (i: number) => { setAt(i); setOpen(true); setTimeout(() => pager.current?.scrollTo({ x: i * width, animated: false }), 0); };
   const side = photos.slice(1, 3);
+  // The cover is shown in the picture's own shape (between a tall 4:5 and a wide 16:9), so towers keep their tops.
+  const cover = photos[0];
+  const shape = cover.width && cover.height ? Math.min(Math.max(cover.width / cover.height, 4 / 5), 16 / 9) : 4 / 3;
   return (
     <>
       <View style={{ gap: 6 }}>
-        <Pressable accessibilityRole="imagebutton" accessibilityLabel={`${name}: open all ${photos.length} photos`} onPress={() => show(0)} style={[s.big, { backgroundColor: t.soft }]}>
+        <Pressable accessibilityRole="imagebutton" accessibilityLabel={`${name}: open all ${photos.length} photos`} onPress={() => show(0)} style={[s.big, { backgroundColor: t.soft, aspectRatio: shape }]}>
           <Image source={{ uri: photoUrl(photos[0].file) }} resizeMode="cover" style={StyleSheet.absoluteFill} />
           {photos.length > 1 && <View style={s.badge}><Text style={s.badgeText}>▣ {photos.length} photos</Text></View>}
         </Pressable>
@@ -93,7 +96,7 @@ export function Photos({ photos, videos = [], name }: { photos: Photo[]; videos?
 }
 
 const s = StyleSheet.create({
-  big: { width: '100%', aspectRatio: 4 / 3, borderRadius: 12, overflow: 'hidden' },
+  big: { width: '100%', borderRadius: 12, overflow: 'hidden' },
   small: { flex: 1, aspectRatio: 4 / 3, borderRadius: 10, overflow: 'hidden' },
   video: { width: 220, aspectRatio: 16 / 9, borderRadius: 10, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   play: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.92)' },
