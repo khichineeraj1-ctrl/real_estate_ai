@@ -1,12 +1,15 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { useAccount } from '../components/Account';
 import { CompareBar } from '../components/tools/Compare';
 import { BRAND } from '../lib/config';
 import { useTheme } from '../lib/theme';
 
 export default function RootLayout() {
   const t = useTheme();
+  // On launch a stored sign-in is checked once with the server, so a session that has ended does not linger.
+  useAccount();
   return (
     <SafeAreaProvider>
       <StatusBar style="auto" />

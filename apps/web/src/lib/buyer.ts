@@ -8,7 +8,7 @@ const SIXTY_DAYS = 60 * 24 * 3600;
 export interface SavedItem { kind: 'project' | 'property'; slug: string; name: string; sub: string; city?: string; brand?: string | null; priceInr?: number; photo: { file: string } | null; registerStatus?: string | null; registerValidUntil?: string | null; note: string | null; savedAt: string }
 export interface SentEnquiry { at: string; wantsVisit: boolean; about: { kind: 'project' | 'property'; slug: string; name: string } | null; agent: { name: string; phone: string | null } | null }
 export interface SyncState { ticks: Record<string, string[]>; compare: { homes: { slug: string; title: string }[]; projects: { slug: string; title: string }[] } }
-export interface BuyerAccount { email: string; since: string; state: SyncState; saved: SavedItem[]; enquiries: SentEnquiry[] }
+export interface BuyerAccount { email: string; since: string; state: SyncState; saved: SavedItem[]; enquiries: SentEnquiry[]; alerts: { id: string; label: string; path: string }[]; follows: { id: string; slug: string; name: string }[] }
 
 export const buyerToken = async () => (await cookies()).get(BUYER_COOKIE)?.value;
 export async function startBuyerSession(token: string) {

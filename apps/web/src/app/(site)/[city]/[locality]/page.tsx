@@ -1,3 +1,4 @@
+import { AlertForm } from '@/components/AlertForm';
 import { ProjectTile } from '@/components/ProjectTile';
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -57,6 +58,7 @@ export default async function LocalityPage({ params }: Props) {
       <p className="lead">{l.intro}</p>
       <ul className="bullets">{l.highlights.map((h) => <li key={h}>{h}</li>)}</ul>
       <Stats stats={l.stats} />
+      <AlertForm city={l.city.slug} locality={l.slug} place={l.name} />
       <AskBox context={place} placeholder={`Ask about ${l.name}, e.g. 3 BHK ready to move`} />
 
       {l.bhk.length > 0 && (

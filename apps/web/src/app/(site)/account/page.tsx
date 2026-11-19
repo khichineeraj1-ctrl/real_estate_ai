@@ -5,7 +5,7 @@ import { SignIn } from '@/components/account/SignIn';
 import { getBuyer } from '@/lib/buyer';
 import { monthYear } from '@/lib/format';
 import { builderPath } from '@/lib/seo';
-import { deleteAccount, signOut } from './actions';
+import { deleteAccount, signOut, stopAlert } from './actions';
 
 export const metadata: Metadata = { title: 'My account', robots: { index: false, follow: false } };
 export const dynamic = 'force-dynamic';
@@ -72,6 +72,20 @@ export default async function Account({ searchParams }: Props) {
             ))}
           </ul>
         ) : <p className="empty">You have not sent an enquiry while signed in. When you do, it is kept here so you know who to expect a call from.</p>}
+      </section>
+
+      <section className="section">
+        <h2>Alerts <span className="count">{me.alerts.length + me.follows.length}</span></h2>
+        {me.alerts.length + me.follows.length ? (
+          <ul className="alerts">
+            {me.alerts.map((a) => (
+              <li key={a.id}><span aria-hidden="true">🔔</span><Link href={a.path}>{a.label}</Link><form action={stopAlert.bind(null, 'alerts', a.id)}><button type="submit" className="alink">Stop</button></form></li>
+            ))}
+            {me.follows.map((f) => (
+              <li key={f.id}><span aria-hidden="true">📌</span><span>Changes to the registration of <Link href={`/projects/${f.slug}`}>{f.name}</Link></span><form action={stopAlert.bind(null, 'follows', f.id)}><button type="submit" className="alink">Stop</button></form></li>
+            ))}
+          </ul>
+        ) : <p className="empty">No alerts yet. On any city or locality page, press “Set an alert” to hear about new projects or new homes there.</p>}
       </section>
 
       <section className="section account-foot">

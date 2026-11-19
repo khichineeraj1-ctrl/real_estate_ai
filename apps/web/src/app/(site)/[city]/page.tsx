@@ -1,3 +1,4 @@
+import { AlertForm } from '@/components/AlertForm';
 import { ProjectTile } from '@/components/ProjectTile';
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -46,6 +47,7 @@ export default async function CityPage({ params }: Props) {
       <h1>Property for sale in {city.name}</h1>
       <p className="lead">{city.intro}</p>
       <Stats stats={city.stats} />
+      <AlertForm city={city.slug} place={city.name} />
       <AskBox context={city.name} placeholder={`Ask about ${city.name}, e.g. 2 BHK under 1 crore`} />
 
       <section className="section">

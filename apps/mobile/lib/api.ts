@@ -1,4 +1,4 @@
-import { authHeader, sessionReady } from './session';
+import { authHeader, endSession, sessionReady } from './session';
 import { API_URL } from './config';
 import type { CityCosts } from './finance';
 
@@ -77,6 +77,8 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
   } catch {
     throw new Error(`Cannot reach the server at ${API_URL}. Check that the API is running and the phone is on the same wifi.`);
   }
+  // A session the server no longer knows (signed out elsewhere, or the account was deleted) is dropped here too.
+  if (res.status === 401 && authHeader().authorization) await endSession();
   if (!res.ok) {
     // The API explains what was wrong (for example an invalid phone number); show that when there is one.
     const detail = (await res.json().catch(() => null)) as { message?: string } | null;
@@ -110,13 +112,15 @@ export const followProject = (slug: string, email: string) => call<{ ok: true }>
 // ---- The buyer's own account
 export interface SavedItem { kind: 'project' | 'property'; slug: string; name: string; sub: string; priceInr?: number; photo: { file: string; width?: number; height?: number } | null; registerStatus?: string | null; registerValidUntil?: string | null; note: string | null; savedAt: string }
 export interface SentEnquiry { at: string; wantsVisit: boolean; about: { kind: 'project' | 'property'; slug: string; name: string } | null; agent: { name: string; phone: string | null } | null }
-export interface Account { email: string; saved: SavedItem[]; enquiries: SentEnquiry[] }
+export interface Account { email: string; saved: SavedItem[]; enquiries: SentEnquiry[]; alerts: { id: string; label: string }[]; follows: { id: string; slug: string; name: string }[] }
 const JSON_POST = { method: 'POST', headers: { 'content-type': 'application/json' } } as const;
 export const requestCode = (email: string) => call<{ ok: true }>('/me/code', { ...JSON_POST, body: JSON.stringify({ email }) });
 export const verifyCode = (email: string, code: string) => call<{ token: string; email: string }>('/me/verify', { ...JSON_POST, body: JSON.stringify({ email, code }) });
 export const getAccount = () => call<Account>('/me');
 export const saveItem = (kind: 'project' | 'property', slug: string, note?: string) => call<{ ok: true }>('/me/saved', { ...JSON_POST, body: JSON.stringify({ kind, slug, note }) });
 export const unsaveItem = (kind: 'project' | 'property', slug: string) => call<{ ok: true }>(`/me/saved/${kind}/${slug}`, { method: 'DELETE' });
+export const createAlert = (body: { kind: 'PROJECTS' | 'HOMES'; city: string; locality?: string; maxPrice?: number; bhk?: number; email?: string }) => call<{ ok: true; label: string }>('/alerts', { ...JSON_POST, body: JSON.stringify({ ...body, consent: true }) });
+export const stopAlert = (kind: 'alerts' | 'follows', id: string) => call<{ ok: true }>(`/me/${kind}/${id}`, { method: 'DELETE' });
 export const signOutAccount = () => call<{ ok: true }>('/me/signout', { method: 'POST' });
 
 export const searchProjects = (text: string, city?: string) => call<{ total: number; items: ProjectHit[] }>(`/projects?text=${encodeURIComponent(text.slice(0, 80))}${city ? `&city=${encodeURIComponent(city)}` : ''}`);

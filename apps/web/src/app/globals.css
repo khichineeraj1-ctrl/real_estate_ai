@@ -823,3 +823,12 @@ p > .connect { margin: 0; }
 .sent-date { flex: none; width: 96px; color: var(--muted); font-size: .88rem; padding-top: 2px; } .sent p { margin: 2px 0 0; color: var(--muted); font-size: .92rem; }
 .account-foot { display: grid; gap: 8px; justify-items: start; border-top: 1px solid var(--line); padding-top: 16px; }
 @media (prefers-reduced-motion: reduce) { .saved, .save-btn { transition: none; } .saved:hover { transform: none; } }
+
+/* Search alerts: the band opens to a few taps, and the account page lists them. */
+.alert-fields { flex: 1 1 100%; display: grid; gap: 10px; }
+.alert-homes { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.alert-price { display: inline-flex; align-items: center; gap: 8px; font-size: .9rem; color: var(--muted); } .alert-price select { font: inherit; color: var(--fg); background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; }
+.alert-send { display: flex; flex-wrap: wrap; gap: 8px; } .alert-send input[type=email] { flex: 1 1 220px; font: inherit; color: var(--fg); background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 9px 14px; } .alert-send input[type=email]:focus { outline: 2px solid var(--brand); outline-offset: 1px; }
+p.follow-consent { margin: 0; }
+.alerts { list-style: none; margin: 0; padding: 0; display: grid; }
+.alerts li { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); } .alerts li:first-child { border-top: 0; } .alerts li > :nth-child(2) { flex: 1; }

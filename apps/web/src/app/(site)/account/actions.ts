@@ -1,6 +1,7 @@
 'use server';
 
 import { headers } from 'next/headers';
+import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { buyerFetch, endBuyerSession, startBuyerSession } from '@/lib/buyer';
 
@@ -33,4 +34,10 @@ export async function deleteAccount() {
   await buyerFetch('', { method: 'DELETE' });
   await endBuyerSession();
   redirect('/account?deleted=1');
+}
+
+/** Stops one search alert, or stops following one project. */
+export async function stopAlert(kind: 'alerts' | 'follows', id: string) {
+  await buyerFetch(`/${kind}/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  revalidatePath('/account');
 }

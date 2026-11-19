@@ -1,3 +1,4 @@
+import { AlertService } from './alerts';
 import { BuyerService } from '../buyer/buyer.service';
 import { WatchService } from './watch';
 import { BadRequestException, Body, Controller, Get, HttpCode, HttpException, Ip, Param, Post, Query, Headers } from '@nestjs/common';
@@ -21,7 +22,7 @@ const oneOf = <T extends string>(v: string | undefined, allowed: readonly T[], n
 export class CatalogController {
   // A few enquiries a minute per visitor is plenty for a person and too slow for a script.
   private enquiries = new Limiter(4, 5_000);
-  constructor(private readonly catalog: CatalogService, private readonly watch: WatchService, private readonly buyers: BuyerService) {}
+  constructor(private readonly catalog: CatalogService, private readonly watch: WatchService, private readonly buyers: BuyerService, private readonly alerts: AlertService) {}
 
   @Get('health') health() { return { ok: true }; }
   @Get('cities') cities() { return this.catalog.cities(); }
@@ -56,7 +57,18 @@ export class CatalogController {
     if (!this.enquiries.allow(who)) throw new HttpException('Too many requests in a short time. Please try again in a minute.', 429);
     return this.watch.follow(slug, body);
   }
-  @Post('unfollow') @HttpCode(200) unfollow(@Body() body: { token?: string }) { return this.watch.unfollow(body?.token ?? ''); }
+  /** The stop link in any alert email: a followed project, or a search alert. */
+  @Post('unfollow') @HttpCode(200) async unfollow(@Body() body: { token?: string }) {
+    const r = await this.watch.unfollow(body?.token ?? '');
+    return { ok: true, removed: r.removed + await this.alerts.stop(body?.token ?? '') };
+  }
+
+  @Post('alerts') @HttpCode(200)
+  async alert(@Body() body: Record<string, unknown> & { visitor?: unknown }, @Ip() ip: string, @Headers('authorization') auth?: string) {
+    const who = typeof body?.visitor === 'string' && body.visitor ? body.visitor.slice(0, 64) : ip;
+    if (!this.enquiries.allow(who)) throw new HttpException('Too many requests in a short time. Please try again in a minute.', 429);
+    return this.alerts.create(body ?? {}, await this.buyers.fromToken(auth));
+  }
 
   @Post('projects/:slug/enquiries')
   @HttpCode(200)

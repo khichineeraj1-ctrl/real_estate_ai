@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SignIn, forgetAccount, refreshAccount, useAccount } from '../components/Account';
 import { Cover } from '../components/Cover';
-import { saveItem, signOutAccount, unsaveItem, type SavedItem } from '../lib/api';
+import { saveItem, signOutAccount, stopAlert, unsaveItem, type SavedItem } from '../lib/api';
 import { monthYear, price } from '../lib/format';
 import { endSession, useSession } from '../lib/session';
 import { useTheme, type Theme } from '../lib/theme';
@@ -78,6 +78,20 @@ export default function AccountScreen() {
               <Pressable accessibilityRole="button" onPress={() => router.push('/browse')}><Text style={{ color: t.brand, fontWeight: '600' }}>Browse by city →</Text></Pressable>
             </View>
           )}
+          <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 18, fontWeight: '700', marginTop: 6 }}>Alerts · {acc.alerts.length + acc.follows.length}</Text>
+          {acc.alerts.length + acc.follows.length === 0 ? <Text style={{ color: t.muted, lineHeight: 20 }}>No alerts yet. On any locality, tap “Set an alert” to hear about new projects or homes there.</Text> : null}
+          {acc.alerts.map((a) => (
+            <View key={a.id} style={[s.sent, { borderColor: t.line, flexDirection: 'row', alignItems: 'center', gap: 10 }]}>
+              <Text style={{ flex: 1, color: t.fg, lineHeight: 20 }}>🔔 {a.label}</Text>
+              <Pressable accessibilityRole="button" accessibilityLabel={`Stop alert: ${a.label}`} hitSlop={8} onPress={() => { void stopAlert('alerts', a.id).then(refreshAccount).catch(() => undefined); }}><Text style={{ color: t.muted }}>Stop</Text></Pressable>
+            </View>
+          ))}
+          {acc.follows.map((f) => (
+            <View key={f.id} style={[s.sent, { borderColor: t.line, flexDirection: 'row', alignItems: 'center', gap: 10 }]}>
+              <Text style={{ flex: 1, color: t.fg, lineHeight: 20 }}>📌 Changes to the registration of {f.name}</Text>
+              <Pressable accessibilityRole="button" accessibilityLabel={`Stop following ${f.name}`} hitSlop={8} onPress={() => { void stopAlert('follows', f.id).then(refreshAccount).catch(() => undefined); }}><Text style={{ color: t.muted }}>Stop</Text></Pressable>
+            </View>
+          ))}
           <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 18, fontWeight: '700', marginTop: 6 }}>Enquiries you sent · {acc.enquiries.length}</Text>
           {acc.enquiries.length ? acc.enquiries.map((e, i) => (
             <View key={i} style={[s.sent, { borderColor: t.line }]}>

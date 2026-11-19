@@ -113,6 +113,8 @@ model Project {
   sourceUrl          String?
   sourceFetchedAt    DateTime?
   register           RegisterProject?
+  /// When the page was made, so alerts can tell which projects are new.
+  createdAt          DateTime           @default(now())
   watches            ProjectWatch[]
   savedBy            SavedItem[]
   /// The builder's sales address. When set, each lead on this project is emailed there as it arrives.
@@ -554,6 +556,7 @@ model Buyer {
   sessions  BuyerSession[]
   saved     SavedItem[]
   enquiries Enquiry[]
+  alerts    SearchAlert[]
 }
 
 /// A sign-in code sent by email. Only its hash is kept; it works once, for ten minutes, and gives up after five wrong tries.
@@ -592,6 +595,28 @@ model SavedItem {
 
   @@unique([buyerId, projectId])
   @@unique([buyerId, propertyId])
+}
+
+/// "Tell me when something new appears here": new projects on the register, or new homes for sale, in a city or one
+/// of its localities. One email per batch of new matches; every email carries a link that stops the alert.
+model SearchAlert {
+  id        String   @id @default(cuid())
+  email     String
+  buyerId   String?
+  buyer     Buyer?   @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  /// "PROJECTS" or "HOMES".
+  kind      String
+  citySlug  String
+  localitySlug String?
+  /// For homes: at most this price, and this many bedrooms. Null means any.
+  maxPriceInr Int?
+  bhk         Int?
+  token     String   @unique
+  /// Only things that appeared after this are news.
+  checkedAt DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@index([email])
 }
 
 /// A buyer following a project: they are emailed when its RERA registration changes (lapses, is extended, or ends).

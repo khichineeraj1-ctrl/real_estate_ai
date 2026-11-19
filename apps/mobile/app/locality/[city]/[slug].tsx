@@ -1,3 +1,4 @@
+import { AlertBox } from '../../../components/Guidance';
 import { CompareToggle } from '../../../components/tools/Compare';
 import { Cover } from '../../../components/Cover';
 import { ConnectButton } from '../../../components/LeadForm';
@@ -32,6 +33,7 @@ export default function Locality() {
         </Text>
       )}
       <View style={{ gap: 2 }}>{l.highlights.map((h) => <Text key={h} style={{ color: t.fg }}>• {h}</Text>)}</View>
+      <AlertBox key={`alert-${l.slug}`} city={l.city.slug} locality={l.slug} place={l.name} />
       {l.nearby?.length > 0 && (
         <View style={{ gap: 6 }}>
           <Text style={{ color: t.muted, fontWeight: '600' }}>Compare {l.name} with</Text>

@@ -1,7 +1,8 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Linking, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { followProject, type BuilderRecord, type CheckItem } from '../lib/api';
+import { createAlert, followProject, type BuilderRecord, type CheckItem } from '../lib/api';
+import { useSession } from '../lib/session';
 import { monthYear } from '../lib/format';
 import { useTheme } from '../lib/theme';
 import { toneOf } from './Insights';
@@ -104,6 +105,49 @@ export function Follow({ slug, name }: { slug: string; name: string }) {
         </Pressable>
       </View>
       {error ? <Text style={{ color: t.danger, fontSize: 13 }}>{error}</Text> : null}
+    </View>
+  );
+}
+
+const ALERT_PRICES: [number, string][] = [[0, 'Any price'], [10_000_000, '₹1 Cr'], [15_000_000, '₹1.5 Cr'], [20_000_000, '₹2 Cr'], [30_000_000, '₹3 Cr']];
+
+/** "Be the first to know": an alert for new projects or new homes in a city or locality. */
+export function AlertBox({ city, locality, place }: { city: string; locality?: string; place: string }) {
+  const t = useTheme();
+  const { signedIn, email: mine } = useSession();
+  const [open, setOpen] = useState(false);
+  const [kind, setKind] = useState<'PROJECTS' | 'HOMES'>('PROJECTS');
+  const [bhk, setBhk] = useState(0);
+  const [max, setMax] = useState(0);
+  const [email, setEmail] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [done, setDone] = useState<string | null>(null);
+  const ok = signedIn || /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
+  const send = () => { setBusy(true); setError(''); createAlert({ kind, city, locality, bhk: bhk || undefined, maxPrice: max || undefined, email: signedIn ? undefined : email.trim() }).then((r) => setDone(r.label)).catch((e: Error) => setError(e.message)).finally(() => setBusy(false)); };
+  const chip = (on: boolean, label: string, onPress: () => void) => <Pressable key={label} accessibilityRole="button" accessibilityState={{ selected: on }} onPress={onPress} style={{ borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7, borderColor: on ? t.brand : t.line, backgroundColor: on ? t.brand : t.card }}><Text style={{ color: on ? t.brandInk : t.fg, fontSize: 13, fontWeight: on ? '700' : '400' }}>{label}</Text></Pressable>;
+  if (done != null) return <View style={[s.box, { backgroundColor: t.readyBg, borderColor: t.ready }]}><Text style={{ color: t.ready, fontWeight: '600', lineHeight: 20 }}>🔔 Alert set{done ? `: ${done}` : ''}. We will email you only when there is something new.</Text></View>;
+  return (
+    <View style={[s.box, { backgroundColor: t.card, borderColor: t.line, borderStyle: 'dashed' }]}>
+      <Text style={{ color: t.fg, fontWeight: '700', fontSize: 16 }}>🔔 Be the first to know in {place}</Text>
+      <Text style={{ color: t.muted, fontSize: 13, lineHeight: 19 }}>An email when a new project is registered or a new home is listed here. Nothing else.</Text>
+      {!open ? <Pressable accessibilityRole="button" onPress={() => setOpen(true)} style={{ alignSelf: 'flex-start', borderWidth: 1.5, borderColor: t.brand, borderRadius: 999, paddingHorizontal: 16, paddingVertical: 8 }}><Text style={{ color: t.brand, fontWeight: '700' }}>Set an alert</Text></Pressable> : (
+        <>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>{chip(kind === 'PROJECTS', '🏗️ New projects', () => setKind('PROJECTS'))}{chip(kind === 'HOMES', '🏠 New homes', () => setKind('HOMES'))}</View>
+          {kind === 'HOMES' ? (
+            <>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>{[0, 1, 2, 3, 4].map((n) => chip(bhk === n, n ? `${n} BHK` : 'Any size', () => setBhk(n)))}</View>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>{ALERT_PRICES.map(([v, l]) => chip(max === v, v ? `Up to ${l}` : l, () => setMax(v)))}</View>
+            </>
+          ) : null}
+          {signedIn ? <Text style={{ color: t.muted, fontSize: 13 }}>We will write to {mine}.</Text> : (
+            <TextInput value={email} onChangeText={setEmail} placeholder="Your email" placeholderTextColor={t.muted} accessibilityLabel="Your email" keyboardType="email-address" autoCapitalize="none" autoComplete="email" style={{ borderWidth: 1, borderColor: t.line, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 10, color: t.fg, fontSize: 15, backgroundColor: t.card }} />
+          )}
+          {error ? <Text style={{ color: t.danger, fontSize: 13 }}>{error}</Text> : null}
+          <Pressable accessibilityRole="button" accessibilityState={{ disabled: !ok || busy }} disabled={!ok || busy} onPress={send} style={{ borderRadius: 999, paddingVertical: 12, alignItems: 'center', backgroundColor: ok ? t.brand : t.line }}><Text style={{ color: ok ? t.brandInk : t.muted, fontWeight: '700' }}>{busy ? 'Saving…' : 'Set alert'}</Text></Pressable>
+          <Text style={{ color: t.muted, fontSize: 12 }}>Every email has a link to stop.</Text>
+        </>
+      )}
     </View>
   );
 }

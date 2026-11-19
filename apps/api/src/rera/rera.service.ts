@@ -1,3 +1,4 @@
+import { AlertService } from '../catalog/alerts';
 import { WatchService } from '../catalog/watch';
 import { builderFor, ensureBuilder } from '../catalog/builders';
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
@@ -24,7 +25,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export class RegisterService {
   private log = new Logger('Register');
   private running = new Set<RegisterSource>();
-  constructor(private readonly db: PrismaService, private readonly watch: WatchService) {}
+  constructor(private readonly db: PrismaService, private readonly watch: WatchService, private readonly alerts: AlertService) {}
 
   // ---- Fetching
 
@@ -111,6 +112,7 @@ export class RegisterService {
       await this.db.importRun.update({ where: { id: runId }, data: { finishedAt: new Date(), fetched: entries.length, added: fresh.length, published, requests, note } });
       this.log.log(`${SOURCE_NAME[source]}: ${entries.length} entries read in ${requests} request(s), ${fresh.length} new, ${published} project pages created.`);
       await this.watch.notifyChanges().catch((e: Error) => this.log.error(`Followers were not told of changes: ${e.message}`));
+      await this.alerts.notifyNew().catch((e: Error) => this.log.error(`Alerts were not sent: ${e.message}`));
     } catch (e) {
       const message = e instanceof Error ? e.message : 'The import failed';
       this.log.error(`${SOURCE_NAME[source]}: ${message}`);

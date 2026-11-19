@@ -71,3 +71,20 @@ export async function unfollow(token: string): Promise<boolean> {
     return res.ok;
   } catch { return false; }
 }
+
+export interface AlertState { label?: string; error?: string }
+/** Start an alert for new projects or new homes in a city or locality. A signed-in buyer's is tied to their account. */
+export async function createAlert(_: AlertState, form: FormData): Promise<AlertState> {
+  if (form.get('website')) return { label: '' };
+  const buyer = (await cookies()).get('buyer_session')?.value;
+  if (!buyer && !form.get('consent')) return { error: 'Tick the box to agree to be emailed' };
+  const visitor = (await headers()).get('x-forwarded-for')?.split(',')[0].trim();
+  const body = { kind: form.get('kind'), city: form.get('city'), locality: form.get('locality') ?? undefined, maxPrice: form.get('maxPrice') || undefined, bhk: form.get('bhk') || undefined, email: form.get('email') ?? undefined, consent: true, visitor };
+  try {
+    const res = await fetch(`${API_URL}/alerts`, { method: 'POST', headers: { 'content-type': 'application/json', ...(buyer ? { authorization: `Bearer ${buyer}` } : {}) }, body: JSON.stringify(body), cache: 'no-store' });
+    const data = (await res.json().catch(() => null)) as { message?: string; label?: string } | null;
+    return res.ok ? { label: data?.label ?? '' } : { error: data?.message || 'That did not work. Please try again.' };
+  } catch {
+    return { error: 'That did not work. Please try again.' };
+  }
+}

@@ -1,3 +1,4 @@
+import { AlertService } from './catalog/alerts';
 import { BuyerController } from './buyer/buyer.controller';
 import { BuyerService } from './buyer/buyer.service';
 import { WatchService } from './catalog/watch';
@@ -18,6 +19,6 @@ import { PrismaService } from './prisma/prisma.service';
 
 @Module({
   controllers: [CatalogController, AskController, AdminController, TrustController, RegisterController, BuyerController],
-  providers: [PrismaService, Mailer, TrustService, CatalogService, AskService, AdminService, Reminders, RegisterService, WatchService, BuyerService],
+  providers: [PrismaService, Mailer, TrustService, CatalogService, AskService, AdminService, Reminders, RegisterService, WatchService, BuyerService, AlertService],
 })
 export class AppModule {}
