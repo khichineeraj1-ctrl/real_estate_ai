@@ -12,12 +12,17 @@ import type { CitySummary, PropertyDetail } from '@/lib/types';
 export const metadata: Metadata = pageMeta({ title: 'Compare Projects, Localities and Homes Side by Side', description: 'Put builder projects, localities or homes next to each other: RERA standing, asking rates, the full cost of buying and more, with nothing left out.', path: '/compare' });
 
 type Home = Omit<PropertyDetail, 'similar'>;
+type Tone = 'good' | 'warn' | 'info' | 'none';
+interface Scorecard { slug: string; tag: { tone: Tone; text: string }; checks: { label: string; tone: Tone; text: string }[] }
+interface Insight { key: string; tone: Tone; icon: string; title: string; text: string; slugs: string[] }
+const MARK: Record<Tone, string> = { good: '✓', warn: '!', info: 'i', none: '–' };
 type Props = { searchParams: Promise<{ ids?: string | string[] }> };
 
 export default async function ComparePage({ searchParams }: Props) {
   const raw = (await searchParams).ids;
   const ids = (Array.isArray(raw) ? raw.join(',') : raw ?? '').split(',').map((s) => s.trim()).filter(Boolean).slice(0, 4);
-  const homes = ids.length ? (await api<Home[]>(`/compare?slugs=${encodeURIComponent(ids.join(','))}`, { revalidate: 60 })) ?? [] : [];
+  const found = ids.length ? await api<{ homes: Home[]; scorecards: Scorecard[]; insights: Insight[] }>(`/compare/insights?slugs=${encodeURIComponent(ids.join(','))}`, { revalidate: 60 }) : null;
+  const homes = found?.homes ?? [];
 
   if (homes.length < 2) {
     const cities = (await api<CitySummary[]>('/cities')) ?? [];
@@ -49,13 +54,49 @@ export default async function ComparePage({ searchParams }: Props) {
     const b = best(values, lowest);
     return row(label, values.map((v, i) => (v == null ? '—' : show(v, i))), values.map((v) => b != null && v === b));
   };
+  const { scorecards, insights } = found!;
+  const warnings = insights.filter((x) => x.tone === 'warn').length;
   const allAmenities = [...new Set(homes.flatMap((h) => h.amenities))].sort();
 
   return (
     <>
       <Breadcrumbs crumbs={[{ name: 'Compare', path: '/compare' }, { name: 'Homes', path: '/compare' }]} />
       <h1>Comparing {homes.length} homes</h1>
-      <p className="lead">The best figure in each row is highlighted. EMI assumes {LOAN_DEFAULTS.downPct}% down, {LOAN_DEFAULTS.ratePct}% interest and {LOAN_DEFAULTS.years} years; total cost adds estimated stamp duty, registration and GST.</p>
+      <p className="lead">{insights.length === 0 ? 'On the figures listed, nothing separates these; the table below has every detail.' : warnings ? `${warnings} thing${warnings === 1 ? '' : 's'} to check before you choose, and ${insights.length - warnings} more worth knowing.` : `${insights.length} thing${insights.length === 1 ? '' : 's'} worth knowing before you choose.`}</p>
+
+      <ul className="cards-vs">
+        {homes.map((h, i) => {
+          const card = scorecards[i];
+          return (
+            <li key={h.slug} className={`vcard tone-${card.tag.tone}`}>
+              {h.photos?.[0] ? <img src={media(h.photos[0].file, 'card')} alt={`${h.title}: photo`} width={640} height={480} loading="lazy" /> : <span className="vcard-letter" aria-hidden="true">{h.title.charAt(0).toUpperCase()}</span>}
+              <span className={`vtag tone-${card.tag.tone}`}>{card.tag.text}</span>
+              <h2><Link href={`/property/${h.slug}`}>{h.title}</Link></h2>
+              <p className="vcard-sub">{h.bhk ? `${h.bhk} BHK · ` : ''}{num(h.areaSqft)} sq ft · {h.locality.name}</p>
+              <ul className="vchecks">
+                {card.checks.map((c) => <li key={c.label} className={`tone-${c.tone}`}><i aria-hidden="true">{MARK[c.tone]}</i><span>{c.label}</span><strong>{c.text}</strong></li>)}
+              </ul>
+              <Link className="abtn quiet" href={`/property/${h.slug}#contact`}>Contact the seller</Link>
+            </li>
+          );
+        })}
+      </ul>
+
+      {insights.length > 0 && (
+        <section className="section">
+          <h2>What separates them</h2>
+          <ul className="insights">
+            {insights.map((x) => (
+              <li key={x.key} className={`insight tone-${x.tone}`}>
+                <span className="insight-icon" aria-hidden="true">{x.icon}</span>
+                <div><h3>{x.title}</h3><p>{x.text}</p></div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <h2 className="section">Every fact, side by side</h2>
       <div className="atable compare"><table>
         <thead>
           <tr>
@@ -88,7 +129,7 @@ export default async function ComparePage({ searchParams }: Props) {
           {row('', homes.map((h) => <Link key={h.slug} className="abtn quiet" href={`/property/${h.slug}#contact`}>Contact the seller</Link>))}
         </tbody>
       </table></div>
-      <p className="calc-note">Charges and EMI are estimates. See the <Link href="/tools/cost-of-buying">true cost of buying</Link> for what they include.</p>
+      <p className="calc-note">The best figure in each row is highlighted. EMI assumes {LOAN_DEFAULTS.downPct}% down, {LOAN_DEFAULTS.ratePct}% interest and {LOAN_DEFAULTS.years} years. The notes above are arithmetic on what sellers listed and what we have verified, not a valuation or advice. Charges and EMI are estimates. See the <Link href="/tools/cost-of-buying">true cost of buying</Link> for what they include.</p>
     </>
   );
 }

@@ -2,7 +2,9 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { CompareStudio } from '../components/tools/CompareStudio';
-import { getCompare, type CompareHome } from '../lib/api';
+import { Cover } from '../components/Cover';
+import { InsightList, ScoreChecks, ScoreTag, insightSummary, toneOf } from '../components/Insights';
+import { getHomeInsights, type CompareHome, type Insight, type Scorecard } from '../lib/api';
 import { LOAN_DEFAULTS, buyingCosts, loanPlan } from '../lib/finance';
 import { num, price, statusLabel, typeLabel } from '../lib/format';
 import { useTheme } from '../lib/theme';
@@ -14,11 +16,13 @@ export default function Compare() {
   const router = useRouter();
   const { ids, tab } = useLocalSearchParams<{ ids?: string; tab?: string }>();
   const [homes, setHomes] = useState<CompareHome[] | null>(null);
+  const [cards, setCards] = useState<Scorecard[]>([]);
+  const [insights, setInsights] = useState<Insight[]>([]);
   const [error, setError] = useState('');
   useEffect(() => {
     if (!ids) { setHomes([]); return; }
     setHomes(null);
-    getCompare(ids.split(',')).then(setHomes).catch((e: Error) => setError(e.message));
+    getHomeInsights(ids.split(',')).then((d) => { setCards(d.scorecards); setInsights(d.insights); setHomes(d.homes); }).catch((e: Error) => setError(e.message));
   }, [ids]);
 
   if (error) return <Text style={{ color: t.danger, padding: 16 }}>{error}</Text>;
@@ -59,10 +63,27 @@ export default function Compare() {
   ];
 
   return (
-    <ScrollView contentContainerStyle={{ paddingTop: 16, paddingBottom: 150, gap: 12 }}>{/* room for the shortlist bar that floats above the screen */}
-      <Text style={{ color: t.muted, paddingHorizontal: 16, lineHeight: 21 }}>
-        The best figure in each row is highlighted. EMI assumes {LOAN_DEFAULTS.downPct}% down, {LOAN_DEFAULTS.ratePct}% interest and {LOAN_DEFAULTS.years} years; total cost adds estimated stamp duty, registration and GST.
-      </Text>
+    <ScrollView contentContainerStyle={{ paddingTop: 16, paddingBottom: 32, gap: 12 }}>
+      <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 21, fontWeight: '700', paddingHorizontal: 16 }}>Comparing {homes.length} homes</Text>
+      <Text style={{ color: t.muted, fontSize: 15, paddingHorizontal: 16 }}>{insights.length ? insightSummary(insights) : 'On the figures listed, nothing separates these; the table below has every detail.'}</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingHorizontal: 16 }}>
+        {homes.map((h, i) => {
+          const card = cards[i]; if (!card) return null;
+          return (
+            <View key={h.slug} style={[s.card, { backgroundColor: t.card, borderColor: t.line, borderTopColor: toneOf(t, card.tag.tone).ink }]}>
+              <Pressable accessibilityRole="button" accessibilityLabel={`Open ${h.title}`} onPress={() => router.push({ pathname: '/property/[slug]', params: { slug: h.slug } })} style={{ gap: 4 }}>
+                {h.photos?.[0] ? <Cover photo={h.photos[0]} label={`${h.title}: photo`} /> : null}
+                <ScoreTag tag={card.tag} />
+                <Text style={{ color: t.fg, fontSize: 16, fontWeight: '700' }}>{h.title}</Text>
+                <Text numberOfLines={1} style={{ color: t.muted, fontSize: 13 }}>{h.bhk ? `${h.bhk} BHK · ` : ''}{num(h.areaSqft)} sq ft · {h.locality.name}</Text>
+              </Pressable>
+              <ScoreChecks checks={card.checks} />
+            </View>
+          );
+        })}
+      </ScrollView>
+      {insights.length > 0 ? <View style={{ paddingHorizontal: 16 }}><InsightList insights={insights} /></View> : null}
+      <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 18, fontWeight: '700', paddingHorizontal: 16, marginTop: 6 }}>Every fact, side by side</Text>
       <ScrollView horizontal contentContainerStyle={{ paddingHorizontal: 16 }}>
         <View>
           <View style={s.line}>
@@ -86,11 +107,13 @@ export default function Compare() {
           ))}
         </View>
       </ScrollView>
+      <Text style={{ color: t.muted, fontSize: 12, lineHeight: 17, paddingHorizontal: 16 }}>The best figure in each row is highlighted. EMI assumes {LOAN_DEFAULTS.downPct}% down, {LOAN_DEFAULTS.ratePct}% interest and {LOAN_DEFAULTS.years} years; total cost adds estimated stamp duty, registration and GST. The notes above are arithmetic on what sellers listed and what we have verified, not a valuation or advice.</Text>
     </ScrollView>
   );
 }
 
 const s = StyleSheet.create({
+  card: { width: 250, borderWidth: 1, borderTopWidth: 4, borderRadius: 16, padding: 12, gap: 8 },
   line: { flexDirection: 'row' },
   cell: { width: COL, padding: 10, borderRightWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth },
   head: { justifyContent: 'flex-end', minHeight: 70 },

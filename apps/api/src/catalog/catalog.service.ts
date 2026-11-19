@@ -1,3 +1,4 @@
+import { homeInsights, homeScorecards, type Home } from './home-insights';
 import { areaScorecard, localityInsights, type Area } from './locality-insights';
 import { compareInsights, scorecard, standingOf, type Facts } from './insights';
 import { BAND_LABEL, intentInWords, readIntent, scoreLead } from '../leads/score';
@@ -234,6 +235,18 @@ export class CatalogService {
       };
     }));
     return { projects, scorecards: facts.map((f) => scorecard(f, now)), insights: compareInsights(facts, now) };
+  }
+
+  /** Listed homes side by side with what a buyer should notice about them (see home-insights.ts). */
+  async compareHomeInsights(slugs: string[]) {
+    const homes = await this.compare(slugs);
+    const now = new Date();
+    const facts: Home[] = homes.map((h) => ({
+      slug: h.slug, title: h.title, price: h.priceInr, area: h.areaSqft, bhk: h.bhk, ready: h.status === 'READY_TO_MOVE', possession: h.possession, furnishing: h.furnishing, amenities: h.amenities,
+      level: h.confidence.level, levelLabel: h.confidence.label, locality: h.locality, city: h.city.name, areaRate: h.localityStats.avgRate, areaHomes: h.localityStats.count,
+      costs: h.costs ? { stampDutyPct: h.costs.stampDutyPct, registrationPct: h.costs.registrationPct, registrationCapInr: h.costs.registrationCapInr } : null,
+    }));
+    return { homes, scorecards: homeScorecards(facts, now), insights: homeInsights(facts, now) };
   }
 
   /** Two localities of one city with what a buyer should notice about them (see locality-insights.ts). */
