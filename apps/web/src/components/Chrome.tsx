@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { MobileMenu } from '@/components/MobileNav';
+import { CityMenu, MobileMenu } from '@/components/MobileNav';
 import { api } from '@/lib/api';
 import { BRAND, TAGLINE } from '@/lib/seo';
 import type { CitySummary } from '@/lib/types';
@@ -10,7 +10,7 @@ export async function Header() {
     <header className="site-header">
       <div className="wrap">
         <Link href="/" className="logo"><span className="orb" aria-hidden="true" />{BRAND}</Link>
-        <nav aria-label="Cities">{cities.map((c) => <Link key={c.slug} href={`/${c.slug}`}>{c.name}</Link>)}</nav>
+        <CityMenu cities={cities.map((c) => ({ slug: c.slug, name: c.name }))} />
         <Link href="/builders" className="post-link">Builders</Link>
         <Link href="/land" className="post-link">Land</Link>
         <Link href="/invest" className="post-link">Invest</Link>

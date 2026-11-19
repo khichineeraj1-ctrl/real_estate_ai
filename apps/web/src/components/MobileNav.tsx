@@ -67,3 +67,21 @@ export function TabBar() {
     </nav>
   );
 }
+
+/** The cities in the desktop header, folded into one menu so the section links beside it always fit. */
+export function CityMenu({ cities }: { cities: City[] }) {
+  const box = useRef<HTMLDetailsElement>(null);
+  const path = usePathname();
+  useEffect(() => { if (box.current) box.current.open = false; }, [path]); // choosing a city closes it
+  useEffect(() => {
+    const away = (e: MouseEvent | KeyboardEvent) => { if (!box.current?.open) return; if (e instanceof KeyboardEvent ? e.key === 'Escape' : !box.current.contains(e.target as Node)) box.current.open = false; };
+    document.addEventListener('click', away); document.addEventListener('keydown', away);
+    return () => { document.removeEventListener('click', away); document.removeEventListener('keydown', away); };
+  }, []);
+  return (
+    <details ref={box} className="city-menu">
+      <summary>Cities ▾</summary>
+      <ul>{cities.map((c) => <li key={c.slug}><Link href={`/${c.slug}`}>{c.name}</Link></li>)}</ul>
+    </details>
+  );
+}
