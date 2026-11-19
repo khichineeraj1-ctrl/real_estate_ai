@@ -123,6 +123,12 @@ export const createAlert = (body: { kind: 'PROJECTS' | 'HOMES'; city: string; lo
 export const stopAlert = (kind: 'alerts' | 'follows', id: string) => call<{ ok: true }>(`/me/${kind}/${id}`, { method: 'DELETE' });
 export const signOutAccount = () => call<{ ok: true }>('/me/signout', { method: 'POST' });
 
+// ---- Upcoming projects: told to us by a builder or verified agent, not yet on a RERA register
+export interface UpcomingItem { slug: string; name: string; builder: string; about: string | null; expected: string | null; youtubeId: string | null; videoTitle: string | null; locality: Place; city: Place; waiting: number; sharedBy: { name: string; as: string } | null }
+export const getUpcoming = () => call<{ notice: string; items: UpcomingItem[] }>('/upcoming');
+export const getUpcomingOne = (slug: string) => call<UpcomingItem & { notice: string; registeredAs: Place | null }>(`/upcoming/${slug}`);
+export const notifyUpcoming = (slug: string, email?: string) => call<{ ok: true }>(`/upcoming/${slug}/notify`, { ...JSON_POST, body: JSON.stringify({ email, consent: true }) });
+
 export const searchProjects = (text: string, city?: string) => call<{ total: number; items: ProjectHit[] }>(`/projects?text=${encodeURIComponent(text.slice(0, 80))}${city ? `&city=${encodeURIComponent(city)}` : ''}`);
 export const getCompare = (slugs: string[]) => call<CompareHome[]>(`/compare?slugs=${encodeURIComponent(slugs.slice(0, 4).join(','))}`);
 export const ask = (message: string, history: Turn[], context?: string) =>

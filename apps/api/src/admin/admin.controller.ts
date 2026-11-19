@@ -1,3 +1,4 @@
+import { UpcomingService } from '../catalog/upcoming';
 import { Body, Controller, Delete, Get, Header, HttpCode, HttpException, Ip, Param, Patch, Post, Query, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { Limiter } from '../ask/ask.service';
@@ -25,7 +26,7 @@ export class AdminController {
   private signups = new Limiter(20, 5_000);
   private emails = new Limiter(2, 10_000); // per account or email: emails cost money and can be used to pester someone
   private key = (v: unknown) => (typeof v === 'string' ? v.trim().toLowerCase().slice(0, 160) : '');
-  constructor(private readonly admin: AdminService, private readonly reminders: Reminders) {}
+  constructor(private readonly admin: AdminService, private readonly reminders: Reminders, private readonly upcoming: UpcomingService) {}
 
   @Post('login')
   @HttpCode(200)
@@ -100,6 +101,12 @@ export class AdminController {
   @UseGuards(AdminGuard) @Roles('AGENT') @Delete('selling-videos/:id') deleteMySiteVideo(@CurrentUser() u: SessionUser, @Param('id') id: string) { return this.admin.deleteMySiteVideo(u, id); }
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Get('site-videos') siteVideos(@Query() q: { status?: string }) { return this.admin.siteVideos(q); }
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Post('site-videos/:id/approve') @HttpCode(200) approveSiteVideo(@Param('id') id: string) { return this.admin.approveSiteVideo(id); }
+  @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR', 'AGENT', 'BUILDER') @Get('upcoming/mine') myUpcoming(@CurrentUser() u: SessionUser) { return this.upcoming.mine(u); }
+  @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR', 'AGENT', 'BUILDER') @Post('upcoming') submitUpcoming(@CurrentUser() u: SessionUser, @Body() b: Json) { return this.upcoming.submit(u, b); }
+  @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR', 'AGENT', 'BUILDER') @Delete('upcoming/:id') withdrawUpcoming(@CurrentUser() u: SessionUser, @Param('id') id: string) { return this.upcoming.withdraw(u, id); }
+  @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Get('upcoming') allUpcoming(@Query() q: { status?: string }) { return this.upcoming.all(q.status); }
+  @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Post('upcoming/:id/decide') @HttpCode(200) decideUpcoming(@Param('id') id: string, @Body() b: Json) { return this.upcoming.decide(id, b); }
+  @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Post('upcoming/:id/registered') @HttpCode(200) upcomingRegistered(@Param('id') id: string, @Body() b: Json) { return this.upcoming.registered(id, b); }
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Get('project-sellers') projectSellers(@Query() q: { status?: string }) { return this.admin.projectSellers(q); }
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Post('project-sellers/:id/decide') @HttpCode(200) decideProjectSeller(@CurrentUser() u: SessionUser, @Param('id') id: string, @Body() b: Json) { return this.admin.decideProjectSeller(u, id, b); }
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Get('builder-pages') builderPages() { return this.admin.builderPages(); }

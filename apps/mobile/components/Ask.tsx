@@ -1,4 +1,5 @@
 import { Launches } from './Launches';
+import { Upcoming } from './Upcoming';
 import { CompareToggle } from './tools/Compare';
 import { Cover } from './Cover';
 import { ConnectButton } from './LeadForm';
@@ -78,6 +79,7 @@ export function Ask({ header }: { header?: React.ReactNode }) {
               ))}
             </View>
             <Launches />
+            <Upcoming />
           </View>
         ) : thread.map((e, i) => (
           <View key={i} style={{ gap: 8 }}>

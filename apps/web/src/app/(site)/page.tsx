@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { AskBox } from '@/components/AskBox';
+import { Upcoming, type UpcomingItem } from '@/components/Upcoming';
 import { Launches, type Launch } from '@/components/Launches';
 import { CompareStudio } from '@/components/tools/CompareStudio';
 import { JsonLd } from '@/components/JsonLd';
@@ -19,7 +20,7 @@ export const metadata: Metadata = {
 const EXAMPLES = ['3 BHK in Whitefield', 'M3M projects in Gurgaon', 'Average rate in Powai?', 'Cheapest 2 BHK in Pune'];
 
 export default async function Home() {
-  const [cities, latest, builders, guides, launches] = await Promise.all([api<CitySummary[]>('/cities'), api<Listing>('/properties?pageSize=6'), api<BuilderSummary[]>('/builders'), api<{ slug: string; short: string; icon: string }[]>('/guides'), api<{ total: number; months: number; items: Launch[] }>('/launches')]);
+  const [cities, latest, builders, guides, launches, upcoming] = await Promise.all([api<CitySummary[]>('/cities'), api<Listing>('/properties?pageSize=6'), api<BuilderSummary[]>('/builders'), api<{ slug: string; short: string; icon: string }[]>('/guides'), api<{ total: number; months: number; items: Launch[] }>('/launches'), api<{ notice: string; items: UpcomingItem[] }>('/upcoming', { revalidate: 60 })]);
   const topBuilders = [...(builders ?? [])].sort((a, b) => b.projects - a.projects || a.name.localeCompare(b.name)).slice(0, 12);
   return (
     <>
@@ -35,6 +36,13 @@ export default async function Home() {
         <section className="section" id="new-launches">
           <h2>New launches</h2>
           <Launches items={launches.items} total={launches.total} months={launches.months} />
+        </section>
+      )}
+
+      {upcoming && upcoming.items.length > 0 && (
+        <section className="section" id="upcoming">
+          <h2>Upcoming projects</h2>
+          <Upcoming items={upcoming.items} notice={upcoming.notice} />
         </section>
       )}
 

@@ -74,6 +74,7 @@ model Locality {
   properties Property[]
 
   @@unique([cityId, slug])
+  upcoming UpcomingProject[]
 }
 
 /// A builder as buyers know it: one page listing every project of the group, whichever of its companies registered each one.
@@ -116,6 +117,7 @@ model Project {
   /// When the page was made, so alerts can tell which projects are new.
   createdAt          DateTime           @default(now())
   watches            ProjectWatch[]
+  wasUpcoming        UpcomingProject[]
   savedBy            SavedItem[]
   /// The builder's sales address. When set, each lead on this project is emailed there as it arrives.
   leadEmail   String?
@@ -214,6 +216,7 @@ model User {
   selling      ProjectSeller[]
   assignedLeads Enquiry[]  @relation("AssignedLeads")
   videosAdded Video[] @relation("VideosAdded")
+  upcomingSubmitted UpcomingProject[] @relation("UpcomingSubmitted")
 }
 
 enum ProjectSellerStatus {
@@ -623,6 +626,49 @@ model SearchAlert {
   createdAt DateTime @default(now())
 
   @@index([email])
+}
+
+/// A project a verified agent or a builder has told us is coming but that is not on a RERA register yet. It is shown
+/// as information only ("not yet registered, not for sale"), never with a price, and only after our team approves it.
+/// When its registration appears, staff link it to the real project page and it leaves this list.
+model UpcomingProject {
+  id            String   @id @default(cuid())
+  slug          String   @unique
+  name          String
+  /// The builder's name as the submitter gave it.
+  builder       String
+  localityId    String
+  locality      Locality @relation(fields: [localityId], references: [id])
+  about         String?
+  /// When the builder expects to register and launch, in the submitter's words, e.g. "Early 2027".
+  expected      String?
+  youtubeId     String?
+  videoTitle    String?
+  /// "PENDING", "APPROVED" or "REJECTED".
+  status        String   @default("PENDING")
+  decisionNote  String?
+  submittedById String?
+  submittedBy   User?    @relation("UpcomingSubmitted", fields: [submittedById], references: [id], onDelete: SetNull)
+  /// Set once the project is registered and has its own page; the entry then stops showing as upcoming.
+  projectId     String?
+  project       Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  createdAt     DateTime @default(now())
+  decidedAt     DateTime?
+  watches       UpcomingWatch[]
+
+  @@index([status, createdAt])
+}
+
+/// "Tell me when it is registered": one email, sent when the upcoming project gets its RERA registration.
+model UpcomingWatch {
+  id         String   @id @default(cuid())
+  email      String
+  upcomingId String
+  upcoming   UpcomingProject @relation(fields: [upcomingId], references: [id], onDelete: Cascade)
+  token      String   @unique
+  createdAt  DateTime @default(now())
+
+  @@unique([email, upcomingId])
 }
 
 /// A buyer following a project: they are emailed when its RERA registration changes (lapses, is extended, or ends).

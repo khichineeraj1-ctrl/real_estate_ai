@@ -1,3 +1,4 @@
+import { UpcomingService } from './upcoming';
 import { STAGES, guideBySlug, guideCards } from '../guides/guides';
 import { AlertService } from './alerts';
 import { BuyerService } from '../buyer/buyer.service';
@@ -23,9 +24,17 @@ const oneOf = <T extends string>(v: string | undefined, allowed: readonly T[], n
 export class CatalogController {
   // A few enquiries a minute per visitor is plenty for a person and too slow for a script.
   private enquiries = new Limiter(4, 5_000);
-  constructor(private readonly catalog: CatalogService, private readonly watch: WatchService, private readonly buyers: BuyerService, private readonly alerts: AlertService) {}
+  constructor(private readonly catalog: CatalogService, private readonly watch: WatchService, private readonly buyers: BuyerService, private readonly alerts: AlertService, private readonly upcoming: UpcomingService) {}
 
   @Get('health') health() { return { ok: true }; }
+  @Get('upcoming') upcomingList(@Query('city') city?: string) { return this.upcoming.list(city && /^[a-z0-9-]{1,60}$/.test(city) ? city : undefined); }
+  @Get('upcoming/:slug') upcomingOne(@Param('slug') slug: string) { return this.upcoming.one(slug); }
+  @Post('upcoming/:slug/notify') @HttpCode(200)
+  async upcomingNotify(@Param('slug') slug: string, @Body() body: Record<string, unknown> & { visitor?: unknown }, @Ip() ip: string, @Headers('authorization') auth?: string) {
+    const who = typeof body?.visitor === 'string' && body.visitor ? body.visitor.slice(0, 64) : ip;
+    if (!this.enquiries.allow(who)) throw new HttpException('Too many requests in a short time. Please try again in a minute.', 429);
+    return this.upcoming.notify(slug, body ?? {}, await this.buyers.fromToken(auth));
+  }
   @Get('launches') launches(@Query('city') city?: string) { return this.catalog.launches(city && /^[a-z0-9-]{1,60}$/.test(city) ? city : undefined); }
   @Get('guides') guides() { return guideCards(); }
   @Get('guide-stages') guideStages() { const cards = guideCards(); return STAGES.map((st) => ({ ...st, guides: cards.filter((g) => g.stage === st.key) })); }
@@ -65,7 +74,7 @@ export class CatalogController {
   /** The stop link in any alert email: a followed project, or a search alert. */
   @Post('unfollow') @HttpCode(200) async unfollow(@Body() body: { token?: string }) {
     const r = await this.watch.unfollow(body?.token ?? '');
-    return { ok: true, removed: r.removed + await this.alerts.stop(body?.token ?? '') };
+    return { ok: true, removed: r.removed + await this.alerts.stop(body?.token ?? '') + await this.upcoming.stop(body?.token ?? '') };
   }
 
   @Post('alerts') @HttpCode(200)

@@ -88,3 +88,18 @@ export async function createAlert(_: AlertState, form: FormData): Promise<AlertS
     return { error: 'That did not work. Please try again.' };
   }
 }
+
+/** "Tell me when it is registered", for an upcoming project. A signed-in buyer's email is taken from their account. */
+export async function notifyUpcoming(slug: string, _: FollowState, form: FormData): Promise<FollowState> {
+  if (form.get('website')) return { done: true };
+  const buyer = (await cookies()).get('buyer_session')?.value;
+  if (!buyer && !form.get('consent')) return { error: 'Tick the box to agree to be emailed' };
+  const visitor = (await headers()).get('x-forwarded-for')?.split(',')[0].trim();
+  try {
+    const res = await fetch(`${API_URL}/upcoming/${encodeURIComponent(slug)}/notify`, { method: 'POST', headers: { 'content-type': 'application/json', ...(buyer ? { authorization: `Bearer ${buyer}` } : {}) }, body: JSON.stringify({ email: form.get('email') ?? undefined, consent: true, visitor }), cache: 'no-store' });
+    const data = (await res.json().catch(() => null)) as { message?: string } | null;
+    return res.ok ? { done: true } : { error: data?.message || 'That did not work. Please try again.' };
+  } catch {
+    return { error: 'That did not work. Please try again.' };
+  }
+}

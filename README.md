@@ -28,6 +28,17 @@ The home page (web and app) has a "New launches" row: projects registered with R
 
 Site videos: a verified agent approved to sell a project can send in a YouTube link of their own walk-through from Admin → Projects I sell. It waits under Admin → Site videos until staff approve it, then plays on the project page and in the launches row with the agent's name. Buyers only ever see approved videos (`Video.approved`).
 
+## Upcoming projects
+
+Projects that are coming but are not on a RERA register yet, told to us by a verified agent or a builder's account (Admin → Upcoming projects), with an optional YouTube site video. A builder may not advertise, price or take bookings before registration, so:
+
+- text that mentions a price, an offer, a booking or returns is refused at submission (`sellingWords` in `apps/api/src/catalog/upcoming.ts`), and staff approve every entry before it shows;
+- buyers see it marked "Not yet registered. Not for sale", with no price and no enquiry form. The only action is "Tell me when it is registered";
+- upcoming pages (`/upcoming/<slug>`) are kept out of search and the sitemap;
+- when the project appears on a register, staff mark it registered and give its real page. Everyone waiting gets one email, and the upcoming page redirects to the project page.
+
+The row appears on the web and app home screens only when there is at least one approved entry. `UpcomingProject` and `UpcomingWatch` rows; `GET /upcoming`, `GET /upcoming/:slug`, `POST /upcoming/:slug/notify`. Have a lawyer confirm the wording and the approach before relying on it.
+
 ## Buyer guides
 
 Seven short guides (carpet area, RERA registration, the 10% rule and the agreement, reading a cost sheet, under construction against ready, delayed possession, the occupation certificate). The text lives once, in `apps/api/src/guides/guides.ts`, and is served by `GET /guides` and `GET /guides/:slug` to the website (`/guides`, each with Article and FAQ structured data, in the sitemap) and the app (Tools → Home buying guides). Each guide has a summary box, sections, a link to the tool that puts it to use, and common questions. They describe Indian law as we understand it and say they are not legal advice: have someone qualified review them before launch, and update `reviewed` when the text is next checked.

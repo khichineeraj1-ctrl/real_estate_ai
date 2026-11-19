@@ -294,3 +294,30 @@ export async function rejectSiteVideo(id: string, _: FormState): Promise<FormSta
   revalidatePath('/', 'layout');
   redirect('/admin/site-videos?done=1');
 }
+
+/** A verified agent or a builder tells us about a project that is coming but not registered yet. */
+export async function submitUpcoming(_: FormState, form: FormData): Promise<FormState> {
+  const r = await adminFetch('/upcoming', { method: 'POST', body: fields(form) });
+  if (!r.ok) return failed(r);
+  revalidatePath('/', 'layout');
+  redirect('/admin/upcoming?sent=1');
+}
+export async function withdrawUpcoming(id: string, _: FormState): Promise<FormState> {
+  const r = await adminFetch(`/upcoming/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  if (!r.ok) return failed(r);
+  revalidatePath('/', 'layout');
+  redirect('/admin/upcoming?removed=1');
+}
+/** Staff approve or turn down an upcoming project, or mark it registered and link it to its real page. */
+export async function decideUpcoming(id: string, decision: 'APPROVED' | 'REJECTED', _: FormState, form: FormData): Promise<FormState> {
+  const r = await adminFetch(`/upcoming/${encodeURIComponent(id)}/decide`, { method: 'POST', body: { decision, note: String(form.get('note') ?? '') } });
+  if (!r.ok) return failed(r);
+  revalidatePath('/', 'layout');
+  redirect('/admin/upcoming?saved=1');
+}
+export async function upcomingRegistered(id: string, _: FormState, form: FormData): Promise<FormState> {
+  const r = await adminFetch<{ told: number }>(`/upcoming/${encodeURIComponent(id)}/registered`, { method: 'POST', body: { projectSlug: String(form.get('projectSlug') ?? '') } });
+  if (!r.ok) return failed(r);
+  revalidatePath('/', 'layout');
+  redirect(`/admin/upcoming?status=APPROVED&told=${r.data.told}`);
+}
