@@ -45,7 +45,7 @@ function Board({ picks, max, hint, onRemove, href, noun }: { picks: Pick[]; max:
   );
 }
 
-function Projects({ cities }: { cities: City[] }) {
+function Projects({ cities, show }: { cities: City[]; show: number }) {
   const picks = usePicks('projects');
   const [q, setQ] = useState('');
   const [city, setCity] = useState('');
@@ -54,10 +54,10 @@ function Projects({ cities }: { cities: City[] }) {
   useEffect(() => {
     const mine = ++turn.current;
     const t = setTimeout(() => {
-      fetch(`/api/projects?q=${encodeURIComponent(q)}${city ? `&city=${city}` : ''}`).then((r) => r.json()).then((d: { items: Hit[] }) => { if (mine === turn.current) setHits(d.items); }).catch(() => { if (mine === turn.current) setHits([]); });
+      fetch(`/api/projects?q=${encodeURIComponent(q)}${city ? `&city=${city}` : ''}`).then((r) => r.json()).then((d: { items: Hit[] }) => { if (mine === turn.current) setHits(d.items.slice(0, show)); }).catch(() => { if (mine === turn.current) setHits([]); });
     }, q ? 220 : 0);
     return () => clearTimeout(t);
-  }, [q, city]);
+  }, [q, city, show]);
   const toggle = (h: Hit) => {
     const has = picks.some((p) => p.slug === h.slug);
     if (!has && picks.length >= MAX_COMPARE) return;
@@ -133,8 +133,8 @@ function Homes({ cities }: { cities: City[] }) {
   );
 }
 
-/** The compare page's picker: choose what to compare, fill the board, and go. */
-export function CompareStudio({ cities }: { cities: City[] }) {
+/** The picker on the compare page and, with fewer suggestions (`compact`), the home page: choose what to compare, fill the board, and go. */
+export function CompareStudio({ cities, compact = false }: { cities: City[]; compact?: boolean }) {
   const [tab, setTab] = useState<Tab>('projects');
   // Links such as /compare#localities open on that tab.
   useEffect(() => { const want = window.location.hash.slice(1); if (TABS.some((t) => t.key === want)) setTab(want as Tab); }, []);
@@ -154,7 +154,7 @@ export function CompareStudio({ cities }: { cities: City[] }) {
       </div>
       <div className="studio-panel" role="tabpanel" id="studio-panel" aria-labelledby={`tab-${tab}`} key={tab}>
         <ul className="shows" aria-label="What the comparison shows">{now.shows.map((s) => <li key={s}>{s}</li>)}</ul>
-        {tab === 'projects' && <Projects cities={cities} />}
+        {tab === 'projects' && <Projects cities={cities} show={compact ? 4 : 8} />}
         {tab === 'localities' && <Localities cities={cities} />}
         {tab === 'homes' && <Homes cities={cities} />}
       </div>
