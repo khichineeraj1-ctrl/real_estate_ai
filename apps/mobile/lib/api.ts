@@ -38,11 +38,15 @@ export interface ProjectDetail extends Place {
   locality: Place; city: Place & { state: string }; properties: PropertyCard[]; stats: Stats; bhk: { bhk: number; count: number; minPrice: number | null }[];
   /** Every photo of the project, cover first. */
   photos?: { file: string; width: number; height: number; category?: string | null }[];
+  /** YouTube videos of the project. */
+  videos?: { youtubeId: string; title: string | null }[];
   /** Agents our team has verified who sell this project. */
   agents?: { id: string; name: string; firmName: string | null; yearsInBusiness: number | null; level: number; label: string }[];
 }
 export interface Listing { items: PropertyCard[]; total: number; stats: Stats }
 export interface PropertyDetail extends Omit<PropertyCard, 'locality' | 'project' | 'confidence'> {
+  /** YouTube videos of the home. */
+  videos?: { youtubeId: string; title: string | null }[];
   /** 'seller': an owner or agent posted it and their contact is shown after an enquiry. 'callback': it takes a lead instead. */
   contact: 'seller' | 'callback';
   confidence: Confidence; seller: { name: string; firmName: string | null; confidence: Confidence } | null;

@@ -33,6 +33,11 @@ locality pages show no price figures until then.
   swipe viewer.
 - Each photo can be given a group (Outdoors, Interiors, Amenities, Floor plans, Neighbourhood), at upload or
   afterwards. The banner's side tiles then show a group and its count, and the viewer can show one group at a time.
+- **Videos** are YouTube links, up to six per home or project, added in the same admin pages (a seller's own video
+  sends their listing back for review, like a new photo). Only the video's id is kept. In the gallery they form a
+  "Videos" group with their own tile and play inside the viewer from YouTube's cookie-free address, which is loaded
+  only when a video is opened; the still picture on the tile does come from YouTube. The app shows them as a row
+  that opens YouTube. Only YouTube links are accepted.
 - Every upload is checked, re-encoded and resized to two sizes, and the files are removed when the photo, listing or
   project is deleted. The website and the app both show them.
 

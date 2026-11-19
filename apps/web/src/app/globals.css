@@ -549,3 +549,9 @@ p > .connect { margin: 0; }
 .aphoto-group { display: grid; gap: 2px; width: 100%; }
 .aphoto-group select { width: 100%; font: inherit; font-size: .85rem; color: var(--fg); background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; }
 .aphoto-group small { color: var(--muted); font-size: .75rem; min-height: 1em; }
+
+.shot-play, .strip-play { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: grid; place-items: center; border-radius: 50%; background: rgba(255, 255, 255, .92); color: #111; pointer-events: none; }
+.shot-play { width: 54px; height: 54px; font-size: 1.3rem; padding-left: 4px; box-shadow: 0 4px 18px rgba(0, 0, 0, .4); transition: transform .2s; }
+.shot:hover .shot-play { transform: translate(-50%, -50%) scale(1.12); }
+.viewer-strip button { position: relative; } .strip-play { width: 22px; height: 22px; font-size: .6rem; padding-left: 2px; }
+.viewer-video { width: min(100%, calc((100dvh - 240px) * 16 / 9)); aspect-ratio: 16 / 9; height: auto; border: 0; border-radius: 8px; background: #000; }

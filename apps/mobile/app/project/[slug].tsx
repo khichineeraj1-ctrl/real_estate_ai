@@ -36,7 +36,7 @@ export default function Project() {
           <Text style={{ color: t.brand }}>{p.locality.name}, {p.city.name}</Text>
         </Pressable>
         <Text style={{ color: t.fg, lineHeight: 22 }}>{p.description}</Text>
-        <Photos photos={p.photos ?? []} name={p.name} />
+        <Photos photos={p.photos ?? []} videos={p.videos ?? []} name={p.name} />
 
         {p.registerSource && (
           <View style={[s.box, { backgroundColor: t.soft, borderColor: t.line }]}>

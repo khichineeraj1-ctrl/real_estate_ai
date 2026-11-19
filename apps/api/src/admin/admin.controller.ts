@@ -79,6 +79,9 @@ export class AdminController {
   @UseInterceptors(FilesInterceptor('photos', MAX_PHOTOS_PER_LISTING, { limits: { fileSize: MAX_PHOTO_BYTES } }))
   addProjectPhotos(@Param('id') id: string, @UploadedFiles() files: Upload[], @Body() b: Json) { return this.admin.addProjectPhotos(id, files, b?.category); }
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR', 'AGENT') @Patch('photos/:id') groupPhoto(@CurrentUser() u: SessionUser, @Param('id') id: string, @Body() b: Json) { return this.admin.groupPhoto(u, id, b); }
+  @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR', 'AGENT') @Post('properties/:id/videos') addVideo(@CurrentUser() u: SessionUser, @Param('id') id: string, @Body() b: Json) { return this.admin.addVideo(u, id, b); }
+  @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Post('projects/:id/videos') addProjectVideo(@Param('id') id: string, @Body() b: Json) { return this.admin.addProjectVideo(id, b); }
+  @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR', 'AGENT') @Delete('videos/:id') deleteVideo(@CurrentUser() u: SessionUser, @Param('id') id: string) { return this.admin.deleteVideo(u, id); }
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR', 'AGENT') @Delete('photos/:id') deletePhoto(@CurrentUser() u: SessionUser, @Param('id') id: string) { return this.admin.deletePhoto(u, id); }
 
   // Staff only from here.

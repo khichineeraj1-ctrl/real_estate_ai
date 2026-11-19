@@ -53,7 +53,7 @@ export default async function PropertyPage({ params }: Props) {
         </p>
       )}
 
-      <Gallery photos={photos} name={p.title} />
+      <Gallery photos={photos} videos={p.videos ?? []} name={p.title} />
 
       <dl className="detail">
         <div><dt>Type</dt><dd>{typeLabel(p.type)}</dd></div>

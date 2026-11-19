@@ -8,7 +8,7 @@ import { Mailer, SITE_URL } from '../mail/mailer';
 import { SessionUser, emailSecret, hashEmailSecret, hashPassword, isStaff, issueToken, normalEmail, verifyPassword } from './auth';
 import { IMPORT_COLUMNS, parseCsv } from './csv';
 import { Input, slugify } from './input';
-import { MAX_PHOTOS_PER_LISTING, MAX_PHOTO_BYTES, ProcessedPhoto, photoGroup, processPhoto, removePhoto, savePhoto, sniffImage } from './photos';
+import { MAX_PHOTOS_PER_LISTING, MAX_PHOTO_BYTES, MAX_VIDEOS, ProcessedPhoto, youtubeId, photoGroup, processPhoto, removePhoto, savePhoto, sniffImage } from './photos';
 
 const PAGE = 25;
 const MAX_IMPORT_ROWS = 500;
@@ -233,7 +233,7 @@ export class AdminService implements OnModuleInit {
     return { ...p, confidenceDetail: await this.trust.property(id) };
   }
   private async propertyRow(user: SessionUser, id: string) {
-    const p = await this.db.property.findFirst({ where: { id, ...this.scope(user) }, include: { photos: { orderBy: { position: 'asc' }, select: { id: true, file: true, category: true } }, owner: { select: { name: true, email: true, phone: true } } } });
+    const p = await this.db.property.findFirst({ where: { id, ...this.scope(user) }, include: { videos: { orderBy: { position: 'asc' }, select: { id: true, youtubeId: true, title: true } }, photos: { orderBy: { position: 'asc' }, select: { id: true, file: true, category: true } }, owner: { select: { name: true, email: true, phone: true } } } });
     if (!p) throw new NotFoundException('Property not found');
     return p;
   }
@@ -343,6 +343,36 @@ export class AdminService implements OnModuleInit {
     await this.project(projectId);
     await this.storePhotos({ projectId }, have, 'A project', files, photoGroup(category));
     return { ok: true, added: files.length };
+  }
+
+  // ---- Videos (YouTube links)
+
+  /** Adds a YouTube video to a home or a project. Only the video's id is kept; the video itself stays on YouTube. */
+  private async storeVideo(owner: { propertyId: string } | { projectId: string }, body: Record<string, unknown>) {
+    const id = youtubeId(body.url);
+    if (!id) throw new BadRequestException('Paste a YouTube link, such as https://www.youtube.com/watch?v=… or https://youtu.be/…');
+    const have = await this.db.video.findMany({ where: owner, select: { youtubeId: true, position: true } });
+    if (have.length >= MAX_VIDEOS) throw new BadRequestException(`At most ${MAX_VIDEOS} videos; remove one first`);
+    if (have.some((v) => v.youtubeId === id)) throw new ConflictException('That video is already added');
+    await this.db.video.create({ data: { ...owner, youtubeId: id, title: new Input(body).optionalText('title', 'Title', 120), position: Math.max(-1, ...have.map((v) => v.position)) + 1 } });
+    return { ok: true };
+  }
+  async addVideo(user: SessionUser, propertyId: string, body: Record<string, unknown>) {
+    const p = await this.propertyRow(user, propertyId);
+    const r = await this.storeVideo({ propertyId }, body);
+    // Like a new photo, a video added by the seller is looked at by our team before buyers see the listing again.
+    if (!isStaff(user) && p.state === 'PUBLISHED') await this.db.property.update({ where: { id: propertyId }, data: { state: 'PENDING' } });
+    return r;
+  }
+  async addProjectVideo(projectId: string, body: Record<string, unknown>) {
+    await this.project(projectId);
+    return this.storeVideo({ projectId }, body);
+  }
+  async deleteVideo(user: SessionUser, videoId: string) {
+    const video = await this.db.video.findFirst({ where: { id: videoId, OR: [{ property: this.scope(user) }, ...(isStaff(user) ? [{ projectId: { not: null } }] : [])] }, select: { id: true, propertyId: true, projectId: true } });
+    if (!video) throw new NotFoundException('Video not found');
+    await this.db.video.delete({ where: { id: videoId } });
+    return { ok: true, propertyId: video.propertyId, projectId: video.projectId };
   }
 
   /** Says what a photo shows (or clears it), which decides its group in the gallery. The same people who may delete it may do this. */
@@ -519,7 +549,7 @@ export class AdminService implements OnModuleInit {
     });
   }
   async project(id: string) {
-    const p = await this.db.project.findUnique({ where: { id }, include: { brand: { select: { slug: true, name: true } }, photos: { orderBy: { position: 'asc' }, select: { id: true, file: true, category: true } }, _count: { select: { enquiries: true } } } });
+    const p = await this.db.project.findUnique({ where: { id }, include: { brand: { select: { slug: true, name: true } }, videos: { orderBy: { position: 'asc' }, select: { id: true, youtubeId: true, title: true } }, photos: { orderBy: { position: 'asc' }, select: { id: true, file: true, category: true } }, _count: { select: { enquiries: true } } } });
     if (!p) throw new NotFoundException('Project not found');
     return p;
   }

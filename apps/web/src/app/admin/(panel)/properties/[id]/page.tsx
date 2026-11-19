@@ -7,13 +7,14 @@ import { adminGet, getMe, isStaff } from '@/lib/admin';
 import { media } from '@/lib/seo';
 import type { Confidence } from '@/lib/trust';
 import { PhotoGroup, PhotoGroupField } from '@/components/admin/PhotoGroup';
-import { groupPhoto, remove, removePhoto, review, save, verifyProperty } from '../../../actions';
+import { Videos, type AdminVideo } from '@/components/admin/Videos';
+import { addVideo, groupPhoto, remove, removePhoto, removeVideo, review, save, verifyProperty } from '../../../actions';
 
 interface Property {
   id: string; slug: string; title: string; description: string; type: string; bhk: number; bathrooms: number; priceInr: number; areaSqft: number; floor: number | null; totalFloors: number | null;
   facing: string | null; furnishing: string | null; status: string; possession: string | null; amenities: string[]; listedBy: string; localityId: string; projectId: string | null;
   state: 'PUBLISHED' | 'PENDING' | 'REJECTED'; rejectReason: string | null; ownerId: string | null;
-  staffVerified: boolean; staffVerifiedNote: string | null; staffVerifiedAt: string | null; staffVerifiedBy: string | null; confidenceDetail: Confidence; photos: { id: string; category?: string | null; file: string }[]; owner: { name: string; email: string; phone: string | null } | null;
+  staffVerified: boolean; staffVerifiedNote: string | null; staffVerifiedAt: string | null; staffVerifiedBy: string | null; confidenceDetail: Confidence; videos?: AdminVideo[]; photos: { id: string; category?: string | null; file: string }[]; owner: { name: string; email: string; phone: string | null } | null;
 }
 type Search = { created?: string; photos?: string; photoDeleted?: string; error?: string; verified?: string };
 const MAX_PHOTOS = 12;
@@ -129,6 +130,8 @@ export default async function EditProperty({ params, searchParams }: { params: P
           )}
         </section>
       )}
+
+      {p && <Videos videos={p.videos ?? []} add={addVideo.bind(null, 'properties', p.id)} remove={(vid) => removeVideo.bind(null, 'properties', p.id, vid)} />}
 
       {p && <DeleteForm action={remove.bind(null, 'properties', p.id)} what="this listing" />}
     </>

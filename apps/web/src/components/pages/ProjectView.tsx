@@ -35,7 +35,7 @@ export function ProjectView({ p }: { p: ProjectDetail }) {
       <Breadcrumbs crumbs={[{ name: p.city.name, path: `/${p.city.slug}` }, { name: p.locality.name, path: localityPath }, { name: p.name, path: pathOf(p) }]} />
       <h1>{p.name}, {p.locality.name}, {p.city.name}</h1>
       <p className="lead">{p.description}</p>
-      <Gallery photos={photos} name={`${p.name}, ${p.locality.name}`} />
+      <Gallery photos={photos} videos={p.videos ?? []} name={`${p.name}, ${p.locality.name}`} />
       {p.registerSource && (
         <div className="astatus">
           <p><strong>From the public RERA register, not yet confirmed by the builder.</strong> These details are as published by {p.registerName}{p.sourceFetchedAt ? `, read on ${new Date(p.sourceFetchedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' })}` : ''}. The register does not give prices, floor plans or whether building is finished, so we do not show them. {p.sourceUrl && <a href={p.sourceUrl} target="_blank" rel="noopener noreferrer nofollow">See the register’s own page</a>}</p>

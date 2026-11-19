@@ -246,3 +246,18 @@ export async function groupPhoto(photoId: string, category: string): Promise<{ e
   revalidatePath('/', 'layout');
   return {};
 }
+
+/** Adds a YouTube video to a listing or a project. */
+export async function addVideo(kind: 'properties' | 'projects', id: string, _: FormState, form: FormData): Promise<FormState> {
+  const r = await adminFetch(`/${kind}/${encodeURIComponent(id)}/videos`, { method: 'POST', body: fields(form) });
+  if (!r.ok) return failed(r);
+  revalidatePath('/', 'layout');
+  redirect(`/admin/${kind}/${id}?videoAdded=1#videos`);
+}
+
+export async function removeVideo(kind: 'properties' | 'projects', id: string, videoId: string, _: FormState): Promise<FormState> {
+  const r = await adminFetch(`/videos/${encodeURIComponent(videoId)}`, { method: 'DELETE' });
+  if (!r.ok) return failed(r);
+  revalidatePath('/', 'layout');
+  redirect(`/admin/${kind}/${id}?videoRemoved=1#videos`);
+}

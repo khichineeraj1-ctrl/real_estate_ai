@@ -10,6 +10,22 @@ import sharp from 'sharp';
 export const UPLOAD_DIR = process.env.UPLOAD_DIR || join(process.cwd(), 'uploads');
 export const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 export const MAX_PHOTOS_PER_LISTING = 12;
+export const MAX_VIDEOS = 6;
+/**
+ * The id of a YouTube video from any of the links people paste: youtube.com/watch?v=…, youtu.be/…, /shorts/…,
+ * /embed/… or /live/…. Null for anything else, so only YouTube can ever be embedded.
+ */
+export function youtubeId(link: unknown): string | null {
+  if (typeof link !== 'string') return null;
+  let url: URL;
+  try { url = new URL(link.trim()); } catch { return null; }
+  const host = url.hostname.replace(/^(www\.|m\.)/, '');
+  const id = host === 'youtu.be' ? url.pathname.slice(1).split('/')[0]
+    : host === 'youtube.com' || host === 'youtube-nocookie.com' ? (url.pathname === '/watch' ? url.searchParams.get('v') : /^\/(shorts|embed|live)\/([^/]+)/.exec(url.pathname)?.[2]) ?? null
+      : null;
+  return id && /^[A-Za-z0-9_-]{11}$/.test(id) ? id : null;
+}
+
 /** What a photo shows. The gallery groups photos by these, in this order. */
 export const PHOTO_GROUPS = { OUTSIDE: 'Outdoors', INSIDE: 'Interiors', AMENITIES: 'Amenities', PLAN: 'Floor plans', AREA: 'Neighbourhood' } as const;
 export const photoGroup = (v: unknown) => (typeof v === 'string' && v in PHOTO_GROUPS ? v : null);

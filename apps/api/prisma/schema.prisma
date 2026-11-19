@@ -124,6 +124,7 @@ model Project {
   enquiries   Enquiry[]
   sellers     ProjectSeller[]
   photos      Photo[]
+  videos      Video[]
 
   @@index([brandId])
 }
@@ -157,6 +158,7 @@ model Property {
   ownerId      String?
   owner        User?             @relation(fields: [ownerId], references: [id])
   photos       Photo[]
+  videos      Video[]
   /// Set by staff after seeing the ownership papers or visiting the home. The strongest single signal of confidence.
   staffVerified     Boolean   @default(false)
   staffVerifiedNote String?
@@ -234,6 +236,22 @@ model ProjectSeller {
   @@unique([projectId, userId])
   @@index([userId])
   @@index([projectId, status])
+}
+
+/// A video of a home or a builder's project, hosted on YouTube: we keep only its YouTube id and a title.
+model Video {
+  id         String   @id @default(cuid())
+  youtubeId  String
+  title      String?
+  position   Int
+  createdAt  DateTime @default(now())
+  propertyId String?
+  property   Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  projectId  String?
+  project    Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId, position])
+  @@index([projectId, position])
 }
 
 model Photo {

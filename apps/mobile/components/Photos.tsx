@@ -1,5 +1,5 @@
 import { useRef, useState, type ComponentRef } from 'react';
-import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Image, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { photoUrl } from '../lib/api';
 import { useTheme } from '../lib/theme';
 
@@ -10,13 +10,37 @@ const GROUPS: Record<string, string> = { OUTSIDE: 'Outdoors', INSIDE: 'Interiors
  * The photos of a home or project: the cover large with two beside it and a count, as on the website. Tapping any
  * opens them all full screen, to swipe through.
  */
-export function Photos({ photos, name }: { photos: Photo[]; name: string }) {
+export interface Video { youtubeId: string; title?: string | null }
+
+/** Videos as a row of stills with a play button. A tap opens the video in YouTube. */
+function VideoRow({ videos, name }: { videos: Video[]; name: string }) {
+  const t = useTheme();
+  if (!videos.length) return null;
+  return (
+    <View style={{ gap: 6 }}>
+      <Text style={{ color: t.fg, fontWeight: '700' }}>Videos ({videos.length})</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+        {videos.map((v) => (
+          <Pressable key={v.youtubeId} accessibilityRole="link" accessibilityLabel={`${v.title ?? `${name}: video`}. Opens in YouTube`} onPress={() => Linking.openURL(`https://www.youtube.com/watch?v=${v.youtubeId}`)} style={{ width: 220, gap: 4 }}>
+            <View style={[s.video, { backgroundColor: t.soft }]}>
+              <Image source={{ uri: `https://i.ytimg.com/vi/${v.youtubeId}/hqdefault.jpg` }} resizeMode="cover" style={StyleSheet.absoluteFill} />
+              <View style={s.play}><Text style={{ fontSize: 18, marginLeft: 3 }}>▶</Text></View>
+            </View>
+            {v.title ? <Text numberOfLines={2} style={{ color: t.muted, fontSize: 13 }}>{v.title}</Text> : null}
+          </Pressable>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
+export function Photos({ photos, videos = [], name }: { photos: Photo[]; videos?: Video[]; name: string }) {
   const t = useTheme();
   const { width, height } = useWindowDimensions();
   const [open, setOpen] = useState(false);
   const [at, setAt] = useState(0);
   const pager = useRef<ComponentRef<typeof ScrollView>>(null);
-  if (!photos.length) return null;
+  if (!photos.length) return <VideoRow videos={videos} name={name} />;
   const show = (i: number) => { setAt(i); setOpen(true); setTimeout(() => pager.current?.scrollTo({ x: i * width, animated: false }), 0); };
   const side = photos.slice(1, 3);
   return (
@@ -38,6 +62,8 @@ export function Photos({ photos, name }: { photos: Photo[]; name: string }) {
           </View>
         )}
       </View>
+
+      <VideoRow videos={videos} name={name} />
 
       <Modal visible={open} animationType="fade" onRequestClose={() => setOpen(false)}>
         <View style={s.viewer}>
@@ -69,6 +95,8 @@ export function Photos({ photos, name }: { photos: Photo[]; name: string }) {
 const s = StyleSheet.create({
   big: { width: '100%', aspectRatio: 4 / 3, borderRadius: 12, overflow: 'hidden' },
   small: { flex: 1, aspectRatio: 4 / 3, borderRadius: 10, overflow: 'hidden' },
+  video: { width: 220, aspectRatio: 16 / 9, borderRadius: 10, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  play: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.92)' },
   badge: { position: 'absolute', left: 8, bottom: 8, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
   badgeText: { color: '#fff', fontSize: 12, fontWeight: '600' },
   viewer: { flex: 1, backgroundColor: '#0b0d11' },

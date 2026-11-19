@@ -70,7 +70,7 @@ export default function Property() {
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 14 }}>
       <Stack.Screen options={{ title: p.title.split(' in ')[0] }} />
-      <Photos photos={p.photos ?? []} name={p.title} />
+      <Photos photos={p.photos ?? []} videos={p.videos ?? []} name={p.title} />
       <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 21, fontWeight: '700', lineHeight: 27 }}>{p.title}</Text>
       <View>
         <Text style={{ color: t.fg, fontSize: 28, fontWeight: '800' }}>{price(p.priceInr)}</Text>

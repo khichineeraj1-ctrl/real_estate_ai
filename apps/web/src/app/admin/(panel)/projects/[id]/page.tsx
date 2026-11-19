@@ -4,11 +4,12 @@ import { Area, Field, STATUS, Select, localityGroups, month, type Options } from
 import { adminGet, requireStaff } from '@/lib/admin';
 import { media } from '@/lib/seo';
 import { PhotoGroup, PhotoGroupField } from '@/components/admin/PhotoGroup';
-import { groupPhoto, remove, removeProjectPhoto, save } from '../../../actions';
+import { Videos, type AdminVideo } from '@/components/admin/Videos';
+import { addVideo, groupPhoto, remove, removeProjectPhoto, removeVideo, save } from '../../../actions';
 
 const MAX_PHOTOS = 12;
 
-interface Project { id: string; photos: { id: string; file: string; category: string | null }[]; slug: string; name: string; builder: string; description: string; status: string; possession: string | null; reraId: string | null; totalUnits: number | null; amenities: string[]; localityId: string; leadEmail: string | null; accountId: string | null; _count: { enquiries: number } }
+interface Project { id: string; photos: { id: string; file: string; category: string | null }[]; videos: AdminVideo[]; slug: string; name: string; builder: string; description: string; status: string; possession: string | null; reraId: string | null; totalUnits: number | null; amenities: string[]; localityId: string; leadEmail: string | null; accountId: string | null; _count: { enquiries: number } }
 interface Builder { id: string; name: string; email: string; active: boolean }
 
 export default async function EditProject({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ photos?: string; photoDeleted?: string; error?: string }> }) {
@@ -68,6 +69,8 @@ export default async function EditProject({ params, searchParams }: { params: Pr
           )}
         </section>
       )}
+
+      {p && <Videos videos={p.videos} add={addVideo.bind(null, 'projects', p.id)} remove={(vid) => removeVideo.bind(null, 'projects', p.id, vid)} />}
 
       {p && <DeleteForm action={remove.bind(null, 'projects', p.id)} what="this project" />}
       {p && <p className="lead">Deleting a project keeps its listings; they just stop being linked to it.</p>}
