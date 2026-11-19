@@ -39,6 +39,8 @@ test('names a person confirmed as one builder', () => {
   assert.equal(builderFor('MRG Castle Reality LLP').name, 'MRG Group');
   for (const n of ['Athena Infrastructure LTD.', 'Athena Infrastructures LTD.', 'Selene Construction LTD', 'Indiabulls Pharmacare Limited']) assert.deepEqual(builderFor(n), { slug: 'indiabulls', name: 'Indiabulls' });
   assert.equal(builderFor('Countrywide Promoters Private Limited').slug, 'bptp');
+  assert.deepEqual(builderFor('MANGLAM MULTIPLEX PRIVATE LIMITED'), { slug: 'm3m', name: 'M3M' });
+  assert.equal(builderFor('Union Buildmart Private Limited').slug, 'm3m');
   assert.deepEqual(builderFor('City Realty & Development Private Limited'), { slug: 'city-group', name: 'City Group' });
 });
 

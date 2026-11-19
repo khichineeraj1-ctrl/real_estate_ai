@@ -1,3 +1,5 @@
+import { Cover } from './Cover';
+import { ConnectButton } from './LeadForm';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
@@ -73,6 +75,17 @@ export function Ask({ header }: { header?: React.ReactNode }) {
                 <>
                   <Text accessibilityLiveRegion="polite" style={{ color: t.fg, fontSize: 16, lineHeight: 23 }}>{e.result.reply}</Text>
                   {e.result.properties.map((p) => <PropertyCard key={p.slug} p={p} />)}
+                  {(e.result.projects ?? []).map((p) => (
+                    <View key={p.slug} style={{ borderWidth: 1, borderColor: t.line, backgroundColor: t.card, borderRadius: 14, padding: 12, gap: 8 }}>
+                      <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/project/[slug]', params: { slug: p.slug } })} style={({ pressed }) => ({ gap: 2, opacity: pressed ? 0.6 : 1 })}>
+                        {p.photos?.[0] ? <Cover photo={p.photos[0]} label={`${p.name}: photo`} /> : null}
+                        <Text style={{ color: t.fg, fontWeight: '600' }}>{p.name}</Text>
+                        <Text style={{ color: t.muted, fontSize: 13 }}>{p.locality.name}, {p.city.name} · {p.brand?.name ?? p.builder}</Text>
+                      </Pressable>
+                      <ConnectButton kind="project" slug={p.slug} name={p.name} mode={(p.agents ?? 0) > 0 ? 'agent' : 'callback'} agents={p.agents} unclaimed={!!p.registerSource} />
+                    </View>
+                  ))}
+                  {(e.result.projectsTotal ?? 0) > (e.result.projects?.length ?? 0) && <Text style={{ color: t.muted, fontSize: 13 }}>Showing {e.result.projects!.length} of {e.result.projectsTotal} projects. Name an area to narrow it down.</Text>}
                   {e.result.total > e.result.properties.length && <Text style={{ color: t.muted, fontSize: 13 }}>Showing {e.result.properties.length} of {e.result.total}. Ask to narrow it down.</Text>}
                   {(() => {
                     // An "X vs Y" answer points at /city/compare/a-vs-b; open the same comparison in the app.

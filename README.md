@@ -12,6 +12,17 @@ each city's buying charges; it never deletes anything and is safe to run again. 
 RERA registers, which carry no prices. Homes and prices appear only when an owner, agent or builder posts them, so
 locality pages show no price figures until then.
 
+## What the assistant can look up
+
+- **Homes** (`search_properties`): by city, locality, size, type, status and price.
+- **Builders and projects** (`search_projects`): by words from a builder's or project's name, optionally within a
+  city or locality. It answers with how many there are, where, and how each RERA registration stands, and the
+  projects appear as cards with their call-back button. The registers give no prices, and the assistant is told to
+  say so rather than guess.
+
+Without a Claude key, a question that is just a name ("m3m", "godrej projects in mumbai") is answered from the same
+project search by the built-in parser.
+
 ## Who a buyer reaches, and lead scoring
 
 **Which form a page shows**

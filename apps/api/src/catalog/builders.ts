@@ -29,6 +29,8 @@ const SAME: Record<string, string> = {
   'athena-infrastructure': 'indiabulls', 'selene-construction': 'indiabulls', 'citra-properties': 'indiabulls', 'juventus-estate': 'indiabulls',
   'varali-properties': 'indiabulls', 'sepset-properties': 'indiabulls', 'indiabulls-pharmacare': 'indiabulls',
   'countrywide-promoters': 'bptp', // a BPTP company
+  // M3M registers each project under a separate company; every project of these four carries the M3M name
+  'manglam-multiplex': 'm3m', 'lekh-buildtech': 'm3m', 'union-buildmart': 'm3m', 'metro-education-and-welfare': 'm3m',
   'city-realty-and-development': 'city-corporation', // both City Group, the developer of Amanora
 };
 /**
@@ -38,7 +40,7 @@ const SAME: Record<string, string> = {
 export const MOVED: Record<string, string> = { 'deluris-buildtech-india-pvt-lts': 'deluris-buildtech-india', 'sadan-realtechprivate': 'sadan-realtech', 'reliance-enetrprise': 'reliance-enterprise', 'vardhman-propertise': 'vardhman-properties', 'ocus-skycrapers-realty': 'ocus-skyscrapers-realty', 'messrs-src-and-associates': 'src-and-associates', 'mrg-group-india': 'mrg-group', 'pareena-infrastructures': 'pareena', 'lodha-developers': 'lodha', 'city-corporation': 'city-group' };
 
 /** The name buyers know a builder by, where it differs from the registered one. */
-const KNOWN_AS: Record<string, string> = { 'sector-113-gatevida-developers': 'Sector 113 Gatevida Developers', 'mrg-group': 'MRG Group', pareena: 'Pareena', lodha: 'Lodha', indiabulls: 'Indiabulls', 'city-group': 'City Group',
+const KNOWN_AS: Record<string, string> = { 'sector-113-gatevida-developers': 'Sector 113 Gatevida Developers', 'mrg-group': 'MRG Group', pareena: 'Pareena', lodha: 'Lodha', indiabulls: 'Indiabulls', m3m: 'M3M', 'city-group': 'City Group',
   // registered names with odd capitals or a slip of the hand, set right for display; the address is unchanged
   'anil-thakurdas-kursija': 'Anil Thakurdas Kursija', 'ashar-ventures': 'Ashar Ventures', 'namo-developers': 'Namo Developers', 'sanskruti-life-spaces': 'Sanskruti Life Spaces',
   'siddhesh-properties': 'Siddhesh Properties', mhada: 'MHADA', 'pmay-cell-pune-municipal-corporation': 'PMAY Cell, Pune Municipal Corporation',

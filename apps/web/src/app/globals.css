@@ -555,3 +555,5 @@ p > .connect { margin: 0; }
 .shot:hover .shot-play { transform: translate(-50%, -50%) scale(1.12); }
 .viewer-strip button { position: relative; } .strip-play { width: 22px; height: 22px; font-size: .6rem; padding-left: 2px; }
 .viewer-video { width: min(100%, calc((100dvh - 240px) * 16 / 9)); aspect-ratio: 16 / 9; height: auto; border: 0; border-radius: 8px; background: #000; }
+
+.answer .tiles { margin-top: 10px; }

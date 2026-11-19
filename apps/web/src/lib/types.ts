@@ -70,7 +70,9 @@ export interface PropertyDetail extends Omit<PropertyCard, 'locality' | 'project
   costs: CityCosts | null;
 }
 export interface Listing { items: PropertyCard[]; total: number; page: number; pageSize: number; stats: Stats }
-export interface AskResult { reply: string; live: boolean; properties: PropertyCard[]; total: number; page: { path: string; label: string } | null; relaxed: string | null }
+/** A builder's project in an answer from the assistant. */
+export type ProjectHit = { slug: string; name: string; builder: string; brand: Place | null; registerSource: string | null; registerStatus: string | null; registerValidUntil: string | null; agents?: number; photos?: { file: string; width?: number; height?: number }[]; locality: Place; city: Place };
+export interface AskResult { reply: string; live: boolean; properties: PropertyCard[]; total: number; page: { path: string; label: string } | null; relaxed: string | null; projects?: ProjectHit[]; projectsTotal?: number }
 export interface SitemapData {
   cities: { slug: string; localities: string[] }[];
   configs: { city: string; locality: string; bhk: number; count: number }[];

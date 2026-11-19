@@ -334,6 +334,28 @@ export class CatalogService {
     return this.db.question.create({ data });
   }
 
+  /**
+   * Builder projects matching words a buyer used: part of the project's name, the builder's name as buyers know it,
+   * or the company it is registered under, optionally within a city or locality. Used by the assistant.
+   */
+  async searchProjects(q: { text?: string; city?: string; locality?: string }, take = 8) {
+    const words = (q.text ?? '').trim().slice(0, 80).split(/\s+/).filter((w) => w.length >= 2).slice(0, 5);
+    const has = (w: string) => ({ contains: w, mode: 'insensitive' as const });
+    const where: Prisma.ProjectWhereInput = {
+      // every word must appear somewhere: in the project's name, the builder's, or the registered company's
+      AND: words.map((w) => ({ OR: [{ name: has(w) }, { builder: has(w) }, { brand: { name: has(w) } }] })),
+      ...(q.city || q.locality ? { locality: { ...(q.locality ? { slug: q.locality } : {}), ...(q.city ? { city: { slug: q.city } } : {}) } } : {}),
+    };
+    const [rows, total] = await Promise.all([
+      this.db.project.findMany({
+        where, take, orderBy: [{ photos: { _count: 'desc' } }, { name: 'asc' }],
+        select: { slug: true, name: true, builder: true, brand: { select: { slug: true, name: true } }, status: true, reraId: true, registerSource: true, registerStatus: true, registerValidUntil: true, photos: COVER, _count: AGENT_COUNT, locality: { select: { slug: true, name: true, city: { select: { slug: true, name: true } } } } },
+      }),
+      this.db.project.count({ where }),
+    ]);
+    return { total, items: rows.map(withAgents).map(({ locality, ...p }) => ({ ...p, locality: { slug: locality.slug, name: locality.name }, city: locality.city })) };
+  }
+
   /** Every builder that has at least one project, with how many and where. */
   async builders() {
     const rows = await this.db.builder.findMany({

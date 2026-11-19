@@ -18,7 +18,12 @@ export interface AskResult {
   page: { path: string; label: string } | null;
   /** Which filter was dropped (budget, locality or status) when nothing matched the question as asked; null for an exact match. */
   relaxed: string | null;
+  /** Builder projects the answer is about, when the buyer asked about a builder or a project by name. */
+  projects?: ProjectHit[];
+  projectsTotal?: number;
 }
+
+type ProjectHit = Awaited<ReturnType<CatalogService['searchProjects']>>['items'][number];
 
 /** Keeps only the last few turns the client sent, each short, with roles forced to user or assistant. */
 export function cleanTurns(raw: unknown): Turn[] {
@@ -74,6 +79,22 @@ const SEARCH_TOOL = {
     },
   },
 };
+
+const PROJECT_TOOL = {
+  name: 'search_projects',
+  description: 'Search builder projects by name. Use this whenever the buyer names a builder (for example "M3M", "DLF", "Godrej") or a project (for example "The Dahlias"), or asks what projects there are in a place. The projects come from the public RERA registers: you get the project, its builder, where it is and how its RERA registration stands. The registers give no prices, sizes or possession dates, so never state any for a project.',
+  input_schema: {
+    type: 'object' as const,
+    properties: {
+      name: { type: 'string', description: 'Words from the builder\'s or the project\'s name, e.g. "M3M" or "Dahlias". Leave out to list every project in the place.' },
+      city: { type: 'string', description: 'City name, e.g. "Gurgaon"' },
+      locality: { type: 'string', description: 'Locality name, e.g. "Golf Course Road"' },
+    },
+  },
+};
+
+/** How a project's RERA registration stands, in words. */
+const registration = (p: ProjectHit) => (/lapsed/i.test(p.registerStatus ?? '') ? 'marked lapsed by the register' : !p.registerValidUntil ? 'registered' : p.registerValidUntil < new Date() ? 'registration period over' : `registered until ${p.registerValidUntil.toLocaleDateString('en-IN', { month: 'long', year: 'numeric', timeZone: 'UTC' })}`);
 
 @Injectable()
 export class AskService {
@@ -139,10 +160,39 @@ export class AskService {
     };
   }
 
+  /** The page that shows every project an answer is about: one builder's page in a city when they all share it, else the area's. */
+  private projectsPage(f: { items: ProjectHit[]; total: number; place: ReturnType<typeof matchPlace> }): AskResult['page'] {
+    const builders = new Set(f.items.map((p) => `${p.city.slug}/${p.brand?.slug}`));
+    const one = f.items[0];
+    // Every project shown is by one builder in one city: its page there lists them all, including any not shown.
+    if (one?.brand && builders.size === 1) return { path: `/${one.city.slug}/${one.brand.slug}`, label: `${one.brand.name} projects in ${one.city.name}` };
+    if (f.place.locality && f.place.city) return { path: `/${f.place.city.slug}/${f.place.locality.slug}`, label: `Projects in ${f.place.locality.name}` };
+    if (f.place.city) return { path: `/${f.place.city.slug}`, label: `Projects in ${f.place.city.name}` };
+    return { path: '/builders', label: 'All builders' };
+  }
+
+  /** Without Claude: a question that is just a builder's or project's name ("m3m", "godrej projects in mumbai") is answered from the project search. */
+  private async scriptedProjects(question: string, gazetteer: Gazetteer): Promise<AskResult | null> {
+    const place = matchPlace(question, gazetteer);
+    const names = [place.city?.name, place.locality?.name].filter(Boolean).join(' ').toLowerCase().split(/\s+/);
+    const text = question.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter((w) => w && !names.includes(w) && !/^(projects?|builders?|developers?|by|in|of|the|show|me|all|list|new|properties|property|homes?|flats?|apartments?|what|which|are|is|there|any|from|and|for)$/.test(w)).join(' ');
+    if (!text) return null;
+    const r = await this.catalog.searchProjects({ text, city: place.city?.slug, locality: place.locality?.slug });
+    if (!r.total) return null;
+    const where = [...new Set(r.items.map((p) => p.locality.name))].slice(0, 3).join(', ');
+    const running = r.items.filter((p) => p.registerValidUntil && p.registerValidUntil > new Date() && !/lapsed/i.test(p.registerStatus ?? '')).length;
+    return {
+      reply: `I found ${r.total} ${r.total === 1 ? 'project' : 'projects'} matching "${text}"${place.city ? ` in ${place.locality?.name ?? place.city.name}` : ''}, in ${where}${r.total > r.items.length ? ' and more' : ''}. ${running} of the ${r.items.length} shown ${running === 1 ? 'has' : 'have'} a RERA registration still running. The registers do not give prices; open a project and request a call back to get them.`,
+      live: false, properties: [], total: 0, page: this.projectsPage({ ...r, place }), relaxed: null, projects: r.items, projectsTotal: r.total,
+    };
+  }
+
   async scripted(question: string, gazetteer: Gazetteer, context = ''): Promise<AskResult> {
     const versus = comparison(question, gazetteer);
     if (versus) return this.compareLocalities(versus);
     const p = parseQuestion(question, gazetteer);
+    // A builder's or a project's name, with nothing about size or budget: answer from the projects.
+    if (!p.bhk && !p.type && p.minPrice == null && p.maxPrice == null) { const byName = await this.scriptedProjects(question, gazetteer); if (byName) return byName; }
     // "3 BHK under 2 crore" asked on a locality page means that locality.
     if (!p.city) Object.assign(p, matchPlace(context, gazetteer));
     const asked = p.city || p.bhk || p.type || p.status || p.minPrice != null || p.maxPrice != null || p.sort;
@@ -175,6 +225,7 @@ export class AskService {
       `You are the assistant of ${BRAND}, a property search service for home buyers in India. People type or speak to you, and your reply is shown on screen and read aloud.`,
       `Places covered: ${gazetteer.map((c) => `${c.name} (${c.localities.map((l) => l.name).join(', ')})`).join('; ')}.`,
       'Anything you say about what is for sale, what an area costs, or a specific home must come from the search_properties tool: search first, then answer. If a search finds nothing, say so and suggest the nearest alternative the tool shows you (it loosens the budget or area itself and tells you in "note"). Never invent a listing, price or project.',
+      'Builders and their projects are a separate search. When the buyer names a builder or a project, or asks what projects an area has, call search_projects and answer from it: how many there are, where, and how their RERA registration stands. The projects come from the public RERA registers, which give no prices, sizes or possession dates, so say none; tell the buyer they can ask for a call back on a project to get prices. The matching projects appear as cards under your reply.',
       'For general questions (home loans, stamp duty, RERA, how to check a title, which area suits a commute) answer from what you know, briefly, and say when a figure varies by state or should be confirmed with a professional.',
       'Each home in a search result has a "confidence": how far our team has verified the home and its seller. Results come most-verified first. When you single out a home, prefer one with good or high confidence and say so in a few words; if the only matches are not yet verified, say that plainly and remind the buyer to see the home and its papers before paying anything. Never describe a home as verified, safe or genuine beyond what its confidence says.',
       'Because replies are spoken, keep them to two or three short sentences with no lists, markdown or links; the matching homes appear as cards under your reply, so summarise them (how many, price range, one standout) instead of reading each one. Say amounts the Indian way, like "₹85 lakh" or "₹1.2 crore". Reply in the language the buyer used, including Hindi or Hinglish.',
@@ -200,12 +251,13 @@ export class AskService {
     const withFallback = /^claude-(opus-5|fable-5|sonnet-5-5)/.test(model);
     const messages: Anthropic.Beta.BetaMessageParam[] = [...history.map((t) => ({ role: t.role, content: t.text })), { role: 'user' as const, content: context ? `${q}\n\n[The buyer is currently viewing: ${context}]` : q }];
     let last: Outcome | null = null;
+    let found: { items: ProjectHit[]; total: number; place: ReturnType<typeof matchPlace>; text: string } | null = null;
     // When the question weighs two localities, the answer links to their side-by-side page whatever the model searched last.
     const versus = comparison(q, gazetteer);
     try {
       for (let round = 0; round < 4; round++) {
         const res = await this.client.beta.messages.create({
-          model, max_tokens: 4000, system: this.system(gazetteer), tools: [SEARCH_TOOL], messages,
+          model, max_tokens: 4000, system: this.system(gazetteer), tools: [SEARCH_TOOL, PROJECT_TOOL], messages,
           output_config: { effort: 'low' }, // short lookups and answers; keeps voice replies quick
           ...(round === 3 ? { tool_choice: { type: 'none' as const } } : {}), // last round: answer in words
           ...(withFallback ? { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' as const } : {}),
@@ -217,6 +269,20 @@ export class AskService {
           const results: Anthropic.Beta.BetaToolResultBlockParam[] = [];
           for (const c of calls) {
             const i = (c.input ?? {}) as Record<string, unknown>;
+            if (c.name === PROJECT_TOOL.name) {
+              const where = matchPlace([i.locality, i.city].filter((x) => typeof x === 'string').join(' '), gazetteer);
+              const text = typeof i.name === 'string' ? i.name : '';
+              const r = await this.catalog.searchProjects({ text, city: where.city?.slug, locality: where.locality?.slug });
+              found = { ...r, place: where, text };
+              results.push({
+                type: 'tool_result', tool_use_id: c.id,
+                content: JSON.stringify({
+                  total: r.total, note: r.total === 0 ? 'No project matches. Say so; do not guess.' : 'From the public RERA registers. No prices are known.',
+                  shown: r.items.map((p) => ({ project: p.name, builder: p.brand?.name ?? p.builder, registered_by: p.builder, locality: p.locality.name, city: p.city.name, rera_number: p.reraId, registration: registration(p), verified_agents: p.agents })),
+                }),
+              });
+              continue;
+            }
             const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? Math.round(v) : undefined);
             const place = matchPlace([i.locality, i.city].filter((x) => typeof x === 'string').join(' '), gazetteer);
             last = await this.search({
@@ -241,7 +307,11 @@ export class AskService {
         }
         const reply = res.content.filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === 'text').map((b) => b.text).join(' ').trim();
         if (!reply) throw new Error(`empty reply (${res.stop_reason})`);
-        return { reply: reply.slice(0, 900), live: true, properties: last?.items ?? [], total: last?.total ?? 0, page: versus ? this.comparePage(versus) : last ? this.pageFor(last.filters, gazetteer) : null, relaxed: last?.relaxed ?? null };
+        return {
+          reply: reply.slice(0, 900), live: true, properties: last?.items ?? [], total: last?.total ?? 0,
+          page: versus ? this.comparePage(versus) : last && last.total > 0 ? this.pageFor(last.filters, gazetteer) : found ? this.projectsPage(found) : last ? this.pageFor(last.filters, gazetteer) : null,
+          relaxed: last?.relaxed ?? null, projects: found?.items ?? [], projectsTotal: found?.total ?? 0,
+        };
       }
       throw new Error('too many tool rounds');
     } catch (e) {

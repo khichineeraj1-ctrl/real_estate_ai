@@ -4,7 +4,9 @@ import { noteAsked } from '@/lib/intent';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import type { AskResult } from '@/lib/types';
+import { monthYear } from '@/lib/format';
 import { PropertyGrid } from './PropertyCard';
+import { ProjectTile } from './ProjectTile';
 
 interface Entry { question: string; result: AskResult | null; error?: string }
 
@@ -104,11 +106,16 @@ export function AskBox({ initial, context, placeholder, autoFocus }: Props) {
                 <div className="answer">
                   <p>{e.result.reply}</p>
                   {e.result.properties.length > 0 && <PropertyGrid items={e.result.properties} />}
+                  {(e.result.projects?.length ?? 0) > 0 && (
+                    <ul className="tiles">
+                      {e.result.projects!.map((p) => <ProjectTile key={p.slug} city={p.city.slug} p={p} lines={[`${p.locality.name}, ${p.city.name}`, p.brand?.name ?? p.builder, /lapsed/i.test(p.registerStatus ?? '') ? 'RERA registration lapsed' : p.registerValidUntil ? `RERA registration to ${monthYear(p.registerValidUntil)}` : 'RERA registered']} />)}
+                    </ul>
+                  )}
                   {e.result.page && (
-                    <p className="more"><Link href={e.result.page.path}>{e.result.total > e.result.properties.length ? `See all ${e.result.total}: ` : 'Open the page: '}{e.result.page.label} →</Link></p>
+                    <p className="more"><Link href={e.result.page.path}>{e.result.total > e.result.properties.length ? `See all ${e.result.total}: ` : (e.result.projectsTotal ?? 0) > (e.result.projects?.length ?? 0) ? `See all ${e.result.projectsTotal}: ` : 'Open the page: '}{e.result.page.label} →</Link></p>
                   )}
                 </div>
-              ) : e.error ? <p className="answer error">{e.error}</p> : <p className="answer thinking">Looking through the listings…</p>}
+              ) : e.error ? <p className="answer error">{e.error}</p> : <p className="answer thinking">Looking through the homes and projects…</p>}
             </div>
           ))}
           <div ref={end} />
