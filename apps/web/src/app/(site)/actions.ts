@@ -1,6 +1,6 @@
 'use server';
 
-import { headers } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 
 export interface EnquiryState {
   error?: string; sent?: true; seller?: { name: string; phone: string; level?: number | null; label?: string } | null;
@@ -40,7 +40,8 @@ export async function enquire(kind: 'property' | 'project', slug: string, via: '
     // The buyer's plans, each optional, and their browser's note of how they used the site: the API scores the lead from these.
     timeline: form.get('timeline'), budget: form.get('budget'), loan: form.get('loan'), purpose: form.get('purpose'), wantsVisit: form.get('wantsVisit') === 'on', signals: form.get('signals') };
   try {
-    const res = await fetch(`${API_URL}/${kind === 'project' ? 'projects' : 'properties'}/${encodeURIComponent(slug)}/enquiries`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), cache: 'no-store' });
+    const buyer = (await cookies()).get('buyer_session')?.value; // a signed-in buyer's enquiry is kept on their account
+    const res = await fetch(`${API_URL}/${kind === 'project' ? 'projects' : 'properties'}/${encodeURIComponent(slug)}/enquiries`, { method: 'POST', headers: { 'content-type': 'application/json', ...(buyer ? { authorization: `Bearer ${buyer}` } : {}) }, body: JSON.stringify(body), cache: 'no-store' });
     const data = (await res.json().catch(() => null)) as { message?: string; seller?: EnquiryState['seller']; agent?: EnquiryState['agent'] } | null;
     if (!res.ok) return { error: data?.message || 'Your enquiry could not be sent. Please try again.' };
     return { sent: true, seller: data?.seller ?? null, agent: data?.agent ?? null };

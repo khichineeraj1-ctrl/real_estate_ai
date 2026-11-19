@@ -14,6 +14,7 @@ export async function Header() {
         <Link href="/compare" className="post-link">Compare</Link>
         <Link href="/tools" className="post-link">Tools</Link>
         <Link href="/post-property" className="post-link">Post property</Link>
+        <Link href="/account" className="post-link" rel="nofollow">My account</Link>
         <Link href="/ask" className="ask-link">Ask</Link>
       </div>
     </header>

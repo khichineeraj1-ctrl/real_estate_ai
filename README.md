@@ -12,6 +12,15 @@ each city's buying charges; it never deletes anything and is safe to run again. 
 RERA registers, which carry no prices. Homes and prices appear only when an owner, agent or builder posts them, so
 locality pages show no price figures until then.
 
+## Buyer accounts
+
+A buyer signs in with a six-digit code sent to their email (no password); the first sign-in makes the account. Web: `/account`. App: the ♡ in the home header.
+
+- **Saved projects and homes, with notes.** "♡ Save" on project and home pages; the account page lists them, each with a note that saves as you leave the box.
+- **Enquiries you sent.** An enquiry made while signed in is kept on the account, with who was to call (a verified agent's name and number when one was assigned). Earlier enquiries that gave the same email are attached at first sign-in. Our own follow-up notes are never shown.
+- **Shortlists and checklist ticks follow you** (web): `AccountSync` joins the browser's copy with the account's on load and sends changes back. The app does not sync these yet.
+- **How it works.** `apps/api/src/buyer`: `Buyer`, `BuyerCode` (hashed, ten minutes, five tries), `BuyerSession` (hashed token, 60 days), `SavedItem`. Routes under `/me`. The site keeps the token in an http-only cookie and calls the API from the server; the app keeps it in the phone's secure storage. Codes are only logged until `SMTP_URL` is set. A buyer can delete their account from the account page.
+
 ## Help for buyers that comes from the registers
 
 Worked out from the RERA registers we already read, and stated as facts and questions to ask, never as a rating.

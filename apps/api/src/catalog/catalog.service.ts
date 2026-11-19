@@ -354,14 +354,14 @@ export class CatalogService {
     return { data, summary };
   }
 
-  async enquireProject(slug: string, body: Record<string, unknown>) {
+  async enquireProject(slug: string, body: Record<string, unknown>, buyerId: string | null = null) {
     const b = this.buyer(body);
     const project = await this.db.project.findUnique({ where: { slug }, select: { id: true, name: true, leadEmail: true, account: { select: { email: true, active: true } }, locality: { select: { name: true, city: { select: { name: true } } } } } });
     if (!project) throw new NotFoundException('Project not found');
     const intent = await this.intent(body, b, { projectId: project.id });
     // "Connect with a verified agent": the lead goes to one of the project's agents, who is shown to the buyer.
     const agent = body.via === 'agent' ? await this.nextAgent(project.id) : null;
-    await this.db.enquiry.create({ data: { projectId: project.id, ...b, ...intent.data, assignedToId: agent?.id ?? null } });
+    await this.db.enquiry.create({ data: { projectId: project.id, ...b, ...intent.data, assignedToId: agent?.id ?? null, buyerId } });
     if (agent) return { ok: true, agent: await this.handOver(agent, `${project.name}, ${project.locality.name}`, b, intent.summary) };
     const to = this.leadAddress(project);
     if (to) {
@@ -373,13 +373,13 @@ export class CatalogService {
     return { ok: true };
   }
 
-  async enquire(slug: string, body: Record<string, unknown>) {
+  async enquire(slug: string, body: Record<string, unknown>, buyerId: string | null = null) {
     const b = this.buyer(body);
     const { name, phone, email, message } = b;
     const p = await this.db.property.findFirst({ where: { slug, state: 'PUBLISHED' }, select: { id: true, title: true, projectId: true, ownerId: true, project: { select: { name: true, leadEmail: true, account: { select: { email: true, active: true } } } }, owner: { select: { name: true, phone: true, email: true, role: true, active: true, dealer: { select: { kind: true } } } } } });
     if (!p) throw new NotFoundException('Property not found');
     const intent = await this.intent(body, b, { propertyId: p.id });
-    const enquiry = await this.db.enquiry.create({ data: { propertyId: p.id, projectId: p.projectId, name, phone, email, message, ...intent.data }, select: { id: true } });
+    const enquiry = await this.db.enquiry.create({ data: { propertyId: p.id, projectId: p.projectId, name, phone, email, message, ...intent.data, buyerId }, select: { id: true } });
     // An owner's or agent's contact is shown to the buyer; a builder who posted the home gets the lead without being shown.
     const seller = this.revealsSeller(p.owner) ? p.owner : null;
     const builderOwner = !seller && p.owner?.active && p.owner.dealer?.kind === 'BUILDER' ? p.owner : null;

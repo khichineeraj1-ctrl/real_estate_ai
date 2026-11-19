@@ -114,6 +114,7 @@ model Project {
   sourceFetchedAt    DateTime?
   register           RegisterProject?
   watches            ProjectWatch[]
+  savedBy            SavedItem[]
   /// The builder's sales address. When set, each lead on this project is emailed there as it arrives.
   leadEmail   String?
   /// The builder login that may see this project's leads.
@@ -170,6 +171,7 @@ model Property {
   confidence        Int       @default(0)
   enquiries    Enquiry[]
   reports      Report[]
+  savedBy      SavedItem[]
 
   @@index([localityId, bhk])
   @@index([priceInr])
@@ -335,6 +337,9 @@ model Enquiry {
   assignedToId String?
   assignedTo   User?    @relation("AssignedLeads", fields: [assignedToId], references: [id], onDelete: SetNull)
   events     LeadEvent[]
+  /// The buyer's own account, when they were signed in as they enquired, so they can see what they sent.
+  buyerId    String?
+  buyer      Buyer?   @relation(fields: [buyerId], references: [id], onDelete: SetNull)
   createdAt  DateTime @default(now())
   /// Set for an enquiry about one listing.
   propertyId String?
@@ -536,6 +541,57 @@ model RegisterProject {
 
   @@unique([source, regNo])
   @@index([source, projectId])
+}
+
+/// A home buyer's own account: what they saved, what they asked about, and what they ticked off, on any device.
+/// They sign in with a code sent to their email; there is no password.
+model Buyer {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  /// Compare shortlists and checklist ticks, kept in step with the browser or app. Small, and theirs alone.
+  state     Json?
+  createdAt DateTime @default(now())
+  sessions  BuyerSession[]
+  saved     SavedItem[]
+  enquiries Enquiry[]
+}
+
+/// A sign-in code sent by email. Only its hash is kept; it works once, for ten minutes, and gives up after five wrong tries.
+model BuyerCode {
+  id        String    @id @default(cuid())
+  email     String
+  codeHash  String
+  expiresAt DateTime
+  attempts  Int       @default(0)
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([email, createdAt])
+}
+
+model BuyerSession {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  buyerId   String
+  buyer     Buyer    @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+/// A project or home a buyer saved, with their own note.
+model SavedItem {
+  id         String    @id @default(cuid())
+  buyerId    String
+  buyer      Buyer     @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  projectId  String?
+  project    Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  propertyId String?
+  property   Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  note       String?
+  createdAt  DateTime  @default(now())
+
+  @@unique([buyerId, projectId])
+  @@unique([buyerId, propertyId])
 }
 
 /// A buyer following a project: they are emailed when its RERA registration changes (lapses, is extended, or ends).

@@ -14,8 +14,13 @@ export function Checklist({ slug, name, items }: { slug: string; name: string; i
   const key = `checked-${slug}`;
   const [done, setDone] = useState<string[]>([]);
   const [open, setOpen] = useState<string | null>(items.find((i) => i.tone === 'warn')?.key ?? items[0]?.key ?? null);
-  useEffect(() => { try { const raw = JSON.parse(window.localStorage.getItem(key) ?? '[]'); if (Array.isArray(raw)) setDone(raw.filter((x) => typeof x === 'string')); } catch { /* storage off: ticks last for this visit */ } }, [key]);
-  const toggle = (k: string) => setDone((now) => { const next = now.includes(k) ? now.filter((x) => x !== k) : [...now, k]; try { window.localStorage.setItem(key, JSON.stringify(next)); } catch { /* nothing to do */ } return next; });
+  useEffect(() => {
+    const load = () => { try { const raw = JSON.parse(window.localStorage.getItem(key) ?? '[]'); if (Array.isArray(raw)) setDone(raw.filter((x) => typeof x === 'string')); } catch { /* storage off: ticks last for this visit */ } };
+    load();
+    window.addEventListener('checklist-changed', load); // ticks arriving from the buyer's account
+    return () => window.removeEventListener('checklist-changed', load);
+  }, [key]);
+  const toggle = (k: string) => setDone((now) => { const next = now.includes(k) ? now.filter((x) => x !== k) : [...now, k]; try { window.localStorage.setItem(key, JSON.stringify(next)); } catch { /* nothing to do */ } queueMicrotask(() => window.dispatchEvent(new Event('checklist-ticked'))); return next; });
   const count = items.filter((i) => done.includes(i.key)).length;
   return (
     <section className="section checklist" id="before-you-pay" aria-label={`Before you pay for ${name}`}>

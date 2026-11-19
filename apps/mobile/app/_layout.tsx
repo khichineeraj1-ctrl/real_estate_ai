@@ -24,6 +24,7 @@ export default function RootLayout() {
         <Stack.Screen name="tools/cost" options={{ title: 'True cost of buying' }} />
         <Stack.Screen name="tools/true-price" options={{ title: 'True price of a quote' }} />
         <Stack.Screen name="tools/delay-cost" options={{ title: 'Cost of a delay' }} />
+        <Stack.Screen name="account" options={{ title: 'My account' }} />
         <Stack.Screen name="compare" options={{ title: 'Compare homes' }} />
         <Stack.Screen name="compare-projects" options={{ title: 'Compare projects' }} />
         <Stack.Screen name="compare-localities/[city]/[pair]" options={{ title: 'Compare localities' }} />

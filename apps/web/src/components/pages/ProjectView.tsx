@@ -1,5 +1,6 @@
 import { CompareToggle } from '@/components/tools/Compare';
 import { Checklist } from '@/components/Checklist';
+import { SaveButton } from '@/components/account/SaveButton';
 import { Follow } from '@/components/Follow';
 import { Gallery } from '@/components/Gallery';
 import { ConnectButton } from '@/components/ConnectButton';
@@ -37,6 +38,7 @@ export function ProjectView({ p }: { p: ProjectDetail }) {
       <Breadcrumbs crumbs={[{ name: p.city.name, path: `/${p.city.slug}` }, { name: p.locality.name, path: localityPath }, { name: p.name, path: pathOf(p) }]} />
       <h1>{p.name}, {p.locality.name}, {p.city.name}</h1>
       <p className="lead">{p.description}</p>
+      <SaveButton kind="project" slug={p.slug} name={p.name} />
       <Gallery photos={photos} videos={p.videos ?? []} name={`${p.name}, ${p.locality.name}`} />
       {p.registerSource && (
         <div className="astatus">

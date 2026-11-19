@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import { AskBox } from '@/components/AskBox';
 import { ConfidenceBadge, ConfidenceReasons } from '@/components/Confidence';
 import { ConnectButton } from '@/components/ConnectButton';
+import { SaveButton } from '@/components/account/SaveButton';
 import { ReportForm } from '@/components/ReportForm';
 import { CostCalculator, EmiCalculator } from '@/components/tools/Calculators';
 import { CompareToggle } from '@/components/tools/Compare';
@@ -85,6 +86,7 @@ export default async function PropertyPage({ params }: Props) {
 
       <p className="compare-line">
         <CompareToggle slug={p.slug} title={p.title} />
+        <SaveButton kind="property" slug={p.slug} name={p.title} />
         {p.similar.length > 0 && <Link href={`/compare?ids=${[p.slug, ...p.similar.slice(0, 2).map((x) => x.slug)].join(',')}`} rel="nofollow">Compare with similar homes in {p.locality.name}</Link>}
       </p>
 

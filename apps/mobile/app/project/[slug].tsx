@@ -1,3 +1,4 @@
+import { SaveButton } from '../../components/Account';
 import { Checklist, Follow } from '../../components/Guidance';
 import { CompareToggle } from '../../components/tools/Compare';
 import { Photos } from '../../components/Photos';
@@ -40,6 +41,7 @@ export default function Project() {
           <Text style={{ color: t.brand }}>{p.locality.name}, {p.city.name}</Text>
         </Pressable>
         <Text style={{ color: t.fg, lineHeight: 22 }}>{p.description}</Text>
+        <SaveButton kind="project" slug={p.slug} name={p.name} />
         <Photos photos={p.photos ?? []} videos={p.videos ?? []} name={p.name} />
 
         {p.registerSource && (

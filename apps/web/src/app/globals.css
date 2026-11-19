@@ -790,3 +790,36 @@ p > .connect { margin: 0; }
 .follow-consent { flex: 1 1 100%; font-size: .82rem; color: var(--muted); display: flex; gap: 6px; align-items: flex-start; }
 .follow.is-done { color: var(--ready); border-style: solid; border-color: var(--ready); background: var(--ready-bg); }
 .quote-out { align-self: start; }
+
+/* Buyer account: save button, sign-in, and the account page. */
+.save { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 0 12px; }
+.save-btn { display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: .9rem; font-weight: 600; color: var(--fg); background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; cursor: pointer; transition: border-color .15s, color .15s, transform .1s; }
+.save-btn span { color: #e5484d; font-size: 1.05rem; line-height: 1; } .save-btn:hover { border-color: #e5484d; } .save-btn:active { transform: scale(.95); }
+.save-btn.on { border-color: #e5484d; background: color-mix(in srgb, #e5484d 8%, var(--card)); } .save-btn:disabled { opacity: .6; cursor: default; }
+.save-note { color: var(--muted); font-size: .88rem; max-width: 40ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.save-edit { display: inline-flex; gap: 6px; flex: 1 1 260px; } .save-edit input { flex: 1; min-width: 0; font: inherit; color: var(--fg); background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; } .save-edit input:focus { outline: 2px solid var(--brand); outline-offset: 1px; }
+.save-ask { flex: 1 1 100%; font-size: .9rem; color: var(--muted); }
+.alink.danger { color: var(--danger); }
+.account-in { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 28px; align-items: start; margin-top: 12px; }
+@media (max-width: 760px) { .account-in { grid-template-columns: minmax(0, 1fr); } }
+.account-why { list-style: none; margin: 18px 0 0; padding: 0; display: grid; gap: 14px; }
+.account-why li { display: flex; gap: 12px; align-items: flex-start; } .account-why li > span { flex: none; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font-size: 1.2rem; color: var(--brand); background: color-mix(in srgb, var(--brand) 10%, transparent); }
+.account-why strong { display: block; } .account-why div { color: var(--muted); }
+.account-card { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 22px; box-shadow: var(--shadow); } .account-card h2 { font-size: 1.15rem; }
+.signin { display: grid; gap: 12px; } .signin .abtn { justify-self: start; } .signin-sent { margin: 0; color: var(--muted); }
+.signin-code { font-size: 1.5rem !important; letter-spacing: .35em; text-align: center; font-variant-numeric: tabular-nums; max-width: 12em; }
+.account-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; } .account-head .lead { margin: 0; }
+.count { font-size: .8rem; font-weight: 600; color: var(--brand); background: color-mix(in srgb, var(--brand) 10%, transparent); border-radius: 999px; padding: 2px 9px; vertical-align: middle; }
+.saved-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
+.saved { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column; transition: border-color .15s, transform .15s; } .saved:hover { border-color: var(--brand); transform: translateY(-2px); }
+.saved-top { position: relative; display: block; } .saved-top img, .saved-top .vcard-letter { width: 100%; height: 130px; object-fit: cover; object-position: 50% 25%; border-radius: 0; display: grid; }
+.saved-kind { position: absolute; top: 8px; left: 8px; font-size: .72rem; font-weight: 700; color: #fff; background: rgba(16, 20, 28, .7); border-radius: 999px; padding: 2px 9px; }
+.saved-body { padding: 12px 14px 10px; display: grid; gap: 4px; } .saved-body h3 a { color: var(--fg); } .saved-body p { margin: 0; color: var(--muted); font-size: .88rem; }
+.saved-standing { color: var(--fg) !important; }
+.saved-note textarea { width: 100%; margin-top: 6px; font: inherit; font-size: .9rem; color: var(--fg); background: var(--soft); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; resize: vertical; } .saved-note textarea:focus { outline: 2px solid var(--brand); outline-offset: 1px; background: var(--card); }
+.saved-acts { display: flex; justify-content: space-between; align-items: center; min-height: 22px; } .saved-acts span { color: var(--ready); font-size: .82rem; }
+.sent { list-style: none; margin: 0; padding: 0; display: grid; }
+.sent li { display: flex; gap: 16px; padding: 12px 0; border-top: 1px solid var(--line); } .sent li:first-child { border-top: 0; }
+.sent-date { flex: none; width: 96px; color: var(--muted); font-size: .88rem; padding-top: 2px; } .sent p { margin: 2px 0 0; color: var(--muted); font-size: .92rem; }
+.account-foot { display: grid; gap: 8px; justify-items: start; border-top: 1px solid var(--line); padding-top: 16px; }
+@media (prefers-reduced-motion: reduce) { .saved, .save-btn { transition: none; } .saved:hover { transform: none; } }

@@ -1,3 +1,4 @@
+import { authHeader, sessionReady } from './session';
 import { API_URL } from './config';
 import type { CityCosts } from './finance';
 
@@ -70,7 +71,9 @@ export interface Turn { role: 'user' | 'assistant'; text: string }
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(`${API_URL}${path}`, init);
+    await sessionReady();
+    // A signed-in buyer's requests carry their session: it guards their account, and keeps their enquiries on it.
+    res = await fetch(`${API_URL}${path}`, { ...init, headers: { ...(init?.headers as Record<string, string> | undefined), ...authHeader() } });
   } catch {
     throw new Error(`Cannot reach the server at ${API_URL}. Check that the API is running and the phone is on the same wifi.`);
   }
@@ -104,6 +107,18 @@ export const getProjectInsights = (slugs: string[]) => call<{ projects: CompareP
 export const getLocalityInsights = (city: string, a: string, b: string) => call<{ localities: [LocalityDetail, LocalityDetail]; scorecards: Scorecard[]; insights: Insight[] }>(`/compare/localities/${encodeURIComponent(city)}?a=${encodeURIComponent(a)}&b=${encodeURIComponent(b)}`);
 export const getHomeInsights = (slugs: string[]) => call<{ homes: CompareHome[]; scorecards: Scorecard[]; insights: Insight[] }>(`/compare/insights?slugs=${encodeURIComponent(slugs.slice(0, 4).join(','))}`);
 export const followProject = (slug: string, email: string) => call<{ ok: true }>(`/projects/${slug}/follow`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email, consent: true }) });
+// ---- The buyer's own account
+export interface SavedItem { kind: 'project' | 'property'; slug: string; name: string; sub: string; priceInr?: number; photo: { file: string; width?: number; height?: number } | null; registerStatus?: string | null; registerValidUntil?: string | null; note: string | null; savedAt: string }
+export interface SentEnquiry { at: string; wantsVisit: boolean; about: { kind: 'project' | 'property'; slug: string; name: string } | null; agent: { name: string; phone: string | null } | null }
+export interface Account { email: string; saved: SavedItem[]; enquiries: SentEnquiry[] }
+const JSON_POST = { method: 'POST', headers: { 'content-type': 'application/json' } } as const;
+export const requestCode = (email: string) => call<{ ok: true }>('/me/code', { ...JSON_POST, body: JSON.stringify({ email }) });
+export const verifyCode = (email: string, code: string) => call<{ token: string; email: string }>('/me/verify', { ...JSON_POST, body: JSON.stringify({ email, code }) });
+export const getAccount = () => call<Account>('/me');
+export const saveItem = (kind: 'project' | 'property', slug: string, note?: string) => call<{ ok: true }>('/me/saved', { ...JSON_POST, body: JSON.stringify({ kind, slug, note }) });
+export const unsaveItem = (kind: 'project' | 'property', slug: string) => call<{ ok: true }>(`/me/saved/${kind}/${slug}`, { method: 'DELETE' });
+export const signOutAccount = () => call<{ ok: true }>('/me/signout', { method: 'POST' });
+
 export const searchProjects = (text: string, city?: string) => call<{ total: number; items: ProjectHit[] }>(`/projects?text=${encodeURIComponent(text.slice(0, 80))}${city ? `&city=${encodeURIComponent(city)}` : ''}`);
 export const getCompare = (slugs: string[]) => call<CompareHome[]>(`/compare?slugs=${encodeURIComponent(slugs.slice(0, 4).join(','))}`);
 export const ask = (message: string, history: Turn[], context?: string) =>

@@ -5,6 +5,7 @@ import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, S
 import { PropertyCard } from '../../components/PropertyCard';
 import { CostCalculator, EmiCalculator } from '../../components/tools/Calculators';
 import { CompareToggle } from '../../components/tools/Compare';
+import { SaveButton } from '../../components/Account';
 import { ConnectButton } from '../../components/LeadForm';
 import { REPORT_REASONS, getProperty, photoUrl, sendReport, type PropertyDetail } from '../../lib/api';
 import { num, price, statusLabel, typeLabel } from '../../lib/format';
@@ -82,6 +83,7 @@ export default function Property() {
         ))}
       </View>
       <CompareToggle slug={p.slug} title={p.title} />
+      <SaveButton kind="property" slug={p.slug} name={p.title} />
       <View style={[s.box, { backgroundColor: t.soft, borderColor: t.line }]}>
         <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 18, fontWeight: '700' }}>How confident can you be?</Text>
         <Text style={{ color: p.confidence.level >= 2 ? t.ready : t.fg, fontWeight: '700' }}>{p.confidence.level >= 2 ? '✓ ' : ''}{p.confidence.label}</Text>
