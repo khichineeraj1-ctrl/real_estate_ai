@@ -1,5 +1,7 @@
+import { createHash } from 'node:crypto';
 import { intentInWords } from '../leads/score';
 import { aside, ensureBuilder } from '../catalog/builders';
+import { lightProblem, sizeProblem, trueSize, wrongKind } from '../land/photo-rules';
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException, OnModuleInit, UnauthorizedException } from '@nestjs/common';
 import { ConstructionStatus, LeadStatus, ListedBy, ListingState, Prisma, PropertyType, Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -311,38 +313,53 @@ export class AdminService implements OnModuleInit {
   // ---- Photos
 
   /** Checks an upload and stores it against a home or a project, after the photos already there. */
+  /**
+   * Stores the photos that are fit to show and refuses the rest one by one, each with a reason the seller can act on:
+   * too small, a strip, too dark, blank, a duplicate, or not a photo at all. Floor plans are drawings, so they are
+   * not judged on shape or light. Returns how many were added and why any were not.
+   */
   private async storePhotos(owner: { propertyId: string } | { projectId: string }, have: number, what: string, files: { buffer: Buffer; size: number }[], category: string | null = null) {
     if (!files?.length) throw new BadRequestException('Choose at least one photo');
     if (have + files.length > MAX_PHOTOS_PER_LISTING) throw new BadRequestException(`${what} can have at most ${MAX_PHOTOS_PER_LISTING} photos; this one has ${have}`);
-    if (files.some((f) => !sniffImage(f.buffer))) throw new BadRequestException('Photos must be JPEG, PNG or WebP images');
-    if (files.some((f) => f.size > MAX_PHOTO_BYTES)) throw new BadRequestException('Each photo must be under 5 MB');
-    // Every file is decoded and resized before anything is stored, so one bad file rejects the whole upload cleanly.
-    const processed: ProcessedPhoto[] = [];
-    for (const f of files) {
-      try { processed.push(await processPhoto(f.buffer)); } catch { throw new BadRequestException('One of the photos could not be read. Save it again as a JPEG or PNG and retry.'); }
+    const plan = category === 'PLAN';
+    const refused: string[] = [];
+    const good: (ProcessedPhoto & { hash: string })[] = [];
+    for (const [n, f] of files.entries()) {
+      const no = (why: string) => { refused.push(`Photo ${n + 1}: ${why}`); };
+      if (f.size > MAX_PHOTO_BYTES) { no('This photo’s file is too large (over 5 MB). Save it at a smaller size and add it again.'); continue; }
+      if (!sniffImage(f.buffer)) { no(wrongKind(f.buffer)); continue; }
+      let ph: ProcessedPhoto;
+      try { ph = await processPhoto(f.buffer); } catch { no('This photo is damaged and could not be opened. Save it again as a JPEG or PNG and retry.'); continue; }
+      const size = (await trueSize(f.buffer)) ?? ph;
+      const problem = sizeProblem(size.width, size.height, plan) ?? (plan ? null : await lightProblem(ph.card));
+      if (problem) { no(problem); continue; }
+      const hash = createHash('sha256').update(ph.card).digest('hex');
+      if (good.some((x) => x.hash === hash) || (await this.db.photo.count({ where: { ...owner, hash } }))) { no('This photo is already on the listing. Add a different one.'); continue; }
+      good.push({ ...ph, hash });
     }
     const last = await this.db.photo.aggregate({ where: owner, _max: { position: true } });
     let position = (last._max.position ?? -1) + 1;
-    for (const ph of processed) {
+    for (const ph of good) {
       const file = await savePhoto(ph);
-      await this.db.photo.create({ data: { ...owner, file, width: ph.width, height: ph.height, position: position++, category } });
+      await this.db.photo.create({ data: { ...owner, file, width: ph.width, height: ph.height, position: position++, category, hash: ph.hash } });
     }
+    return { added: good.length, refused };
   }
 
   async addPhotos(user: SessionUser, propertyId: string, files: { buffer: Buffer; size: number }[], category?: unknown) {
     const p = await this.propertyRow(user, propertyId);
-    await this.storePhotos({ propertyId }, p.photos.length, 'A listing', files, photoGroup(category));
-    if (!isStaff(user) && p.state === 'PUBLISHED') await this.db.property.update({ where: { id: propertyId }, data: { state: 'PENDING' } });
-    await this.trust.refreshProperty(propertyId);
-    return { ok: true, added: files.length };
+    const r = await this.storePhotos({ propertyId }, p.photos.length, 'A listing', files, photoGroup(category));
+    // Only photos that were actually added send a published listing back for checking.
+    if (r.added && !isStaff(user) && p.state === 'PUBLISHED') await this.db.property.update({ where: { id: propertyId }, data: { state: 'PENDING' } });
+    if (r.added) await this.trust.refreshProperty(propertyId);
+    return { ok: true, ...r };
   }
 
   /** Photos of a builder's project: its cover on cards and the gallery on its page. Added by our team. */
   async addProjectPhotos(projectId: string, files: { buffer: Buffer; size: number }[], category?: unknown) {
     const have = await this.db.photo.count({ where: { projectId } });
     await this.project(projectId);
-    await this.storePhotos({ projectId }, have, 'A project', files, photoGroup(category));
-    return { ok: true, added: files.length };
+    return { ok: true, ...(await this.storePhotos({ projectId }, have, 'A project', files, photoGroup(category))) };
   }
 
   // ---- Videos (YouTube links)

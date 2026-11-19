@@ -1,3 +1,4 @@
+import { PhotoInput } from '@/components/admin/PhotoInput';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { ConfidenceBadge, ConfidenceReasons } from '@/components/Confidence';
@@ -16,7 +17,7 @@ interface Property {
   state: 'PUBLISHED' | 'PENDING' | 'REJECTED'; rejectReason: string | null; ownerId: string | null;
   staffVerified: boolean; staffVerifiedNote: string | null; staffVerifiedAt: string | null; staffVerifiedBy: string | null; confidenceDetail: Confidence; videos?: AdminVideo[]; photos: { id: string; category?: string | null; file: string }[]; owner: { name: string; email: string; phone: string | null } | null;
 }
-type Search = { created?: string; photos?: string; photoDeleted?: string; error?: string; verified?: string };
+type Search = { created?: string; photos?: string; photoDeleted?: string; error?: string; refused?: string; verified?: string };
 const MAX_PHOTOS = 12;
 
 export default async function EditProperty({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Search> }) {
@@ -35,9 +36,10 @@ export default async function EditProperty({ params, searchParams }: { params: P
       <h1>{p ? 'Edit listing' : staff ? 'Add a listing' : 'Post a property'}</h1>
 
       {sp.created && <p role="status" className="anotice">{staff ? 'Listing added and live.' : 'Listing saved and sent for review.'} Add photos below.</p>}
-      {sp.photos && <p role="status" className="anotice">{sp.photos} {sp.photos === '1' ? 'photo' : 'photos'} added.</p>}
+      {sp.photos && sp.photos !== '0' && <p role="status" className="anotice">{sp.photos} {sp.photos === '1' ? 'photo' : 'photos'} added.</p>}
       {sp.photoDeleted && <p role="status" className="anotice">Photo deleted.</p>}
       {sp.error && <p role="alert" className="aerror">{sp.error}</p>}
+      {sp.refused && <div className="land-refused" role="alert"><strong>{sp.refused.split('\n').length === 1 ? 'One photo was not added' : `${sp.refused.split('\n').length} photos were not added`}</strong><ul>{sp.refused.split('\n').map((r, i) => <li key={i}><span>{r}</span></li>)}</ul></div>}
       {sp.verified && <p role="status" className="anotice">{sp.verified === '1' ? 'Recorded as checked by our team. Buyers see this now.' : 'Check withdrawn.'}</p>}
 
       {p && (
@@ -123,7 +125,7 @@ export default async function EditProperty({ params, searchParams }: { params: P
           {p.photos.length < MAX_PHOTOS && (
             // A plain upload form handled by /admin/upload, so large files do not pass through a server action.
             <form action={`/admin/upload/${p.id}`} method="post" encType="multipart/form-data" className="aupload">
-              <label className="afield"><span>Add photos</span><input type="file" name="photos" accept="image/jpeg,image/png,image/webp" multiple required /></label>
+              <PhotoInput />
               <PhotoGroupField />
               <button type="submit" className="abtn quiet">Upload</button>
             </form>

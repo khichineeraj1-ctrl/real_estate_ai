@@ -25,10 +25,10 @@ export function wrongKind(b: Buffer): string {
 }
 
 /** Too small, or too long and thin, to look right on the listing. Null when the size is fine. */
-export function sizeProblem(width: number, height: number): string | null {
+export function sizeProblem(width: number, height: number, anyShape = false): string | null {
   const long = Math.max(width, height); const short = Math.min(width, height);
   if (long < MIN_LONG || short < MIN_SHORT) return `This photo is too small (${width} × ${height} pixels) and would look blurred on the listing. It needs to be at least ${MIN_LONG} × ${MIN_SHORT}. Send the original from your camera or gallery: photos forwarded on WhatsApp, and screenshots of photos, are made much smaller.`;
-  if (long / short > MAX_SHAPE) return `This photo is too long and thin (${width} × ${height} pixels), like a panorama, and most of it would be cut off. Add an ordinary photo instead.`;
+  if (!anyShape && long / short > MAX_SHAPE) return `This photo is too long and thin (${width} × ${height} pixels), like a panorama, and most of it would be cut off. Add an ordinary photo instead.`;
   return null;
 }
 

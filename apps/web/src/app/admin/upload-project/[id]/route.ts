@@ -41,6 +41,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const message = res.status === 413 ? 'Each photo must be under 5 MB' : data?.message || 'The photos could not be saved';
     return back(`error=${encodeURIComponent(message)}`);
   }
+  // Photos fit to show are stored; any that were not come back with the reason for each, shown on the page.
+  const done = (await res.json().catch(() => null)) as { added?: number; refused?: string[] } | null;
+  const refused = (done?.refused ?? []).join('\n').slice(0, 2400);
   revalidatePath('/', 'layout');
-  return back(`photos=${files.length}`);
+  return back(`photos=${done?.added ?? files.length}${refused ? `&refused=${encodeURIComponent(refused)}` : ''}`);
 }
