@@ -711,3 +711,13 @@ p > .connect { margin: 0; }
 .insight p { margin: 0; color: var(--fg); font-size: .92rem; line-height: 1.55; }
 @media (prefers-reduced-motion: reduce) { .vcard { transition: none; } .vcard:hover { transform: none; } }
 .insight.tone-warn { order: -1; }
+
+/* On a detail page the enquiry is one band with a button; the whole form opens over the page. */
+.enquiry-cta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px 24px; background: linear-gradient(135deg, color-mix(in srgb, var(--brand) 9%, var(--card)), var(--soft)); }
+.enquiry-cta h2 { margin: 0 0 2px; font-size: 1.15rem; } .enquiry-cta p { margin: 0; color: var(--muted); }
+.connect.is-big { margin: 0; padding: 12px 24px; font-size: 1rem; background: var(--brand); color: #fff; box-shadow: 0 10px 22px -12px color-mix(in srgb, var(--brand) 80%, transparent); transition: transform .15s, box-shadow .15s; }
+.connect.is-big:hover { transform: translateY(-2px); }
+@media (prefers-color-scheme: dark) { .connect.is-big { color: #0e1116; } }
+.connect-dialog.is-wide { width: min(780px, calc(100vw - 24px)); }
+@media (max-width: 560px) { .enquiry-cta .connect { width: 100%; } }
+@media (prefers-reduced-motion: reduce) { .connect.is-big { transition: none; } .connect.is-big:hover { transform: none; } }

@@ -5,7 +5,6 @@ import { ProjectTile } from '@/components/ProjectTile';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { AskBox } from '@/components/AskBox';
-import { EnquiryForm } from '@/components/EnquiryForm';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { JsonLd } from '@/components/JsonLd';
 import { PropertyGrid } from '@/components/PropertyCard';
@@ -81,10 +80,12 @@ export function ProjectView({ p }: { p: ProjectDetail }) {
         )}
       </section>
 
-      <section className="section enquiry" id="contact">
-        <h2>{p.registerSource ? 'Interested in this project?' : 'Get prices, floor plans and a site visit'}</h2>
-        <p>{p.registerSource ? `Leave your details and our team will call you. ${p.builder} has not joined us yet, so we will find out prices and availability for you.` : `Leave your details and the sales team for ${p.name} will call you back.`}</p>
-        <EnquiryForm kind="project" slug={p.slug} projectName={p.name} unclaimed={!!p.registerSource} interests={p.bhk.map((b) => `${b.bhk} BHK`)} />
+      <section className="section enquiry enquiry-cta" id="contact">
+        <div>
+          <h2>{p.registerSource ? 'Interested in this project?' : 'Get prices, floor plans and a site visit'}</h2>
+          <p>{p.registerSource ? 'Our team will call you with prices and availability.' : `The sales team for ${p.name} will call you back.`}</p>
+        </div>
+        <ConnectButton kind="project" slug={p.slug} name={p.name} mode="callback" unclaimed={!!p.registerSource} full interests={p.bhk.map((b) => `${b.bhk} BHK`)} />
       </section>
 
       <AskBox context={`${p.locality.name}, ${p.city.name}`} placeholder={`Ask about homes near ${p.name}`} />

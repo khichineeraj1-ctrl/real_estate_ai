@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AskBox } from '@/components/AskBox';
 import { ConfidenceBadge, ConfidenceReasons } from '@/components/Confidence';
-import { EnquiryForm } from '@/components/EnquiryForm';
+import { ConnectButton } from '@/components/ConnectButton';
 import { ReportForm } from '@/components/ReportForm';
 import { CostCalculator, EmiCalculator } from '@/components/tools/Calculators';
 import { CompareToggle } from '@/components/tools/Compare';
@@ -99,10 +99,12 @@ export default async function PropertyPage({ params }: Props) {
         <p className="calc-note">Not sure about the budget? <Link href="/tools/home-affordability">Work out how much home you can afford</Link>.</p>
       </section>
 
-      <section className="section enquiry" id="contact">
-        <h2>{p.contact === 'seller' ? 'Contact the seller' : 'Ask for a call back about this home'}</h2>
-        <p>{p.contact === 'seller' ? 'Leave your details and you will be shown the seller’s name and phone number.' : p.project ? `This home is sold by the builder of ${p.project.name}. Leave your details and their sales team, or ours, will call you.` : 'Leave your details and our team will call you about this home.'}</p>
-        <EnquiryForm slug={p.slug} reveal={p.contact === 'seller'} />
+      <section className="section enquiry enquiry-cta" id="contact">
+        <div>
+          <h2>{p.contact === 'seller' ? 'Contact the seller' : 'Ask for a call back about this home'}</h2>
+          <p>{p.contact === 'seller' ? 'Leave your details to see the seller’s name and phone number.' : p.project ? `The sales team for ${p.project.name}, or ours, will call you.` : 'Our team will call you about this home.'}</p>
+        </div>
+        <ConnectButton kind="property" slug={p.slug} name={p.title} mode={p.contact === 'seller' ? 'seller' : 'callback'} full />
       </section>
       <ReportForm slug={p.slug} />
 
