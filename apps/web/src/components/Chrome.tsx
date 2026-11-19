@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { MobileMenu } from '@/components/MobileNav';
 import { api } from '@/lib/api';
 import { BRAND, TAGLINE } from '@/lib/seo';
 import type { CitySummary } from '@/lib/types';
@@ -18,6 +19,7 @@ export async function Header() {
         <Link href="/post-property" className="post-link">Post property</Link>
         <Link href="/account" className="post-link" rel="nofollow">My account</Link>
         <Link href="/ask" className="ask-link">Ask</Link>
+        <MobileMenu cities={cities.map((c) => ({ slug: c.slug, name: c.name }))} />
       </div>
     </header>
   );

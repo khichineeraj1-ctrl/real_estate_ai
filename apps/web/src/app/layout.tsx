@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   openGraph: { siteName: BRAND, type: 'website', locale: 'en_IN' },
   twitter: { card: 'summary_large_image' },
 };
-export const viewport: Viewport = { width: 'device-width', initialScale: 1, themeColor: [{ media: '(prefers-color-scheme: dark)', color: '#0e1116' }, { color: '#ffffff' }] };
+export const viewport: Viewport = { width: 'device-width', initialScale: 1, viewportFit: 'cover', themeColor: [{ media: '(prefers-color-scheme: dark)', color: '#0e1116' }, { color: '#ffffff' }] };
 
 // The public site and the admin panel each add their own header inside this shell.
 export default function RootLayout({ children }: { children: React.ReactNode }) {

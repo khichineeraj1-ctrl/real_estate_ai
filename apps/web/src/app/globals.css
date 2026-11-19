@@ -1019,3 +1019,66 @@ p.follow-consent { margin: 0; }
 .know-card strong { font-size: 1.12rem; line-height: 1.3; } .know-sum { font-size: .86rem; line-height: 1.45; color: rgba(255, 255, 255, .86); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .know-card b { margin-top: auto; padding-top: 8px; font-size: .84rem; font-weight: 700; } .know-card b i { display: inline-block; font-style: normal; transition: transform .15s; } .know-card:hover b i { transform: translateX(6px); }
 @media (prefers-reduced-motion: reduce) { .know-card, .know-icon, .know-card b i { transition: none; } .know-card:hover { transform: none; } }
+
+/* Phones: the header's links fold into a menu, and a bar of five places runs along the bottom, as in an app. */
+.menu-btn { display: none; flex: none; width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); cursor: pointer; align-items: center; justify-content: center; }
+.menu-btn span, .menu-btn span::before, .menu-btn span::after { display: block; width: 18px; height: 2px; border-radius: 2px; background: var(--fg); }
+.menu-btn span { position: relative; } .menu-btn span::before, .menu-btn span::after { content: ''; position: absolute; left: 0; } .menu-btn span::before { top: -6px; } .menu-btn span::after { top: 6px; }
+.menu-sheet { margin: 0 0 0 auto; padding: 0; border: 0; width: min(340px, 88vw); height: 100dvh; max-height: 100dvh; background: var(--bg); color: var(--fg); box-shadow: -20px 0 50px -20px rgba(0, 0, 0, .45); }
+.menu-sheet::backdrop { background: rgba(10, 12, 16, .5); } .menu-sheet[open] { animation: menu-in .22s ease both; }
+@keyframes menu-in { from { transform: translateX(100%); } }
+.menu-in { display: grid; gap: 14px; padding: 16px 16px calc(24px + env(safe-area-inset-bottom)); }
+.menu-top { display: flex; align-items: center; justify-content: space-between; } .menu-top strong { font-size: 1.1rem; }
+.menu-close { width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line); background: var(--soft); color: var(--fg); font-size: 1.3rem; line-height: 1; cursor: pointer; }
+.menu-ask { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 13px; border-radius: 14px; font-weight: 700; color: #fff; background: linear-gradient(135deg, var(--brand), var(--brand-2)); } .menu-ask:hover { text-decoration: none; }
+.menu-group { display: grid; gap: 2px; } .menu-group p { margin: 0 4px 4px; font-size: .7rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.menu-group > a { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; color: var(--fg); font-weight: 600; } .menu-group > a:hover { background: var(--soft); text-decoration: none; }
+.menu-group > a span { width: 26px; text-align: center; } .menu-group > a i { margin-left: auto; font-style: normal; color: var(--muted); } .menu-group > a[aria-current] { background: color-mix(in srgb, var(--brand) 10%, transparent); color: var(--brand); }
+.menu-cities { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 4px; } .menu-cities a { padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); color: var(--fg); font-size: .92rem; } .menu-cities a[aria-current] { border-color: var(--brand); color: var(--brand); font-weight: 600; }
+.tabbar { display: none; }
+@media (max-width: 900px) {
+  .menu-btn { display: inline-flex; } .site-header .post-link { display: none; } .site-header nav[aria-label="Cities"] { display: none; } .site-header .logo { margin-right: auto; }
+}
+@media (max-width: 720px) {
+  .tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: grid; grid-template-columns: repeat(5, 1fr); padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(14px); border-top: 1px solid var(--line); }
+  .tabbar a { display: grid; justify-items: center; gap: 2px; padding: 4px 0; color: var(--muted); font-size: .68rem; font-weight: 600; border-radius: 12px; } .tabbar a:hover { text-decoration: none; }
+  .tabbar svg { width: 24px; height: 24px; } .tabbar a[aria-current] { color: var(--brand); } .tabbar a[aria-current] svg { stroke-width: 2.2; }
+  .tabbar a:active { transform: scale(.94); }
+  body { padding-bottom: calc(62px + env(safe-area-inset-bottom)); }
+  .compare-bar { bottom: calc(72px + env(safe-area-inset-bottom)); }
+  .site-header .wrap { height: 52px; gap: 10px; padding-left: max(14px, env(safe-area-inset-left)); padding-right: max(14px, env(safe-area-inset-right)); }
+}
+@media (prefers-color-scheme: dark) { .menu-ask { color: #0e1116; } }
+@media (prefers-reduced-motion: reduce) { .menu-sheet[open] { animation: none; } }
+
+/* ---- Small phones (down to 320px wide) ---- */
+/* A hidden "screen reader only" note inside a scrolling table must stay inside it, or it widens the whole page. */
+.atable { position: relative; }
+/* Card grids never ask for a column wider than the screen. */
+.gcards { grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); }
+.insights { grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); }
+.acards { grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr)); }
+.saved-grid, .launches.is-grid { grid-template-columns: repeat(auto-fill, minmax(min(250px, 100%), 1fr)); }
+.guide-stats, .cards-vs, .quote-cols { grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr)); }
+.hits { grid-template-columns: repeat(auto-fill, minmax(min(250px, 100%), 1fr)); }
+html, body { overflow-x: clip; }
+@media (max-width: 720px) {
+  .wrap { padding-left: max(14px, env(safe-area-inset-left)); padding-right: max(14px, env(safe-area-inset-right)); }
+  main.wrap { padding-top: 14px; padding-bottom: 32px; }
+  .section { margin-top: 36px; }
+  h1 { font-size: 1.4rem; } h2 { font-size: 1.15rem; }
+  .hero { padding-top: 28px; } .hero h1 { font-size: clamp(1.8rem, 9vw, 2.4rem); }
+  /* Rows that scroll sideways run to the screen edge, as in an app. */
+  .launches:not(.is-grid), .know { margin-left: -14px; margin-right: -14px; padding-left: 14px; padding-right: 14px; scroll-padding-left: 14px; grid-auto-columns: minmax(240px, 78vw); scrollbar-width: none; }
+  .launches:not(.is-grid)::-webkit-scrollbar, .know::-webkit-scrollbar { display: none; }
+  .know { grid-auto-columns: minmax(200px, 62vw); }
+  /* Buttons are easy to hit, and inputs do not make iPhones zoom in. */
+  .abtn, .connect, .compare-toggle, .pick { min-height: 40px; }
+  input, select, textarea { font-size: 16px !important; }
+  .site-footer .footer-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .guide-hero, .guides-hero, .post-lead { border-radius: 20px; padding: 20px; }
+  .studio-panel { padding: 6px 10px 14px; } .slots { gap: 22px 26px; }
+  .enquiry-cta { padding: 16px; } .follow { padding: 12px; }
+  .connect-dialog { width: 100vw; max-width: 100vw; margin: auto 0 0; border-radius: 20px 20px 0 0; max-height: 92dvh; }
+  .viewer { width: 100vw; max-width: 100vw; height: 100dvh; max-height: 100dvh; }
+}
