@@ -217,7 +217,7 @@ export function CostCalculator({ price, costs, cityName, underConstruction, citi
         </View>
       )}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-        <Switch value={woman} onValueChange={setWoman} accessibilityLabel="The home will be in a woman's name alone" trackColor={{ true: t.brand }} />
+        <Switch value={woman} onValueChange={setWoman} accessibilityLabel="The home will be in a woman's name alone" trackColor={{ true: t.brand, false: '#aeb6c2' }} />
         <Text style={{ color: t.muted, flex: 1, fontSize: 13 }}>In a woman’s name alone{concession ? ` (stamp duty ${rule.stampDutyWomenPct}% instead of ${rule.stampDutyPct}% in ${place})` : ` (no lower rate in ${place})`}</Text>
       </View>
       <Out t={t} label="Total cost to buy" value={short(b.total)} sub={`${short(amount)} listed price + ${short(b.charges)} in charges (${onTop.toFixed(1)}% on top)`}>

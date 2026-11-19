@@ -95,7 +95,7 @@ export function Ask({ header }: { header?: React.ReactNode }) {
           <Text style={{ color: t.muted, fontSize: 13 }}>{listener ? 'Tap the mic to speak' : 'To speak, use the mic key on your keyboard'}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <Text style={{ color: t.muted, fontSize: 13 }}>Read aloud</Text>
-            <Switch accessibilityLabel="Read answers aloud" value={aloud} onValueChange={(v) => { setAloud(v); if (!v) stopSpeaking(); }} trackColor={{ true: t.brand }} />
+            <Switch accessibilityLabel="Read answers aloud" value={aloud} onValueChange={(v) => { setAloud(v); if (!v) stopSpeaking(); }} trackColor={{ true: t.brand, false: '#aeb6c2' }} />
           </View>
         </View>
         <View style={[s.bar, { borderColor: listening ? t.accent : t.line, backgroundColor: t.card }]}>

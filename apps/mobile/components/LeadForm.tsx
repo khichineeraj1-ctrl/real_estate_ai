@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { Animated, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Toggle } from './Toggle';
 import { TIMELINES, sendEnquiry, sendProjectEnquiry, type LeadResult } from '../lib/api';
 import { useTheme, type Theme } from '../lib/theme';
 
@@ -140,12 +141,12 @@ export function LeadForm({ kind, slug, name: about, mode, unclaimed, interests =
           <Text style={{ color: t.fg, fontWeight: '700' }}>Arrange a site visit</Text>
           <Text style={{ color: t.muted, fontSize: 12 }}>{visit ? 'We will ask which day suits you.' : 'Turn this on if you would like to see it in person.'}</Text>
         </View>
-        <View pointerEvents="none"><Switch value={visit} trackColor={{ true: t.brand }} accessibilityElementsHidden importantForAccessibility="no" /></View>
+        <Toggle on={visit} />
       </Pressable>
 
       <Pressable accessibilityRole="switch" accessibilityState={{ checked: consent }} accessibilityLabel={consentText} onPress={() => setConsent(!consent)} style={[s.toggle, { borderStyle: consent ? 'solid' : 'dashed', borderColor: consent ? t.ready : t.line, backgroundColor: consent ? t.readyBg : 'transparent' }]}>
         <Text style={{ color: consent ? t.fg : t.muted, flex: 1, fontSize: 13, lineHeight: 19 }}>{consentText}</Text>
-        <View pointerEvents="none"><Switch value={consent} trackColor={{ true: t.ready }} accessibilityElementsHidden importantForAccessibility="no" /></View>
+        <Toggle on={consent} color={t.ready} />
       </Pressable>
 
       <View style={{ gap: 6 }}>
