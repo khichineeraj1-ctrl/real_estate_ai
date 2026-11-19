@@ -26,6 +26,7 @@ export class CatalogController {
   constructor(private readonly catalog: CatalogService, private readonly watch: WatchService, private readonly buyers: BuyerService, private readonly alerts: AlertService) {}
 
   @Get('health') health() { return { ok: true }; }
+  @Get('launches') launches(@Query('city') city?: string) { return this.catalog.launches(city && /^[a-z0-9-]{1,60}$/.test(city) ? city : undefined); }
   @Get('guides') guides() { return guideCards(); }
   @Get('guide-stages') guideStages() { const cards = guideCards(); return STAGES.map((st) => ({ ...st, guides: cards.filter((g) => g.stage === st.key) })); }
   @Get('guides/:slug') guide(@Param('slug') slug: string) { const g = guideBySlug(slug); if (!g) throw new NotFoundException('Guide not found'); const cards = guideCards(); const order = STAGES.flatMap((st) => cards.filter((c) => c.stage === st.key)); const i = order.findIndex((c) => c.slug === slug); return { ...g, stageInfo: STAGES.find((st) => st.key === g.stage), prev: order[i - 1] ?? null, next: order[i + 1] ?? null, more: cards.filter((x) => x.slug !== slug) }; }

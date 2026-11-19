@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { AskBox } from '@/components/AskBox';
+import { Launches, type Launch } from '@/components/Launches';
 import { CompareStudio } from '@/components/tools/CompareStudio';
 import { JsonLd } from '@/components/JsonLd';
 import { PropertyGrid } from '@/components/PropertyCard';
@@ -18,7 +19,7 @@ export const metadata: Metadata = {
 const EXAMPLES = ['3 BHK in Whitefield', 'M3M projects in Gurgaon', 'Average rate in Powai?', 'Cheapest 2 BHK in Pune'];
 
 export default async function Home() {
-  const [cities, latest, builders, guides] = await Promise.all([api<CitySummary[]>('/cities'), api<Listing>('/properties?pageSize=6'), api<BuilderSummary[]>('/builders'), api<{ slug: string; short: string; icon: string }[]>('/guides')]);
+  const [cities, latest, builders, guides, launches] = await Promise.all([api<CitySummary[]>('/cities'), api<Listing>('/properties?pageSize=6'), api<BuilderSummary[]>('/builders'), api<{ slug: string; short: string; icon: string }[]>('/guides'), api<{ total: number; months: number; items: Launch[] }>('/launches')]);
   const topBuilders = [...(builders ?? [])].sort((a, b) => b.projects - a.projects || a.name.localeCompare(b.name)).slice(0, 12);
   return (
     <>
@@ -29,6 +30,13 @@ export default async function Home() {
           {EXAMPLES.map((q) => <li key={q}><Link href={`/ask?q=${encodeURIComponent(q)}`} rel="nofollow">{q}</Link></li>)}
         </ul>
       </section>
+
+      {launches && launches.items.length > 0 && (
+        <section className="section" id="new-launches">
+          <h2>New launches</h2>
+          <Launches items={launches.items} total={launches.total} months={launches.months} />
+        </section>
+      )}
 
       <section className="section usp">
         <h2>Compare before you decide</h2>

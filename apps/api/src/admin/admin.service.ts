@@ -364,6 +364,44 @@ export class AdminService implements OnModuleInit {
     if (!isStaff(user) && p.state === 'PUBLISHED') await this.db.property.update({ where: { id: propertyId }, data: { state: 'PENDING' } });
     return r;
   }
+  /**
+   * A verified agent sends in a video they filmed of a project they are approved to sell. It waits for our team,
+   * and is shown with the agent's name once approved.
+   */
+  async addSiteVideo(user: SessionUser, sellingId: string, body: Record<string, unknown>) {
+    const link = await this.db.projectSeller.findFirst({ where: { id: sellingId, userId: user.id }, select: { status: true, projectId: true } });
+    if (!link) throw new NotFoundException('Project not found');
+    if (link.status !== 'APPROVED') throw new ForbiddenException('You can add a video once our team has approved you for this project');
+    const id = youtubeId(body.url);
+    if (!id) throw new BadRequestException('Paste a YouTube link, such as https://www.youtube.com/watch?v=… or https://youtu.be/…');
+    const have = await this.db.video.findMany({ where: { projectId: link.projectId }, select: { youtubeId: true, position: true, approved: true, addedById: true } });
+    if (have.some((v) => v.youtubeId === id)) throw new ConflictException('That video is already added');
+    if (have.filter((v) => v.addedById === user.id && !v.approved).length >= 3) throw new BadRequestException('You have three videos waiting for this project. Please wait for our team to look at them.');
+    if (have.length >= MAX_VIDEOS + 3) throw new BadRequestException('This project has enough videos for now');
+    await this.db.video.create({ data: { projectId: link.projectId, youtubeId: id, title: new Input(body).optionalText('title', 'Title', 120), position: Math.max(-1, ...have.map((v) => v.position)) + 1, approved: false, addedById: user.id } });
+    return { ok: true };
+  }
+  /** Videos sent in by agents: the ones waiting, or all of them. */
+  async siteVideos(q: { status?: string }) {
+    return this.db.video.findMany({
+      where: { addedById: { not: null }, projectId: { not: null }, ...(q.status === 'all' ? {} : { approved: false }) }, orderBy: { createdAt: 'desc' }, take: 100,
+      select: { id: true, youtubeId: true, title: true, approved: true, createdAt: true, project: { select: { id: true, slug: true, name: true, locality: { select: { name: true, city: { select: { name: true } } } } } }, addedBy: { select: { name: true, email: true, dealer: { select: { firmName: true } } } } },
+    });
+  }
+  async approveSiteVideo(videoId: string) {
+    const v = await this.db.video.findFirst({ where: { id: videoId, addedById: { not: null } }, select: { id: true } });
+    if (!v) throw new NotFoundException('Video not found');
+    await this.db.video.update({ where: { id: videoId }, data: { approved: true } });
+    return { ok: true };
+  }
+  /** An agent's own videos for the projects they sell, with whether each has been approved. */
+  async mySiteVideos(user: SessionUser) {
+    return this.db.video.findMany({ where: { addedById: user.id }, orderBy: { createdAt: 'desc' }, select: { id: true, youtubeId: true, title: true, approved: true, projectId: true } });
+  }
+  async deleteMySiteVideo(user: SessionUser, videoId: string) {
+    await this.db.video.deleteMany({ where: { id: videoId, addedById: user.id } });
+    return { ok: true };
+  }
   async addProjectVideo(projectId: string, body: Record<string, unknown>) {
     await this.project(projectId);
     return this.storeVideo({ projectId }, body);

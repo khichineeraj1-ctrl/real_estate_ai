@@ -40,6 +40,14 @@ export function registeredYear(reraId: string | null): number | null {
   return m ? Number(m[1]) : null;
 }
 
+/** The day the register entry was made, where the number carries it ("… DATED 09.10.2020"); null otherwise. */
+export function registeredOn(reraId: string | null): Date | null {
+  const m = /DATED\s+(\d{1,2})[./-](\d{1,2})[./-](\d{4})/i.exec(reraId ?? '');
+  if (!m) return null;
+  const d = new Date(Date.UTC(+m[3], +m[2] - 1, +m[1]));
+  return d.getUTCMonth() === +m[2] - 1 && +m[3] >= 2016 ? d : null;
+}
+
 /** "3 years 4 months", "7 months", "under a month". */
 export function span(ms: number): string {
   const months = Math.round(Math.abs(ms) / MONTH);

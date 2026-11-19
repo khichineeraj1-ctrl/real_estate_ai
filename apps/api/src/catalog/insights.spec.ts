@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { compareInsights, registeredYear, scorecard, span, standingOf, type Facts } from './insights';
+import { compareInsights, registeredOn, registeredYear, scorecard, span, standingOf, type Facts } from './insights';
 
 const NOW = new Date('2026-11-19T00:00:00Z');
 const base: Facts = {
@@ -72,4 +72,9 @@ test('a lapsed sibling on the page is not counted again against the builder', ()
   const b = make({ slug: 'b', name: 'Beta', registerStatus: 'Lapsed', track: { total: 4, current: 3, ended: 1, lapsed: 0 } });
   const same = compareInsights([a, b], NOW).find((i) => i.key === 'same-builder')!;
   assert.match(same.text, /BB has 3 other registered projects in City, none marked lapsed/);
+});
+
+test('reads the registration day from a number that carries it', () => {
+  assert.equal(registeredOn('GGM/821/553/2024/48 DATED 29.04.2024')?.toISOString().slice(0, 10), '2024-04-29');
+  assert.equal(registeredOn('P52100001149'), null); assert.equal(registeredOn('X DATED 31.02.2024'), null); assert.equal(registeredOn(null), null);
 });

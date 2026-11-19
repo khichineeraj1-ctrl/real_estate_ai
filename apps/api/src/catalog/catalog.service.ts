@@ -1,4 +1,11 @@
 import { beforeYouPay, builderRecord } from './guidance';
+import { registeredOn } from './insights';
+
+/** A video as buyers see it: the link, its title, and the verified agent who filmed it, by name only. */
+const publicVideo = (v: { youtubeId: string; title: string | null; addedBy: { name: string; dealer: { firmName: string | null } | null } | null }) => ({ youtubeId: v.youtubeId, title: v.title, by: v.addedBy ? (v.addedBy.dealer?.firmName || v.addedBy.name) : null });
+
+/** How long after registration a project still counts as newly launched. */
+const LAUNCH_MONTHS = 18;
 import { homeInsights, homeScorecards, type Home } from './home-insights';
 import { areaScorecard, localityInsights, type Area } from './locality-insights';
 import { compareInsights, scorecard, standingOf, type Facts } from './insights';
@@ -146,7 +153,7 @@ export class CatalogService {
   }
 
   async project(slug: string) {
-    const project = await this.db.project.findUnique({ where: { slug }, include: { register: { select: { declaredLitigation: true, declaredApartments: true, declaredTowers: true, declaredStart: true, declaredCompletion: true, formFetchedAt: true } }, locality: { include: { city: true } }, brand: { select: { slug: true, name: true } }, videos: { orderBy: { position: 'asc' }, select: { youtubeId: true, title: true } }, photos: { orderBy: { position: 'asc' }, select: { file: true, width: true, height: true, category: true } } } });
+    const project = await this.db.project.findUnique({ where: { slug }, include: { register: { select: { declaredLitigation: true, declaredApartments: true, declaredTowers: true, declaredStart: true, declaredCompletion: true, formFetchedAt: true } }, locality: { include: { city: true } }, brand: { select: { slug: true, name: true } }, videos: { where: { approved: true }, orderBy: { position: 'asc' }, select: { youtubeId: true, title: true, addedBy: { select: { name: true, dealer: { select: { firmName: true } } } } } }, photos: { orderBy: { position: 'asc' }, select: { file: true, width: true, height: true, category: true } } } });
     if (!project) throw new NotFoundException('Project not found');
     const [properties, stats, bhk] = await Promise.all([
       this.db.property.findMany({ where: { projectId: project.id, state: 'PUBLISHED' }, select: CARD, orderBy: { priceInr: 'asc' } }),
@@ -169,13 +176,13 @@ export class CatalogService {
       name: project.name, builder: project.brand?.name ?? project.builder, city: locality.city.name, registerStatus: project.registerStatus, registerValidUntil: project.registerValidUntil, reraId: project.reraId,
       sourceUrl: project.sourceUrl, registerName, litigation: declared?.litigation ?? null, othersLapsed: others.filter((o) => standingOf(o) === 'lapsed').length, others: others.length, priced: stats.count > 0, agents: agents.length,
     });
-    return { ...rest, registerName, locality: { slug: locality.slug, name: locality.name, lat: locality.lat, lng: locality.lng }, city: { slug: locality.city.slug, name: locality.city.name, state: locality.city.state }, properties, stats, bhk, more: { byBuilder: byBuilder.map(withAgents), inLocality: inLocality.map(withAgents) }, agents, checklist, declared };
+    return { ...rest, videos: rest.videos.map(publicVideo), registerName, locality: { slug: locality.slug, name: locality.name, lat: locality.lat, lng: locality.lng }, city: { slug: locality.city.slug, name: locality.city.name, state: locality.city.state }, properties, stats, bhk, more: { byBuilder: byBuilder.map(withAgents), inLocality: inLocality.map(withAgents) }, agents, checklist, declared };
   }
 
   async property(slug: string) {
     const p = await this.db.property.findFirst({
       where: { slug, state: 'PUBLISHED' },
-      include: { locality: { include: { city: true } }, project: { select: { slug: true, name: true, builder: true, reraId: true, brand: { select: { slug: true, name: true } } } }, videos: { orderBy: { position: 'asc' }, select: { youtubeId: true, title: true } }, photos: { select: { file: true, width: true, height: true, category: true }, orderBy: { position: 'asc' } }, owner: { select: { role: true, active: true, phone: true, dealer: { select: { kind: true } } } } },
+      include: { locality: { include: { city: true } }, project: { select: { slug: true, name: true, builder: true, reraId: true, brand: { select: { slug: true, name: true } } } }, videos: { where: { approved: true }, orderBy: { position: 'asc' }, select: { youtubeId: true, title: true, addedBy: { select: { name: true, dealer: { select: { firmName: true } } } } } }, photos: { select: { file: true, width: true, height: true, category: true }, orderBy: { position: 'asc' } }, owner: { select: { role: true, active: true, phone: true, dealer: { select: { kind: true } } } } },
     });
     if (!p) throw new NotFoundException('Property not found');
     const similar = await this.db.property.findMany({
@@ -186,7 +193,7 @@ export class CatalogService {
     const { locality, localityId, projectId, id, ownerId, state, rejectReason, staffVerifiedNote, staffVerifiedBy, confidence, owner, ...rest } = p;
     const sellerId = ownerId && p.owner?.role === 'AGENT' ? ownerId : null;
     return {
-      ...rest,
+      ...rest, videos: rest.videos.map(publicVideo),
       confidence: await this.trust.property(id),
       seller: sellerId ? await this.trust.publicDealer(sellerId) : null,
       // What the form on the page does: 'seller' shows an owner's or agent's contact once the buyer enquires; 'callback' takes a lead.
@@ -272,6 +279,31 @@ export class CatalogService {
       };
     }));
     return { localities, scorecards: [areaScorecard(areas[0], areas[1]), areaScorecard(areas[1], areas[0])], insights: localityInsights(areas[0], areas[1]) };
+  }
+
+  /**
+   * Newly launched projects for the home page: registered in the last 18 months with the registration still running.
+   * Ones with a site video come first, newest video first, then the newest registrations. A project is "new" by the
+   * date on its registration, so only registers that print that date (Haryana's does) can supply any.
+   */
+  async launches(city?: string, take = 12, now = new Date()) {
+    const rows = await this.db.project.findMany({
+      where: { registerValidUntil: { gt: now }, NOT: { registerStatus: { contains: 'lapsed', mode: 'insensitive' } }, reraId: { contains: 'DATED' }, ...(city ? { locality: { city: { slug: city } } } : {}) },
+      select: { slug: true, name: true, builder: true, reraId: true, registerValidUntil: true, brand: { select: { slug: true, name: true } }, photos: COVER, _count: AGENT_COUNT, locality: { select: { slug: true, name: true, city: { select: { slug: true, name: true } } } },
+        videos: { where: { approved: true }, orderBy: { createdAt: 'desc' }, take: 1, select: { youtubeId: true, title: true, createdAt: true, addedBy: { select: { name: true, dealer: { select: { firmName: true } } } } } } },
+    });
+    const since = new Date(now); since.setUTCMonth(since.getUTCMonth() - LAUNCH_MONTHS);
+    const fresh = rows.map((p) => ({ p, on: registeredOn(p.reraId) })).filter((x): x is { p: typeof rows[number]; on: Date } => !!x.on && x.on >= since && x.on <= now);
+    fresh.sort((a, b) => (b.p.videos[0]?.createdAt.getTime() ?? 0) - (a.p.videos[0]?.createdAt.getTime() ?? 0) || b.on.getTime() - a.on.getTime());
+    const cities = [...new Map(fresh.map((x) => [x.p.locality.city.slug, x.p.locality.city])).values()].sort((a, b) => a.name.localeCompare(b.name));
+    return {
+      total: fresh.length, months: LAUNCH_MONTHS, cities,
+      items: fresh.slice(0, take).map(({ p, on }) => {
+        const { locality, videos, _count, ...rest } = p; const v = videos[0];
+        return { ...rest, agents: _count.sellers, locality: { slug: locality.slug, name: locality.name }, city: locality.city, registeredOn: on,
+          video: v ? { youtubeId: v.youtubeId, title: v.title, by: v.addedBy ? (v.addedBy.dealer?.firmName || v.addedBy.name) : null } : null };
+      }),
+    };
   }
 
   /** Names the question parser and the assistant match against. Small enough to read on every question. */

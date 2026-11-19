@@ -268,3 +268,29 @@ export async function removeVideo(kind: 'properties' | 'projects', id: string, v
   revalidatePath('/', 'layout');
   redirect(`/admin/${kind}/${id}?videoRemoved=1#videos`);
 }
+
+/** An agent sends in a YouTube video they filmed of a project they are approved to sell. Staff look at it before it shows. */
+export async function addSiteVideo(sellingId: string, _: FormState, form: FormData): Promise<FormState> {
+  const r = await adminFetch(`/selling/${encodeURIComponent(sellingId)}/videos`, { method: 'POST', body: fields(form) });
+  if (!r.ok) return failed(r);
+  redirect('/admin/selling?videoSent=1');
+}
+export async function removeMySiteVideo(id: string, _: FormState): Promise<FormState> {
+  const r = await adminFetch(`/selling-videos/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  if (!r.ok) return failed(r);
+  revalidatePath('/', 'layout');
+  redirect('/admin/selling?videoRemoved=1');
+}
+/** Staff approve a video an agent sent in, or remove it. */
+export async function approveSiteVideo(id: string, _: FormState): Promise<FormState> {
+  const r = await adminFetch(`/site-videos/${encodeURIComponent(id)}/approve`, { method: 'POST' });
+  if (!r.ok) return failed(r);
+  revalidatePath('/', 'layout');
+  redirect('/admin/site-videos?done=1');
+}
+export async function rejectSiteVideo(id: string, _: FormState): Promise<FormState> {
+  const r = await adminFetch(`/videos/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  if (!r.ok) return failed(r);
+  revalidatePath('/', 'layout');
+  redirect('/admin/site-videos?done=1');
+}

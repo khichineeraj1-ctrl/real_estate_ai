@@ -95,6 +95,11 @@ export class AdminController {
   @UseGuards(AdminGuard) @Get('selling/projects') findProjects(@Query('q') q: string) { return this.admin.findProjects(q); }
   @UseGuards(AdminGuard) @Post('selling') requestSelling(@CurrentUser() u: SessionUser, @Body() b: Json) { return this.admin.requestSelling(u, b); }
   @UseGuards(AdminGuard) @Delete('selling/:id') stopSelling(@CurrentUser() u: SessionUser, @Param('id') id: string) { return this.admin.stopSelling(u, id); }
+  @UseGuards(AdminGuard) @Roles('AGENT') @Post('selling/:id/videos') addSiteVideo(@CurrentUser() u: SessionUser, @Param('id') id: string, @Body() b: Json) { return this.admin.addSiteVideo(u, id, b); }
+  @UseGuards(AdminGuard) @Roles('AGENT') @Get('selling-videos') mySiteVideos(@CurrentUser() u: SessionUser) { return this.admin.mySiteVideos(u); }
+  @UseGuards(AdminGuard) @Roles('AGENT') @Delete('selling-videos/:id') deleteMySiteVideo(@CurrentUser() u: SessionUser, @Param('id') id: string) { return this.admin.deleteMySiteVideo(u, id); }
+  @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Get('site-videos') siteVideos(@Query() q: { status?: string }) { return this.admin.siteVideos(q); }
+  @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Post('site-videos/:id/approve') @HttpCode(200) approveSiteVideo(@Param('id') id: string) { return this.admin.approveSiteVideo(id); }
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Get('project-sellers') projectSellers(@Query() q: { status?: string }) { return this.admin.projectSellers(q); }
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Post('project-sellers/:id/decide') @HttpCode(200) decideProjectSeller(@CurrentUser() u: SessionUser, @Param('id') id: string, @Body() b: Json) { return this.admin.decideProjectSeller(u, id, b); }
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Get('builder-pages') builderPages() { return this.admin.builderPages(); }

@@ -1,3 +1,4 @@
+import { Launches } from './Launches';
 import { CompareToggle } from './tools/Compare';
 import { Cover } from './Cover';
 import { ConnectButton } from './LeadForm';
@@ -76,6 +77,7 @@ export function Ask({ header }: { header?: React.ReactNode }) {
                 </Pressable>
               ))}
             </View>
+            <Launches />
           </View>
         ) : thread.map((e, i) => (
           <View key={i} style={{ gap: 8 }}>

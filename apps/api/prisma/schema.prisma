@@ -213,6 +213,7 @@ model User {
   /// Projects this agent sells, and the leads passed to them from those projects.
   selling      ProjectSeller[]
   assignedLeads Enquiry[]  @relation("AssignedLeads")
+  videosAdded Video[] @relation("VideosAdded")
 }
 
 enum ProjectSellerStatus {
@@ -249,6 +250,11 @@ model Video {
   youtubeId  String
   title      String?
   position   Int
+  /// False while a video sent in by an agent waits for our team to look at it; buyers see only approved videos.
+  approved   Boolean  @default(true)
+  /// The verified agent who sent it in, credited beside the video. Null for videos our team added.
+  addedById  String?
+  addedBy    User?    @relation("VideosAdded", fields: [addedById], references: [id], onDelete: SetNull)
   createdAt  DateTime @default(now())
   propertyId String?
   property   Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
