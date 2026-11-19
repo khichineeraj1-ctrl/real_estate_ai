@@ -675,3 +675,9 @@ p > .connect { margin: 0; }
 @media (prefers-color-scheme: dark) { .quick-out a:hover b { color: #0e1116; } }
 @media (prefers-reduced-motion: reduce) { .quick-out b, .quick-slider::-webkit-slider-thumb { transition: none; } }
 @media (max-width: 860px) { .quick { grid-template-columns: minmax(0, 1fr); padding: 18px; } }
+/* A project card's two buttons: one row, the same height and shape; on a narrow card they stack at full width. */
+.ptile-actions { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 12px 12px; }
+.ptile-actions .connect, .ptile-actions .compare-toggle { flex: 1 1 auto; margin: 0; align-self: stretch; display: inline-flex; align-items: center; justify-content: center; min-height: 38px; padding: 8px 14px; font-size: .9rem; font-weight: 600; white-space: nowrap; }
+.ptile-actions .compare-toggle { border-color: var(--line); background: var(--soft); }
+.ptile-actions .compare-toggle:hover:not(:disabled) { border-color: var(--brand); }
+.ptile-actions .compare-toggle.on { background: var(--brand); border-color: var(--brand); }
