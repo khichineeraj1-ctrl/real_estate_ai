@@ -5,7 +5,7 @@ import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, S
 import { PropertyCard } from '../../components/PropertyCard';
 import { CostCalculator, EmiCalculator } from '../../components/tools/Calculators';
 import { CompareToggle } from '../../components/tools/Compare';
-import { LeadForm } from '../../components/LeadForm';
+import { ConnectButton } from '../../components/LeadForm';
 import { REPORT_REASONS, getProperty, photoUrl, sendReport, type PropertyDetail } from '../../lib/api';
 import { num, price, statusLabel, typeLabel } from '../../lib/format';
 import { useTheme, type Theme } from '../../lib/theme';
@@ -97,7 +97,8 @@ export default function Property() {
       <EmiCalculator key={`emi-${p.slug}`} price={p.priceInr} />
       <View style={[s.box, { backgroundColor: t.soft, borderColor: t.line }]}>
         <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 18, fontWeight: '700' }}>{p.contact === 'seller' ? 'Contact the seller' : 'Ask for a call back'}</Text>
-        <LeadForm key={p.slug} kind="property" slug={p.slug} name={p.title} mode={p.contact === 'seller' ? 'seller' : 'callback'} />
+        <Text style={{ color: t.muted, lineHeight: 20 }}>{p.contact === 'seller' ? 'Leave your details to see the seller’s name and phone number.' : 'Our team will call you about this home.'}</Text>
+        <ConnectButton key={p.slug} kind="property" slug={p.slug} name={p.title} mode={p.contact === 'seller' ? 'seller' : 'callback'} big />
       </View>
       <Report key={`report-${p.slug}`} slug={p.slug} t={t} />
       <Text style={{ color: t.fg, fontSize: 16, lineHeight: 23 }}>{p.description}</Text>

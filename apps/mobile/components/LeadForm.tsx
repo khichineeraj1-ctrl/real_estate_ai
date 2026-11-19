@@ -161,15 +161,15 @@ export function LeadForm({ kind, slug, name: about, mode, unclaimed, interests =
 }
 
 /** The button on a card or row. It opens the form in a sheet over the screen, so a buyer can ask without leaving the list. */
-/** `fill` shares a row evenly with the button beside it, at the same height. */
-export function ConnectButton({ kind, slug, name, mode, unclaimed, agents, fill }: Props & { agents?: number; fill?: boolean }) {
+/** `fill` shares a row evenly with the button beside it, at the same height. `big` is the main button of a detail screen. */
+export function ConnectButton({ kind, slug, name, mode, unclaimed, agents, fill, big, interests }: Props & { agents?: number; fill?: boolean; big?: boolean }) {
   const t = useTheme();
   const [open, setOpen] = useState(false);
-  const filled = mode === 'agent';
+  const filled = big || mode === 'agent';
   return (
     <>
-      <Pressable accessibilityRole="button" accessibilityLabel={`${TITLE[mode]}: ${name}`} onPress={() => setOpen(true)} style={({ pressed }) => [s.connect, fill && s.fill, { borderColor: t.brand, backgroundColor: filled ? t.brand : 'transparent', opacity: pressed ? 0.7 : 1 }]}>
-        <Text numberOfLines={fill ? 1 : undefined} style={{ color: filled ? t.brandInk : t.brand, fontWeight: '700', fontSize: 14 }}>{filled ? '✓ ' : ''}{mode === 'seller' ? 'Contact seller' : TITLE[mode]}</Text>
+      <Pressable accessibilityRole="button" accessibilityLabel={`${TITLE[mode]}: ${name}`} onPress={() => setOpen(true)} style={({ pressed }) => [s.connect, fill && s.fill, big && s.big, { borderColor: t.brand, backgroundColor: filled ? t.brand : 'transparent', opacity: pressed ? 0.7 : 1 }]}>
+        <Text numberOfLines={fill ? 1 : undefined} style={{ color: filled ? t.brandInk : t.brand, fontWeight: '700', fontSize: big ? 16 : 14 }}>{mode === 'agent' ? '✓ ' : big ? `${ICON[mode]}  ` : ''}{mode === 'seller' ? 'Contact seller' : TITLE[mode]}</Text>
       </Pressable>
       <Modal visible={open} animationType="slide" transparent onRequestClose={() => setOpen(false)}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={s.backdrop}>
@@ -189,7 +189,7 @@ export function ConnectButton({ kind, slug, name, mode, unclaimed, agents, fill 
                   : mode === 'seller' ? 'Leave your details and you will be shown the seller’s name and phone number.'
                     : unclaimed ? 'Leave your details and our team will call you. The builder has not joined us yet, so we will find out prices and availability for you.' : 'Leave your details and you will get a call back.'}
               </Text>
-              <LeadForm kind={kind} slug={slug} name={name} mode={mode} unclaimed={unclaimed} />
+              <LeadForm kind={kind} slug={slug} name={name} mode={mode} unclaimed={unclaimed} interests={interests} />
             </ScrollView>
           </View>
         </KeyboardAvoidingView>
@@ -212,6 +212,7 @@ const s = StyleSheet.create({
   burst: { width: 54, height: 54, borderRadius: 27, alignItems: 'center', justifyContent: 'center' },
   call: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1.5, borderRadius: 14, padding: 12 },
   fill: { alignSelf: 'stretch', flexGrow: 1, flexBasis: 172, minHeight: 40, alignItems: 'center', justifyContent: 'center' },
+  big: { alignSelf: 'stretch', alignItems: 'center', paddingVertical: 14 },
   connect: { alignSelf: 'flex-start', borderWidth: 1.5, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8 },
   backdrop: { flex: 1, backgroundColor: 'rgba(10,12,16,0.55)', justifyContent: 'flex-end' },
   sheet: { maxHeight: '92%', borderTopLeftRadius: 20, borderTopRightRadius: 20, overflow: 'hidden' },

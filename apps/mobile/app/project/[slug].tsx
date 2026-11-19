@@ -4,7 +4,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { PropertyCard } from '../../components/PropertyCard';
-import { ConnectButton, LeadForm } from '../../components/LeadForm';
+import { ConnectButton } from '../../components/LeadForm';
 import { getProject, photoUrl, type ProjectDetail } from '../../lib/api';
 import { monthYear, num, statusLabel } from '../../lib/format';
 import { useTheme, type Theme } from '../../lib/theme';
@@ -85,8 +85,8 @@ export default function Project() {
 
         <View style={[s.box, { backgroundColor: t.soft, borderColor: t.line }]}>
           <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 18, fontWeight: '700' }}>{p.registerSource ? 'Interested in this project?' : 'Get prices, floor plans and a site visit'}</Text>
-          <Text style={{ color: t.muted, lineHeight: 20 }}>{p.registerSource ? `Leave your details and our team will call you. ${p.brand?.name ?? p.builder} has not joined us yet, so we will find out prices and availability for you.` : `Leave your details and the sales team for ${p.name} will call you back.`}</Text>
-          <LeadForm key={p.slug} kind="project" slug={p.slug} name={p.name} mode="callback" unclaimed={!!p.registerSource} interests={p.bhk.map((b) => `${b.bhk} BHK`)} />
+          <Text style={{ color: t.muted, lineHeight: 20 }}>{p.registerSource ? 'Our team will call you with prices and availability.' : `The sales team for ${p.name} will call you back.`}</Text>
+          <ConnectButton key={p.slug} kind="project" slug={p.slug} name={p.name} mode="callback" unclaimed={!!p.registerSource} interests={p.bhk.map((b) => `${b.bhk} BHK`)} big />
         </View>
 
         {p.properties.length > 0 && <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 18, fontWeight: '700' }}>Homes for sale in {p.name}</Text>}
