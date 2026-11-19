@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getMe, isStaff, sessionToken } from '@/lib/admin';
 import { BRAND } from '@/lib/seo';
+import { Suspense } from 'react';
+import { AdminNav, type NavGroup, type NavItem } from '@/components/admin/AdminNav';
 import { ActionButton } from '@/components/admin/Form';
 import { logout, resendVerification } from '../actions';
 
@@ -13,45 +15,47 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const me = await getMe(); // the API confirms the session and the role; the menu below only reflects it
   const staff = isStaff(me.role);
   const builder = me.role === 'BUILDER';
+  const item = (href: string, label: string, icon: string): NavItem => ({ href, label, icon });
+  const groups: NavGroup[] = [
+    { title: 'Work', items: [
+      item('/admin', 'Overview', '🏠'),
+      ...(!builder ? [item('/admin/properties', staff ? 'Listings' : 'My listings', '🏘️')] : []),
+      item('/admin/enquiries', builder ? 'Leads' : 'Enquiries', '📨'),
+      ...(staff ? [item('/admin/properties?state=PENDING', 'Review queue', '🗂️'), item('/admin/reports?status=NEW', 'Reports', '🚩')] : []),
+    ] },
+    { title: staff ? 'Partners' : 'Selling', items: [
+      ...(me.role === 'AGENT' ? [item('/admin/verification', 'Get verified', '🛡️'), item('/admin/selling', 'Projects I sell', '🤝')] : []),
+      ...(staff ? [item('/admin/dealers?status=SUBMITTED', 'Sellers', '🧑‍💼'), item('/admin/project-sellers', 'Agents on projects', '🤝'), item('/admin/site-videos', 'Site videos', '🎬')] : []),
+      item('/admin/upcoming', 'Upcoming projects', '🚧'),
+    ] },
+    ...(staff ? [
+      { title: 'Catalogue', items: [item('/admin/projects', 'Projects', '🏗️'), item('/admin/builder-pages', 'Builder pages', '🏢'), item('/admin/register', 'RERA registers', '📚'), item('/admin/localities', 'Localities', '📍'), item('/admin/cities', 'Cities', '🌆')] },
+      { title: 'Site', items: [item('/admin/questions', 'Questions', '💬'), item('/admin/import', 'Import', '⬆️'), ...(me.role === 'ADMIN' ? [item('/admin/users', 'Users', '👥')] : [])] },
+    ] : []),
+  ];
+  const role = staff ? 'Admin' : builder ? 'Builder leads' : 'My listings';
   return (
-    <>
-      <header className="site-header">
-        <div className="wrap">
-          <Link href="/admin" className="logo"><span className="orb" aria-hidden="true" />{BRAND} <small>{staff ? 'admin' : builder ? 'builder leads' : 'my listings'}</small></Link>
-          <nav aria-label="Account"><Link href="/">View site</Link><Link href="/admin/account">{me.name}</Link></nav>
-          <form action={logout}><button type="submit" className="alink">Sign out</button></form>
-        </div>
-      </header>
-      <main className="wrap admin">
-        <nav className="anav" aria-label="Sections">
-          <Link href="/admin">Overview</Link>
-          {!builder && <Link href="/admin/properties">{staff ? 'Listings' : 'My listings'}</Link>}
-          <Link href="/admin/enquiries">{builder ? 'Leads' : 'Enquiries'}</Link>
-          {me.role === 'AGENT' && <Link href="/admin/verification">Get verified</Link>}
-          {me.role === 'AGENT' && <Link href="/admin/selling">Projects I sell</Link>}
-          {staff && <Link href="/admin/dealers?status=SUBMITTED">Sellers</Link>}
-          {staff && <Link href="/admin/project-sellers">Agents on projects</Link>}
-          {staff && <Link href="/admin/site-videos">Site videos</Link>}
-          <Link href="/admin/upcoming">Upcoming projects</Link>
-          {staff && <Link href="/admin/reports?status=NEW">Reports</Link>}
-          {staff && <Link href="/admin/properties?state=PENDING">Review queue</Link>}
-          {staff && <Link href="/admin/import">Import</Link>}
-          {staff && <Link href="/admin/projects">Projects</Link>}
-          {staff && <Link href="/admin/builder-pages">Builder pages</Link>}
-          {staff && <Link href="/admin/register">RERA registers</Link>}
-          {staff && <Link href="/admin/localities">Localities</Link>}
-          {staff && <Link href="/admin/cities">Cities</Link>}
-          {staff && <Link href="/admin/questions">Questions</Link>}
-          {me.role === 'ADMIN' && <Link href="/admin/users">Users</Link>}
-        </nav>
-        {!me.emailVerified && (
-          <div className="astatus">
-            <p><strong>Confirm your email to start posting.</strong> We sent a link to {me.email}. Open it, then come back here.</p>
-            <ActionButton action={resendVerification} label="Send the link again" />
-          </div>
-        )}
-        {children}
-      </main>
-    </>
+    <div className="ashell">
+      <aside className="aside">
+        <Link href="/admin" className="aside-logo"><span className="orb" aria-hidden="true" />{BRAND}<small>{role}</small></Link>
+        <Suspense fallback={null}><AdminNav groups={groups} /></Suspense>
+      </aside>
+      <div className="amain">
+        <header className="atop">
+          <Link href="/" className="atop-site" target="_blank">View site ↗</Link>
+          <Link href="/admin/account" className="atop-me"><span aria-hidden="true">{me.name.charAt(0).toUpperCase()}</span><span><strong>{me.name}</strong><small>{me.email}</small></span></Link>
+          <form action={logout}><button type="submit" className="abtn quiet">Sign out</button></form>
+        </header>
+        <main className="admin">
+          {!me.emailVerified && (
+            <div className="astatus">
+              <p><strong>Confirm your email to start posting.</strong> We sent a link to {me.email}. Open it, then come back here.</p>
+              <ActionButton action={resendVerification} label="Send the link again" />
+            </div>
+          )}
+          {children}
+        </main>
+      </div>
+    </div>
   );
 }
