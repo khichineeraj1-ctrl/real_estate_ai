@@ -161,14 +161,15 @@ export function LeadForm({ kind, slug, name: about, mode, unclaimed, interests =
 }
 
 /** The button on a card or row. It opens the form in a sheet over the screen, so a buyer can ask without leaving the list. */
-export function ConnectButton({ kind, slug, name, mode, unclaimed, agents }: Props & { agents?: number }) {
+/** `fill` shares a row evenly with the button beside it, at the same height. */
+export function ConnectButton({ kind, slug, name, mode, unclaimed, agents, fill }: Props & { agents?: number; fill?: boolean }) {
   const t = useTheme();
   const [open, setOpen] = useState(false);
   const filled = mode === 'agent';
   return (
     <>
-      <Pressable accessibilityRole="button" accessibilityLabel={`${TITLE[mode]}: ${name}`} onPress={() => setOpen(true)} style={({ pressed }) => [s.connect, { borderColor: t.brand, backgroundColor: filled ? t.brand : 'transparent', opacity: pressed ? 0.7 : 1 }]}>
-        <Text style={{ color: filled ? t.brandInk : t.brand, fontWeight: '700', fontSize: 14 }}>{filled ? '✓ ' : ''}{mode === 'seller' ? 'Contact seller' : TITLE[mode]}</Text>
+      <Pressable accessibilityRole="button" accessibilityLabel={`${TITLE[mode]}: ${name}`} onPress={() => setOpen(true)} style={({ pressed }) => [s.connect, fill && s.fill, { borderColor: t.brand, backgroundColor: filled ? t.brand : 'transparent', opacity: pressed ? 0.7 : 1 }]}>
+        <Text numberOfLines={fill ? 1 : undefined} style={{ color: filled ? t.brandInk : t.brand, fontWeight: '700', fontSize: 14 }}>{filled ? '✓ ' : ''}{mode === 'seller' ? 'Contact seller' : TITLE[mode]}</Text>
       </Pressable>
       <Modal visible={open} animationType="slide" transparent onRequestClose={() => setOpen(false)}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={s.backdrop}>
@@ -210,6 +211,7 @@ const s = StyleSheet.create({
   send: { borderRadius: 999, paddingVertical: 14, alignItems: 'center' },
   burst: { width: 54, height: 54, borderRadius: 27, alignItems: 'center', justifyContent: 'center' },
   call: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1.5, borderRadius: 14, padding: 12 },
+  fill: { alignSelf: 'stretch', flexGrow: 1, flexBasis: 172, minHeight: 40, alignItems: 'center', justifyContent: 'center' },
   connect: { alignSelf: 'flex-start', borderWidth: 1.5, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8 },
   backdrop: { flex: 1, backgroundColor: 'rgba(10,12,16,0.55)', justifyContent: 'flex-end' },
   sheet: { maxHeight: '92%', borderTopLeftRadius: 20, borderTopRightRadius: 20, overflow: 'hidden' },

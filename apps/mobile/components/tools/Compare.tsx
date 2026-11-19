@@ -20,7 +20,8 @@ const set = (kind: Kind, next: Pick[]) => { lists[kind] = next; listeners.forEac
 const subscribe = (l: () => void) => { listeners.add(l); return () => { listeners.delete(l); }; };
 export const usePicks = (kind: Kind) => useSyncExternalStore(subscribe, () => lists[kind], () => lists[kind]);
 
-export function CompareToggle({ slug, title, kind = 'homes' }: Pick & { kind?: Kind }) {
+/** `fill` shares a row evenly with the button beside it, at the same height. */
+export function CompareToggle({ slug, title, kind = 'homes', fill }: Pick & { kind?: Kind; fill?: boolean }) {
   const t = useTheme();
   const chosen = usePicks(kind);
   const on = chosen.some((p) => p.slug === slug);
@@ -31,9 +32,9 @@ export function CompareToggle({ slug, title, kind = 'homes' }: Pick & { kind?: K
       accessibilityLabel={on ? `Remove ${title} from comparison` : full ? 'Comparison is full' : `Add ${title} to comparison`}
       // The list is read as it is now, so two quick taps on different cards both count.
       onPress={() => { const now = lists[kind]; const has = now.some((p) => p.slug === slug); if (has || now.length < MAX_COMPARE) set(kind, has ? now.filter((p) => p.slug !== slug) : [...now, { slug, title }]); }}
-      style={[s.toggle, { borderColor: on ? t.brand : t.line, backgroundColor: on ? t.brand : 'transparent' }]}
+      style={[s.toggle, fill && s.fill, { borderColor: on ? t.brand : t.line, backgroundColor: on ? t.brand : fill ? t.soft : 'transparent' }]}
     >
-      <Text style={{ color: on ? t.brandInk : full ? t.muted : t.brand, fontSize: 13, fontWeight: '600' }}>{on ? '✓ In comparison' : full ? 'Comparison is full' : '⇄ Compare'}</Text>
+      <Text numberOfLines={fill ? 1 : undefined} style={{ color: on ? t.brandInk : full ? t.muted : t.brand, fontSize: fill ? 14 : 13, fontWeight: fill ? '700' : '600' }}>{on ? (fill ? '✓ Added' : '✓ In comparison') : full ? (fill ? 'Full' : 'Comparison is full') : '⇄ Compare'}</Text>
     </Pressable>
   );
 }
@@ -75,6 +76,7 @@ export function CompareBar() {
 }
 
 const s = StyleSheet.create({
+  fill: { alignSelf: 'stretch', flexGrow: 1, flexBasis: 104, paddingHorizontal: 8, minHeight: 40, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   toggle: { alignSelf: 'flex-start', borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 },
   wrap: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
   bar: { gap: 6, borderWidth: 1.5, borderRadius: 22, paddingVertical: 8, paddingLeft: 18, paddingRight: 14, maxWidth: '94%' },

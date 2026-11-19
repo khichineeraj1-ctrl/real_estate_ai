@@ -94,9 +94,9 @@ export function Ask({ header }: { header?: React.ReactNode }) {
                         <Text style={{ color: t.fg, fontWeight: '600' }}>{p.name}</Text>
                         <Text style={{ color: t.muted, fontSize: 13 }}>{p.locality.name}, {p.city.name} · {p.brand?.name ?? p.builder}</Text>
                       </Pressable>
-                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-                        <ConnectButton kind="project" slug={p.slug} name={p.name} mode={(p.agents ?? 0) > 0 ? 'agent' : 'callback'} agents={p.agents} unclaimed={!!p.registerSource} />
-                        <CompareToggle kind="projects" slug={p.slug} title={p.name} />
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                        <ConnectButton kind="project" slug={p.slug} name={p.name} mode={(p.agents ?? 0) > 0 ? 'agent' : 'callback'} agents={p.agents} unclaimed={!!p.registerSource} fill />
+                        <CompareToggle kind="projects" slug={p.slug} title={p.name} fill />
                       </View>
                     </View>
                   ))}

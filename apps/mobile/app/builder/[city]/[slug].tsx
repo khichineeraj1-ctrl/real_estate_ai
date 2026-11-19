@@ -61,9 +61,9 @@ export default function Builder() {
                 </View>
                 <Text style={{ color: t.brand, fontSize: 20 }}>›</Text>
               </Pressable>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-                <ConnectButton kind="project" slug={p.slug} name={p.name} mode={(p.agents ?? 0) > 0 ? 'agent' : 'callback'} agents={p.agents} unclaimed={!!p.registerSource} />
-                <CompareToggle kind="projects" slug={p.slug} title={p.name} />
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                <ConnectButton kind="project" slug={p.slug} name={p.name} mode={(p.agents ?? 0) > 0 ? 'agent' : 'callback'} agents={p.agents} unclaimed={!!p.registerSource} fill />
+                <CompareToggle kind="projects" slug={p.slug} title={p.name} fill />
               </View>
             </View>
           ))}

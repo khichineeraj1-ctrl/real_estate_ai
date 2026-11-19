@@ -61,9 +61,9 @@ export default function Locality() {
                 <Text style={{ color: t.muted, fontSize: 13 }}>{p.brand?.name ?? p.builder}{p.registerSource ? ' · from the RERA register' : ''}</Text>
                 {(p.agents ?? 0) > 0 ? <Text style={{ color: t.ready, fontSize: 13, fontWeight: '600' }}>✓ {p.agents === 1 ? 'A verified agent sells this' : `${p.agents} verified agents sell this`}</Text> : null}
               </Pressable>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-                <ConnectButton kind="project" slug={p.slug} name={p.name} mode={(p.agents ?? 0) > 0 ? 'agent' : 'callback'} agents={p.agents} unclaimed={!!p.registerSource} />
-                <CompareToggle kind="projects" slug={p.slug} title={p.name} />
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                <ConnectButton kind="project" slug={p.slug} name={p.name} mode={(p.agents ?? 0) > 0 ? 'agent' : 'callback'} agents={p.agents} unclaimed={!!p.registerSource} fill />
+                <CompareToggle kind="projects" slug={p.slug} title={p.name} fill />
               </View>
             </View>
           ))}
