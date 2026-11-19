@@ -1,3 +1,4 @@
+import { Cover } from '../../../components/Cover';
 import { ConnectButton } from '../../../components/LeadForm';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -54,7 +55,7 @@ export default function Locality() {
           {l.projects.map((p) => (
             <View key={p.slug} style={{ borderWidth: 1, borderColor: t.line, backgroundColor: t.card, borderRadius: 14, padding: 12, gap: 8 }}>
               <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/project/[slug]', params: { slug: p.slug } })} style={({ pressed }) => ({ gap: 2, opacity: pressed ? 0.6 : 1 })}>
-                {p.photos?.[0] ? <Image source={{ uri: photoUrl(p.photos[0].file, 'card') }} accessibilityLabel={`${p.name}: photo`} resizeMode="cover" style={{ width: '100%', aspectRatio: 16 / 10, borderRadius: 10, backgroundColor: t.soft, marginBottom: 6 }} /> : null}
+                {p.photos?.[0] ? <Cover photo={p.photos[0]} label={`${p.name}: photo`} /> : null}
                 <Text style={{ color: t.fg, fontWeight: '600' }}>{p.name}</Text>
                 <Text style={{ color: t.muted, fontSize: 13 }}>{p.brand?.name ?? p.builder}{p.registerSource ? ' · from the RERA register' : ''}</Text>
                 {(p.agents ?? 0) > 0 ? <Text style={{ color: t.ready, fontSize: 13, fontWeight: '600' }}>✓ {p.agents === 1 ? 'A verified agent sells this' : `${p.agents} verified agents sell this`}</Text> : null}

@@ -30,7 +30,8 @@ export function youtubeId(link: unknown): string | null {
 export const PHOTO_GROUPS = { OUTSIDE: 'Outdoors', INSIDE: 'Interiors', AMENITIES: 'Amenities', PLAN: 'Floor plans', AREA: 'Neighbourhood' } as const;
 export const photoGroup = (v: unknown) => (typeof v === 'string' && v in PHOTO_GROUPS ? v : null);
 const FULL_PX = 1600; // longest side of the photo shown on the property page
-const CARD_PX = 640; // width of the small version used on listing cards
+const CARD_PX = 640; // width of the small version used on cards
+const CARD_MAX_HEIGHT = 800; // a tall picture is scaled to fit this, never cropped
 const MAX_PIXELS = 50_000_000; // refuse images that would take excessive memory to decode
 
 /** The real type from the file's first bytes; the name and the browser's claimed type are not trusted. */
@@ -47,15 +48,26 @@ export const cardFile = (file: string) => file.replace(/\.webp$/, '-card.webp');
 export interface ProcessedPhoto { full: Buffer; card: Buffer; width: number; height: number }
 
 /**
- * Re-encodes an upload into two WebP files: a full size (at most 1600px) and a card size (640px wide).
+ * Re-encodes an upload into two WebP files: a full size (at most 1600px) and a card size (at most 640px wide), both uncropped.
  * Re-encoding also turns the photo the right way up and drops embedded data such as the camera's GPS position.
  * Throws if the bytes are not a readable image.
  */
 export async function processPhoto(data: Buffer): Promise<ProcessedPhoto> {
   const base = () => sharp(data, { limitInputPixels: MAX_PIXELS, failOn: 'error' }).rotate();
   const full = await base().resize({ width: FULL_PX, height: FULL_PX, fit: 'inside', withoutEnlargement: true }).webp({ quality: 80 }).toBuffer({ resolveWithObject: true });
-  const card = await base().resize({ width: CARD_PX, height: Math.round(CARD_PX * 0.75), fit: 'cover', withoutEnlargement: true }).webp({ quality: 72 }).toBuffer();
+  // The small version keeps the whole picture. Cards decide how to frame it, so nothing is cut off for good here.
+  const card = await base().resize({ width: CARD_PX, height: CARD_MAX_HEIGHT, fit: 'inside', withoutEnlargement: true }).webp({ quality: 72 }).toBuffer();
   return { full: full.data, card, width: full.info.width, height: full.info.height };
+}
+
+/** Makes the small version again from a stored full-size photo, for photos saved before the small version kept the whole picture. */
+export async function remakeCard(file: string): Promise<boolean> {
+  if (!/^[0-9a-f-]{36}\.webp$/.test(file)) return false;
+  try {
+    const card = await sharp(join(UPLOAD_DIR, file), { limitInputPixels: MAX_PIXELS }).resize({ width: CARD_PX, height: CARD_MAX_HEIGHT, fit: 'inside', withoutEnlargement: true }).webp({ quality: 72 }).toBuffer();
+    await writeFile(join(UPLOAD_DIR, cardFile(file)), card);
+    return true;
+  } catch { return false; }
 }
 
 export async function savePhoto(p: ProcessedPhoto): Promise<string> {

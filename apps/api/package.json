@@ -10,7 +10,8 @@
     "db:dev": "node scripts/dev-db.mjs",
     "db:push": "prisma db push --skip-generate && prisma generate",
     "db:seed": "tsx prisma/seed.ts",
-    "db:builders": "tsx prisma/link-builders.ts"
+    "db:builders": "tsx prisma/link-builders.ts",
+    "photos:remake-cards": "tsx prisma/remake-cards.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "latest",

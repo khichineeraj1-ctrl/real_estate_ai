@@ -1,3 +1,4 @@
+import { Cover } from './Cover';
 import { useRouter } from 'expo-router';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { CONFIDENCE_LABELS, photoUrl, type PropertyCard as Card } from '../lib/api';
@@ -18,7 +19,7 @@ export function PropertyCard({ p }: { p: Card }) {
         onPress={() => router.push({ pathname: '/property/[slug]', params: { slug: p.slug } })}
         style={({ pressed }) => [s.open, { opacity: pressed ? 0.6 : 1 }]}
       >
-      {p.photos?.[0] && <Image source={{ uri: photoUrl(p.photos[0].file, 'card') }} style={[s.photo, { backgroundColor: t.soft }]} resizeMode="cover" accessibilityIgnoresInvertColors />}
+      {p.photos?.[0] && <Cover photo={p.photos[0]} label={`${p.title}: photo`} />}
       <View style={s.top}>
         <Text style={[s.price, { color: t.fg }]}>{price(p.priceInr)}</Text>
         <Text style={[s.tag, { color: ready ? t.ready : t.muted, backgroundColor: ready ? t.readyBg : t.soft }]}>{statusLabel(p.status)}</Text>

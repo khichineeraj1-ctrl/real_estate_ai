@@ -21,13 +21,13 @@ export interface CitySummary extends Place { state: string; localities: Place[];
 export interface LocalityDetail extends Place {
   intro: string; highlights: string[]; city: Place & { state: string }; stats: Stats;
   bhk: { bhk: number; count: number; minPrice: number | null }[]; nearby: Place[];
-  projects: (Place & { builder: string; brand: Place | null; registerSource: string | null; agents?: number; photos?: { file: string }[] })[];
+  projects: (Place & { builder: string; brand: Place | null; registerSource: string | null; agents?: number; photos?: { file: string; width?: number; height?: number }[] })[];
 }
 /** A builder as buyers know it, across the companies its projects are registered under. */
 export interface BuilderSummary extends Place { projects: number; cities: Place[] }
 export interface BuilderDetail extends Place {
   registeredAs: string[]; cities: Place[];
-  projects: (Place & { builder: string; reraId: string | null; registerSource: string | null; registerStatus: string | null; registerValidUntil: string | null; homes: number; agents?: number; photos?: { file: string }[]; locality: Place; city: Place })[];
+  projects: (Place & { builder: string; reraId: string | null; registerSource: string | null; registerStatus: string | null; registerValidUntil: string | null; homes: number; agents?: number; photos?: { file: string; width?: number; height?: number }[]; locality: Place; city: Place })[];
 }
 export interface ProjectDetail extends Place {
   /** The builder the project is listed under; `builder` is the company name as registered. */

@@ -1,3 +1,4 @@
+import { Cover } from '../../../components/Cover';
 import { ConnectButton } from '../../../components/LeadForm';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -50,7 +51,7 @@ export default function Builder() {
           </Pressable>
           {g.projects.map((p) => (
             <View key={p.slug} style={[s.row, { borderColor: t.line, backgroundColor: t.card, flexDirection: 'column', alignItems: 'stretch' }]}>
-              {p.photos?.[0] ? <Image source={{ uri: photoUrl(p.photos[0].file, 'card') }} accessibilityLabel={`${p.name}: photo`} resizeMode="cover" style={{ width: '100%', aspectRatio: 16 / 10, borderRadius: 10, backgroundColor: t.soft, marginBottom: 6 }} /> : null}
+              {p.photos?.[0] ? <Cover photo={p.photos[0]} label={`${p.name}: photo`} /> : null}
               <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/project/[slug]', params: { slug: p.slug } })} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 10, opacity: pressed ? 0.6 : 1 })}>
                 <View style={{ flex: 1, gap: 2 }}>
                   <Text style={{ color: t.fg, fontWeight: '600' }}>{p.name}</Text>

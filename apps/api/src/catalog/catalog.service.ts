@@ -49,7 +49,7 @@ export const VERIFIED_SELLER = { status: 'APPROVED', user: { active: true, role:
 /** Added to a project query to count its verified agents; `withAgents` turns the count into `agents`. */
 const AGENT_COUNT = { select: { sellers: { where: VERIFIED_SELLER } } } as const;
 /** The first photo of a project, for its card. */
-const COVER = { orderBy: { position: 'asc' }, take: 1, select: { file: true } } as const;
+const COVER = { orderBy: { position: 'asc' }, take: 1, select: { file: true, width: true, height: true } } as const;
 const withAgents = <T extends { _count: { sellers: number } }>({ _count, ...p }: T) => ({ ...p, agents: _count.sellers });
 
 @Injectable()
