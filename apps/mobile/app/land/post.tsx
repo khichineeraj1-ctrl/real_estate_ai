@@ -21,7 +21,8 @@ export default function PostLand() {
   const [consent, setConsent] = useState(false);
   const [photos, setPhotos] = useState<{ uri: string; mimeType?: string | null }[]>([]);
   const [progress, setProgress] = useState('');
-  const [missed, setMissed] = useState(0);
+  const [missed, setMissed] = useState<string[]>([]);
+  const [refused, setRefused] = useState<string[]>([]);
   const [state, setState] = useState<'idle' | 'busy' | 'done'>('idle');
   const [error, setError] = useState('');
   useEffect(() => { getLandOptions().then(setO).catch((e: Error) => setError(e.message)); }, []);
@@ -33,7 +34,8 @@ export default function PostLand() {
       <View style={{ backgroundColor: t.readyBg, borderRadius: 16, padding: 16, gap: 6 }}>
         <Text style={{ color: t.ready, fontSize: 18, fontWeight: '800' }}>✓ Received</Text>
         <Text style={{ color: t.fg, lineHeight: 21 }}>Our team will check it, usually within a working day, and then it shows to buyers. You can see its status and take it down from the Land screen on this phone.</Text>
-        {missed ? <Text style={{ color: t.danger, lineHeight: 21 }}>{missed} photo{missed === 1 ? '' : 's'} could not be sent. The listing itself is saved.</Text> : null}
+        {missed.length ? <Text style={{ color: t.danger, fontWeight: '700', lineHeight: 21 }}>The listing is saved, but {missed.length === 1 ? 'one photo was' : `${missed.length} photos were`} not added:</Text> : null}
+        {missed.map((m) => <Text key={m} style={{ color: t.fg, lineHeight: 20, fontSize: 14 }}>{m}</Text>)}
       </View>
       <Pressable accessibilityRole="button" onPress={() => router.back()} style={[s.btn, { backgroundColor: t.brand }]}><Text style={{ color: t.brandInk, fontWeight: '700' }}>Back to land</Text></Pressable>
     </View>
@@ -45,16 +47,30 @@ export default function PostLand() {
     postLand('listing', { ...f, features }).then(async (r) => {
       await rememberPost(r.token);
       // The listing is saved first; photos follow one at a time, so a weak connection loses one photo and not the listing.
-      let failed = 0;
-      for (let i = 0; i < photos.length; i++) { setProgress(`Sending photo ${i + 1} of ${photos.length}…`); try { await uploadLandPhoto(r.token, photos[i]); } catch { failed++; } }
+      const failed: string[] = [];
+      for (let i = 0; i < photos.length; i++) { setProgress(`Sending photo ${i + 1} of ${photos.length}…`); try { await uploadLandPhoto(r.token, photos[i]); } catch (e) { failed.push(`Photo ${i + 1}: ${(e as Error).message}`); } }
       setMissed(failed); setState('done');
     }).catch((e: Error) => { setError(e.message); setState('idle'); });
   };
   // The picker makes each photo smaller before it is sent: phone photos are far larger than the app ever shows.
+  // Each chosen photo is looked at before it is kept, so a photo that cannot go live is refused here, with the reason.
   const pick = async () => {
+    const rule = o?.photo ?? { minLong: 800, minShort: 600, maxShape: 3 };
     const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsMultipleSelection: true, selectionLimit: MAX_PHOTOS - photos.length, quality: 0.7 });
-    if (!r.canceled) setPhotos((p) => [...p, ...r.assets.map((a) => ({ uri: a.uri, mimeType: a.mimeType }))].slice(0, MAX_PHOTOS));
+    if (r.canceled) return;
+    const keep: { uri: string; mimeType?: string | null }[] = []; const no: string[] = [];
+    r.assets.forEach((a, i) => {
+      const long = Math.max(a.width, a.height); const short = Math.min(a.width, a.height);
+      const name = `Photo ${i + 1}`;
+      if (photos.some((p) => p.uri === a.uri)) no.push(`${name}: you have already chosen this photo.`);
+      else if (a.width && a.height && (long < rule.minLong || short < rule.minShort)) no.push(`${name} is too small (${a.width} × ${a.height} pixels) and would look blurred on the listing. It needs to be at least ${rule.minLong} × ${rule.minShort}. Choose the original from your gallery: photos forwarded on WhatsApp, and screenshots of photos, are made much smaller.`);
+      else if (a.width && a.height && long / short > rule.maxShape) no.push(`${name} is too long and thin (${a.width} × ${a.height} pixels), like a panorama, and most of it would be cut off. Choose an ordinary photo instead.`);
+      else keep.push({ uri: a.uri, mimeType: a.mimeType });
+    });
+    setRefused(no);
+    setPhotos((p) => [...p, ...keep].slice(0, MAX_PHOTOS));
   };
+
   const local = o.units.find((u) => u.code === f.areaUnit)?.local;
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={90}>
@@ -101,11 +117,24 @@ export default function PostLand() {
             ))}
           </View>
         ) : null}
+        {refused.length > 0 ? (
+          <View accessibilityRole="alert" style={{ borderWidth: 1, borderColor: t.danger, borderRadius: 14, padding: 12, gap: 8 }}>
+            <Text style={{ color: t.danger, fontWeight: '700' }}>{refused.length === 1 ? 'One photo was not added' : `${refused.length} photos were not added`}</Text>
+            {refused.map((x) => <Text key={x} style={{ color: t.fg, fontSize: 14, lineHeight: 20 }}>{x}</Text>)}
+          </View>
+        ) : null}
         {photos.length < MAX_PHOTOS ? (
           <Pressable accessibilityRole="button" onPress={pick} style={{ borderWidth: 1.5, borderStyle: 'dashed', borderColor: t.brand, borderRadius: 16, padding: 14, flexDirection: 'row', gap: 12, alignItems: 'center' }}>
             <Text style={{ fontSize: 26 }}>📷</Text>
             <View style={{ flex: 1 }}><Text style={{ color: t.brand, fontWeight: '700' }}>Add photos</Text><Text style={{ color: t.muted, fontSize: 13 }}>Listings with photos get far more enquiries. {MAX_PHOTOS - photos.length} more allowed.</Text></View>
           </Pressable>
+        ) : null}
+
+        {(o.photo?.tips.length ?? 0) > 0 ? (
+          <View style={[s.panel, { backgroundColor: t.soft, borderColor: t.line, gap: 6 }]}>
+            <Text style={{ color: t.fg, fontWeight: '700' }}>What makes a photo that goes live</Text>
+            {o.photo!.tips.map((tip) => <Text key={tip} style={{ color: t.muted, fontSize: 13, lineHeight: 19 }}>• {tip}</Text>)}
+          </View>
         ) : null}
 
         <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 17, fontWeight: '700' }}>About you</Text>

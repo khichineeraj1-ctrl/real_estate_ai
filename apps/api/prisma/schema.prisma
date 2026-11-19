@@ -282,6 +282,8 @@ model Photo {
   category   String?
   /// A photo belongs to one home, one builder's project, or one land listing: exactly one of the three is set.
   landId     String?
+  /// For land photos: a fingerprint of the stored picture, so the same photo is not added to a listing twice.
+  hash       String?
   land       LandListing? @relation(fields: [landId], references: [id], onDelete: Cascade)
   propertyId String?
   property   Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)

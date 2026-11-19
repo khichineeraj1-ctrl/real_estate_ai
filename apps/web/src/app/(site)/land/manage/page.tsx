@@ -1,12 +1,12 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { CloseButton } from '@/components/land/forms';
-import { PhotoManager } from '@/components/land/photos';
+import { DEFAULT_RULES, MissedPhotos, PhotoManager } from '@/components/land/photos';
 
 export const metadata: Metadata = { title: 'Your listing', robots: { index: false, follow: false } };
 export const dynamic = 'force-dynamic';
 const API_URL = process.env.API_URL || 'http://localhost:4100';
-interface Mine { type: 'listing' | 'wanted'; slug: string; title: string; status: string; note: string | null; replies: number; photos: { file: string }[]; maxPhotos: number }
+interface Mine { type: 'listing' | 'wanted'; slug: string; title: string; status: string; note: string | null; replies: number; photos: { file: string }[]; maxPhotos: number; photoTips: string[] }
 const STATUS: Record<string, string> = { PENDING: 'Waiting for our team to check it. This usually takes a working day.', LIVE: 'Live: people can see it.', REJECTED: 'Not accepted.', CLOSED: 'Closed. It no longer shows as open.' };
 
 export default async function Manage({ searchParams }: { searchParams: Promise<{ token?: string; new?: string; missed?: string }> }) {
@@ -25,7 +25,7 @@ export default async function Manage({ searchParams }: { searchParams: Promise<{
           <p>It is your private link to this {what}: bookmark it or send it to yourself now. You will need it to take the {what} down later. Do not share it.</p>
         </div>
       )}
-      {sp.missed && <p role="alert" className="aerror">{sp.missed} photo{sp.missed === '1' ? '' : 's'} could not be sent. The listing itself is saved: add the photos again below.</p>}
+      {sp.missed && <MissedPhotos count={Number(sp.missed) || 1} />}
       <h1>Your {what}</h1>
       <p className="lead">{m.title.charAt(0).toUpperCase() + m.title.slice(1)}</p>
       <dl className="land-facts">
@@ -37,7 +37,7 @@ export default async function Manage({ searchParams }: { searchParams: Promise<{
         <section className="section">
           <h2>Photos</h2>
           <p className="lead">Listings with photos get far more enquiries. Show the land from the road, the boundary, and anything on it.{m.status === 'LIVE' ? ' Adding photos sends the listing back to our team for a quick check before it shows again.' : ''}</p>
-          <PhotoManager token={token} photos={m.photos.map((p) => p.file)} max={m.maxPhotos} />
+          <PhotoManager token={token} photos={m.photos.map((p) => p.file)} max={m.maxPhotos} rules={{ ...DEFAULT_RULES, tips: m.photoTips }} />
         </section>
       )}
       {(m.status === 'LIVE' || m.status === 'PENDING') && <section className="section"><h2>{m.type === 'listing' ? 'Sold or let it?' : 'Found what you needed?'}</h2><CloseButton token={token} what={what} /></section>}

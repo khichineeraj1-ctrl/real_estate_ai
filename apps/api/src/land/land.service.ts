@@ -4,6 +4,7 @@ import { Input, slugify } from '../admin/input';
 import { MAX_PHOTO_BYTES, processPhoto, removePhoto, savePhoto, sniffImage, type ProcessedPhoto } from '../admin/photos';
 import { cleanEmail } from '../buyer/buyer.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { PHOTO_TIPS, lightProblem, sizeProblem, trueSize, wrongKind } from './photo-rules';
 import { DEALS, FEATURES, KINDS, KIND_LABEL, LAND_USES, POSTERS, PURPOSES, PURPOSE_LABEL, STATES, UNITS, areaAlso, areaText, cleanDistrict, landChecks, landIntent, listingTitle, rate, stateBySlug, toSqft, type Kind } from './rules';
 
 type Body = Record<string, unknown>;
@@ -226,7 +227,7 @@ export class LandService {
   }
   async manage(token: string) {
     const m = await this.mine(token);
-    return { type: m.type, slug: m.slug, title: m.title, status: m.status, note: m.decisionNote, replies: m._count.replies, photos: m.photos, maxPhotos: MAX_LAND_PHOTOS };
+    return { type: m.type, slug: m.slug, title: m.title, status: m.status, note: m.decisionNote, replies: m._count.replies, photos: m.photos, maxPhotos: MAX_LAND_PHOTOS, photoTips: PHOTO_TIPS };
   }
   /**
    * The poster adds photos with their private link. Each is decoded and re-encoded before it is stored, which also
@@ -239,15 +240,24 @@ export class LandService {
     if (m.status !== 'PENDING' && m.status !== 'LIVE') throw new BadRequestException('This listing is closed');
     if (!files?.length) throw new BadRequestException('Choose at least one photo');
     if (m.photos.length + files.length > MAX_LAND_PHOTOS) throw new BadRequestException(`A listing can have at most ${MAX_LAND_PHOTOS} photos; this one has ${m.photos.length}`);
-    if (files.some((f) => !sniffImage(f.buffer))) throw new BadRequestException('Photos must be JPEG, PNG or WebP images');
-    if (files.some((f) => f.size > MAX_PHOTO_BYTES)) throw new BadRequestException('Each photo must be under 5 MB');
-    const processed: ProcessedPhoto[] = [];
-    for (const f of files) {
-      try { processed.push(await processPhoto(f.buffer)); } catch { throw new BadRequestException('One of the photos could not be read. Save it again as a JPEG or PNG and retry.'); }
+    // Each photo is judged on its own, and the reason names the photo, so the poster knows which one to replace.
+    const which = (n: number) => (files.length > 1 ? `Photo ${n + 1}: ` : '');
+    const processed: (ProcessedPhoto & { hash: string })[] = [];
+    for (const [n, f] of files.entries()) {
+      if (f.size > MAX_PHOTO_BYTES) throw new BadRequestException(`${which(n)}This photo's file is too large (over 5 MB). Send it again at a smaller size.`);
+      if (!sniffImage(f.buffer)) throw new BadRequestException(which(n) + wrongKind(f.buffer));
+      let ph: ProcessedPhoto;
+      try { ph = await processPhoto(f.buffer); } catch { throw new BadRequestException(`${which(n)}This photo is damaged and could not be opened. Choose it again from your gallery, or take a new one.`); }
+      const size = (await trueSize(f.buffer)) ?? ph; // judged at the size it was taken, not the size we store
+      const problem = sizeProblem(size.width, size.height) ?? (await lightProblem(ph.card));
+      if (problem) throw new BadRequestException(which(n) + problem);
+      const hash = createHash('sha256').update(ph.card).digest('hex');
+      if (processed.some((x) => x.hash === hash) || (await this.db.photo.count({ where: { landId: m.id, hash } }))) throw new BadRequestException(`${which(n)}This photo is already on the listing. Add a different one.`);
+      processed.push({ ...ph, hash });
     }
     const last = await this.db.photo.aggregate({ where: { landId: m.id }, _max: { position: true } });
     let position = (last._max.position ?? -1) + 1;
-    for (const ph of processed) await this.db.photo.create({ data: { landId: m.id, file: await savePhoto(ph), width: ph.width, height: ph.height, position: position++ } });
+    for (const ph of processed) await this.db.photo.create({ data: { landId: m.id, file: await savePhoto(ph), width: ph.width, height: ph.height, position: position++, hash: ph.hash } });
     if (m.status === 'LIVE') await this.db.landListing.update({ where: { id: m.id }, data: { status: 'PENDING' } });
     return { ok: true as const, added: files.length, recheck: m.status === 'LIVE' };
   }

@@ -4,6 +4,7 @@ import { MAX_PHOTO_BYTES } from '../admin/photos';
 import { AdminGuard, Roles } from '../admin/auth';
 import { Limiter } from '../ask/ask.service';
 import { LandService, MAX_LAND_PHOTOS } from './land.service';
+import { MIN_LONG, MIN_SHORT, MAX_SHAPE, PHOTO_TIPS } from './photo-rules';
 import { FEATURES, KINDS, KIND_LABEL, LAND_USES, LOCAL_UNITS, PURPOSES, PURPOSE_LABEL, STATES, UNITS, UNIT_LABEL } from './rules';
 
 type Json = Record<string, unknown>;
@@ -24,7 +25,8 @@ export class LandController {
   /** Everything a form needs to draw itself, so the website and the app offer the same choices. */
   @Get('land/options') options() {
     return { states: STATES, kinds: KINDS.map((k) => ({ code: k, label: KIND_LABEL[k] })), purposes: PURPOSES.map((p) => ({ code: p, label: PURPOSE_LABEL[p] })),
-      units: UNITS.map((u) => ({ code: u, label: UNIT_LABEL[u][0], local: (LOCAL_UNITS as readonly string[]).includes(u) })), landUses: LAND_USES, features: Object.entries(FEATURES).map(([code, label]) => ({ code, label })) };
+      units: UNITS.map((u) => ({ code: u, label: UNIT_LABEL[u][0], local: (LOCAL_UNITS as readonly string[]).includes(u) })), landUses: LAND_USES, features: Object.entries(FEATURES).map(([code, label]) => ({ code, label })),
+      photo: { minLong: MIN_LONG, minShort: MIN_SHORT, maxShape: MAX_SHAPE, max: MAX_LAND_PHOTOS, tips: PHOTO_TIPS } };
   }
   @Get('land/places') places() { return this.land.places(); }
   @Get('land') list(@Query() q: { kind?: string; deal?: string; state?: string; district?: string; take?: string }) {

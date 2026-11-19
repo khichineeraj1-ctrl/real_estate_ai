@@ -480,6 +480,9 @@ in India, placed by state, district and town or village rather than by the four 
 - A listing can carry up to 8 photos, chosen in the form or added later from the private link. They are made smaller
   in the browser, re-encoded by the API (which drops GPS data), and shown only after staff approve the listing. Photos
   added to a live listing send it back for checking.
+- Photo rules live in `apps/api/src/land/photo-rules.ts`: at least 800 × 600, not a strip, not too dark or blank, not
+  a duplicate, and a real JPEG, PNG or WebP. Each refusal tells the poster what is wrong and what to do. The website
+  and the app check size and shape before sending; the server checks everything again.
 - Sizes are shown in the poster's unit. Acre, hectare, sq ft, sq yd, sq m, guntha, cent, kanal and ground convert;
   bigha, katha, biswa and marla vary by region and are never converted.
 - State and district pages (`/land/rajasthan`, `/land/rajasthan/alwar`) appear as listings arrive. Districts are typed

@@ -9,6 +9,7 @@ import { KIND_ICON, PURPOSE_ICON } from './cards';
 export interface LandOptions {
   states: { slug: string; name: string }[]; kinds: { code: string; label: string }[]; purposes: { code: string; label: string }[];
   units: { code: string; label: string; local: boolean }[]; landUses: string[]; features: { code: string; label: string }[];
+  photo?: { minLong: number; minShort: number; maxShape: number; max: number; tips: string[] };
 }
 const KIND_HINT: Record<string, string> = { FARM: 'Agricultural land, orchards, farmhouses', PLOT: 'Residential or commercial plots', INDUSTRIAL: 'Land for warehouses and factories', BUILT: 'Ready warehouse, shed or shop' };
 const USE: Record<string, string> = { AGRICULTURAL: 'Agricultural', RESIDENTIAL: 'Residential', COMMERCIAL: 'Commercial', INDUSTRIAL: 'Industrial' };
@@ -71,8 +72,10 @@ export function PostLandForm({ o }: { o: LandOptions }) {
     if (!state.token) return;
     const token = state.token;
     void (async () => {
-      const failed = files.length ? await uploadPhotos(token, files, (n) => setSending(`Sending photo ${n} of ${files.length}…`)) : 0;
-      router.push(`/land/manage?token=${encodeURIComponent(token)}&new=1${failed ? `&missed=${failed}` : ''}`);
+      const failed = files.length ? await uploadPhotos(token, files, (n) => setSending(`Sending photo ${n} of ${files.length}…`)) : [];
+      // The reasons travel to the next page in this tab's own storage, so the poster reads why and can fix it there.
+      try { if (failed.length) window.sessionStorage.setItem('land-photo-refused', JSON.stringify(failed)); } catch { /* the count alone is shown */ }
+      router.push(`/land/manage?token=${encodeURIComponent(token)}&new=1${failed.length ? `&missed=${failed.length}` : ''}`);
     })();
   }, [state.token]); // eslint-disable-line react-hooks/exhaustive-deps
   if (state.done) return <p className="astatus" role="status">Thank you. Our team will look at it.</p>;
@@ -109,7 +112,7 @@ export function PostLandForm({ o }: { o: LandOptions }) {
         <label className="afield wide"><span>Anything else a buyer should know <em>(optional)</em></span><textarea name="description" rows={3} maxLength={1000} placeholder="e.g. Two sides open, canal on the east, 4 km from the mandi" /></label>
 
         <h2>Photos <em className="land-opt">(optional, up to 8)</em></h2>
-        <PhotoPicker files={files} set={setFiles} max={8} />
+        <PhotoPicker files={files} set={setFiles} max={o.photo?.max ?? 8} rules={o.photo} />
 
         <h2>About you</h2>
         <label className="afield wide"><span>You are</span><select name="posterIs" defaultValue="OWNER"><option value="OWNER">The owner, or family of the owner</option><option value="DEALER">A dealer or agent</option><option value="COMPANY">A company</option></select></label>

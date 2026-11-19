@@ -163,7 +163,7 @@ export interface LandItem {
 }
 export type LandDetail = LandItem & { description: string | null; closed: boolean; features: string[]; clearHeightFt: number | null; powerKva: number | null; docks: number | null; checks: { key: string; title: string; why: string }[]; nearby: LandItem[] };
 export interface WantedItem { slug: string; kind: string; deal: string; purpose: string; purposeLabel: string; kindLabel: string; title: string; details: string | null; state: string; stateSlug: string; where: string | null; size: string; budgetInr: number | null; by: string | null; answers: number; createdAt: string }
-export interface LandOptions { states: Place[]; kinds: { code: string; label: string }[]; purposes: { code: string; label: string }[]; units: { code: string; label: string; local: boolean }[]; landUses: string[]; features: { code: string; label: string }[] }
+export interface LandOptions { states: Place[]; kinds: { code: string; label: string }[]; purposes: { code: string; label: string }[]; units: { code: string; label: string; local: boolean }[]; landUses: string[]; features: { code: string; label: string }[]; photo?: { minLong: number; minShort: number; maxShape: number; max: number; tips: string[] } }
 export interface LandMine { type: 'listing' | 'wanted'; slug: string; title: string; status: string; note: string | null; replies: number }
 export const getLand = (q: { kind?: string; deal?: string } = {}) => call<{ total: number; items: LandItem[] }>(`/land?take=40${q.kind ? `&kind=${q.kind}` : ''}${q.deal ? `&deal=${q.deal}` : ''}`);
 export const getLandPlaces = () => call<{ kinds: { kind: string; label: string; count: number }[]; wanted: number }>('/land/places');
