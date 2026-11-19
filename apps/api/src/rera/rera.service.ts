@@ -1,9 +1,9 @@
-import { ensureBuilder } from '../catalog/builders';
+import { builderFor, ensureBuilder } from '../catalog/builders';
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma, RegisterProject, RegisterSource } from '@prisma/client';
 import { slugify } from '../admin/input';
 import { PrismaService } from '../prisma/prisma.service';
-import { LIST_URL, RegisterEntry, SOURCE_NAME, displayName, parseHaryana, parseKarnataka, parseMaharashtra } from './parse';
+import { LIST_URL, RegisterEntry, SOURCE_NAME, displayName, parseHaryana, parseKarnataka, parseMaharashtra, projectName } from './parse';
 import { CITY_OF, PINCODES, Spot, place } from './place';
 
 /**
@@ -173,8 +173,9 @@ export class RegisterService {
     const locality = await this.db.locality.findUnique({ where: { id: localityId }, select: { name: true, city: { select: { name: true, slug: true } } } });
     if (!locality) throw new BadRequestException('Choose a locality from the list');
     if (!(CITY_OF[r.source] as readonly string[]).includes(locality.city.slug)) throw new BadRequestException(`${SOURCE_NAME[r.source]} covers ${CITY_OF[r.source].join(' and ')}, not ${locality.city.name}`);
-    const name = displayName(r.name);
     const builder = displayName(r.promoter) || 'Not stated in the register';
+    // The name made fit to read; one that only says the kind of project ("Group Housing Colony") is given its builder.
+    const name = projectName(r.name, builderFor(builder).name);
     const base = slugify(`${name} ${locality.name} ${locality.city.name}`);
     const taken = await this.db.project.findUnique({ where: { slug: base }, select: { id: true } });
     const slug = taken ? `${base.slice(0, 80)}-${slugify(r.regNo).slice(-8)}` : base;

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { dayFirst, displayName, parseHaryana, parseKarnataka, parseMaharashtra, text } from './parse';
+import { dayFirst, displayName, parseHaryana, parseKarnataka, parseMaharashtra, projectName, text } from './parse';
 import { Spot, km, place } from './place';
 
 // Small excerpts of the registers' real pages, saved on 18 Nov 2026.
@@ -95,4 +95,17 @@ test('placing by map position', () => {
   assert.equal(place(entry({ source: 'MAHARASHTRA', lat: 19.12, lng: 72.91, pincode: '400076' }), SPOTS)?.spot.slug, 'powai', 'position and pincode agree');
   assert.equal(place(entry({ source: 'MAHARASHTRA', lat: 19.12, lng: 72.91, pincode: '411045' }), SPOTS), null, 'a Pune pincode with a Mumbai position: one of them is wrong, so it is left for a person');
   assert.equal(place(entry({ source: 'MAHARASHTRA', lat: 19.12, lng: 72.91, pincode: '400999' }), SPOTS)?.spot.slug, 'powai', 'a pincode we know nothing about does not contradict the position');
+});
+
+test('project names are made fit to read, and nothing is invented', () => {
+  const cases: [string, string][] = [
+    ['M3M ROUTE65', 'M3M Route65'], ['M3M CAPITAL PHASE-3', 'M3M Capital Phase 3'], ['M3M Capital Phase -2', 'M3M Capital Phase 2'], ['M3M Mansion PH-2', 'M3M Mansion Phase 2'],
+    ['M3M Latitude ( Tower R-01)', 'M3M Latitude (Tower R-01)'], ['Emaar Business District ( Ebd) 65', 'Emaar Business District (EBD) 65'], ['Sobha City- Phase 1,PART 2', 'Sobha City - Phase 1, Part 2'],
+    ['Sobha City (PHASE-2, PART-1)', 'Sobha City (Phase 2, Part 1)'], ['Enigma, PHASE-1A', 'Enigma Phase 1A'], ['Platinum TOWER-4', 'Platinum Tower 4'], ['KAVYAM-PHASE-1', 'Kavyam Phase 1'],
+    ['Blue Ridge - THE LOFTS', 'Blue Ridge - The Lofts'], ['HCBS Auroville', 'HCBS Auroville'], ['93 Avenue Phase- III', '93 Avenue Phase III'], ['Pluto-B -Suncity Housing Phase- I', 'Pluto-B - Suncity Housing Phase I'], ['Comercial Colony', 'Commercial Colony'], ['Godrej Air', 'Godrej Air'], ['The Dahlias', 'The Dahlias'], ['Kolte-Patil Life Republic', 'Kolte-Patil Life Republic'],
+  ];
+  for (const [from, to] of cases) assert.equal(projectName(from), to, from);
+  assert.equal(projectName('Group Housing Colony', 'Experion Developers'), 'Group Housing Colony by Experion Developers', 'a name that only says the kind of project is given its builder');
+  assert.equal(projectName('Commercial Project of Area 0.4875 Acres', 'Vipul'), 'Commercial Project of Area 0.4875 Acres by Vipul');
+  assert.equal(projectName('Emerald Estate', 'Emaar'), 'Emerald Estate', 'a real name is left alone');
 });

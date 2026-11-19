@@ -124,3 +124,47 @@ export function displayName(s: string): string {
     return lower.replace(/(^|[-&.(/'])([a-z])/g, (_, p: string, ch: string) => p + ch.toUpperCase());
   }).join(' ');
 }
+
+/** Abbreviations that stay in capitals inside a project's name. */
+const KEEP_CAPS = /^(EWS|EBD|SCDA|DXP|DLF|BPTP|NCR|CHSL|II|III|IV|VI|VII|VIII|IX)$/;
+/** Whole names the rules below cannot mend, set right by hand. Left: the name as displayName gives it. */
+const RENAMED: Record<string, string> = {
+  'Mixed Land Use (Residential (M3M Heights, M3M Skycity) & Commercial (M3M 65TH Avenue))': 'M3M Heights, M3M Skycity and M3M 65th Avenue',
+  'KABRA METRO ONE WING A AND B A Redevelopment Project of PRATAP CHSL': 'Kabra Metro One, Wings A and B (redevelopment of Pratap CHSL)',
+  'F RESIDENCES T5 T6 and T7': 'F Residences T5, T6 and T7',
+  'MARVEL CERISE Bldg-A': 'Marvel Cerise, Building A',
+  'Chintels Serenity-Tower NO.3,4,5, Ews Block': 'Chintels Serenity, Towers 3, 4 and 5 and EWS Block',
+  'The Heartsong PHASE-5,2 No. Nursery School': 'The Heartsong Phase 5 (with two nursery schools)',
+  'Windchants Phase -4,NURSERY School Site': 'Windchants Phase 4 (nursery school site)',
+  'Windchants PHASE-2 ( T2, T3. S3 and S4)': 'Windchants Phase 2 (T2, T3, S3 and S4)',
+  'Affodable Group Housing Colony-Zara Rossa': 'Zara Rossa (affordable group housing colony)',
+  'Residential Plotted Colony (Westerlies)': 'Westerlies (residential plotted colony)',
+};
+/** A name that says what kind of project it is but not which one, such as "Group Housing Colony". */
+const GENERIC = /^(?:[\d.]+ )?(?:(?:affordable|residential|commercial|mixed land use|group housing|plotted) ?)+(?:colony|project|housing)?(?: (?:of|for)(?: area)? [\d.]+ acres?)?$/i;
+
+/**
+ * A project's name as the register gives it, made fit to read: capitals and spacing set right ("PHASE-2" becomes
+ * "Phase 2", "( Tower" becomes "(Tower"), obvious slips mended, and a name that only says what kind of project it is
+ * ("Group Housing Colony") given its builder so it can be told from the others. No word is added that the register
+ * and the builder's name do not supply.
+ */
+export function projectName(registered: string, builder?: string): string {
+  const shown = displayName(registered);
+  if (RENAMED[shown]) return RENAMED[shown];
+  if (shown.length > 80) return shown; // a description rather than a name: left for a person to title
+  let name = shown
+    .replace(/Comercial/gi, 'Commercial').replace(/Affodable/gi, 'Affordable')
+    .replace(/-(?=PHASE\b|PH\b|PART\b)/gi, ' ') // "KAVYAM-PHASE-1": the hyphen before "Phase" is only a separator
+    .replace(/\b(THE|AND|OF|BY|AT|IN|ONE|FOR)\b/g, (w) => (w === 'THE' || w === 'ONE' ? w[0] + w.slice(1).toLowerCase() : w.toLowerCase()))
+    .replace(/\b(?:PHASE|Phase|PH)\s*-?\s*(\d+[A-Z]?)\b/g, 'Phase $1').replace(/\b(?:PART|Part)\s*-?\s*(\d+)\b/g, 'Part $1')
+    .replace(/\bPhase\s*-\s*([IVX]+)\b/g, 'Phase $1').replace(/ -(?=[A-Za-z])/g, ' - ').replace(/\(\s+/g, '(').replace(/\s+\)/g, ')').replace(/,(?=\S)/g, ', ').replace(/(\w)- /g, '$1 - ').replace(/(\d)TH\b/g, '$1th')
+    .split(/(\s+|[()/,])/).map((w) => {
+      const letters = w.replace(/[^A-Za-z]/g, '');
+      if (KEEP_CAPS.test(w) || letters.length < 4 || w !== w.toUpperCase() || !/[AEIOUY]/.test(letters)) return /^(ebd|scda|ews)$/i.test(w) ? w.toUpperCase() : w;
+      // A word shouted in capitals, with or without a number on the end: "ROUTE65", "TOWER-4", "KAVYAM-PHASE-1".
+      return w.split('-').map((part) => (/^[A-Z]{4,}\d*$/.test(part) ? part[0] + part.slice(1).toLowerCase() : part)).join(/-\d+$/.test(w) ? ' ' : '-');
+    }).join('').replace(/\s{2,}/g, ' ').replace(/^(.*?), (Phase \d+[A-Z]?)$/, '$1 $2').trim();
+  if (builder && GENERIC.test(name)) name = `${name} by ${builder}`;
+  return name;
+}
