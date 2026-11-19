@@ -20,7 +20,7 @@ function paragraphs(reply: string): string[] {
 
 interface Entry { question: string; result: AskResult | null; error?: string }
 
-const EXAMPLES = ['3 BHK in Whitefield under 1.5 crore', 'Ready to move flats in Sector 57 Gurgaon', 'Average rate in Powai', 'Cheapest 2 BHK in Pune'];
+const EXAMPLES = ['3 BHK in Whitefield', 'M3M projects in Gurgaon', 'Average rate in Powai?', 'Cheapest 2 BHK in Pune'];
 
 /** The conversation: questions typed or spoken, answers shown and read aloud, matching homes as cards. */
 export function Ask({ header }: { header?: React.ReactNode }) {
@@ -68,11 +68,11 @@ export function Ask({ header }: { header?: React.ReactNode }) {
           <View style={{ gap: 14 }}>
             {header}
             <Text style={[s.hero, { color: t.brand }]}>Ask. Find your home.</Text>
-            <Text style={{ color: t.muted, fontSize: 16, lineHeight: 23 }}>Type or speak your question and get a straight answer about homes and builder projects in Gurgaon, Bengaluru, Mumbai and Pune.</Text>
-            <View style={{ gap: 8, marginTop: 6 }}>
+            <Text style={{ color: t.muted, fontSize: 16, lineHeight: 23 }}>Homes and builder projects in Gurgaon, Bengaluru, Mumbai and Pune.</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6 }}>
               {EXAMPLES.map((q) => (
-                <Pressable key={q} accessibilityRole="button" onPress={() => send(q)} style={[s.chip, { borderColor: t.line, backgroundColor: t.soft }]}>
-                  <Text style={{ color: t.fg, fontSize: 15 }}>{q}</Text>
+                <Pressable key={q} accessibilityRole="button" onPress={() => send(q)} style={[s.chip, { borderColor: t.line, backgroundColor: t.soft, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 9 }]}>
+                  <Text style={{ color: t.fg, fontSize: 13.5 }}>{q}</Text>
                 </Pressable>
               ))}
             </View>
@@ -138,7 +138,7 @@ export function Ask({ header }: { header?: React.ReactNode }) {
         <View style={[s.bar, { borderColor: listening ? t.accent : t.line, backgroundColor: t.card }]}>
           <TextInput
             value={text} onChangeText={setText} onSubmitEditing={() => send(text)} returnKeyType="search" maxLength={300}
-            placeholder={listening ? 'Listening…' : 'Ask anything about buying a home'} placeholderTextColor={t.muted} accessibilityLabel="Ask about homes for sale"
+            placeholder={listening ? 'Listening…' : 'Ask anything'} placeholderTextColor={t.muted} accessibilityLabel="Ask about homes for sale"
             style={[s.input, { color: t.fg }]}
           />
           {listener && (
