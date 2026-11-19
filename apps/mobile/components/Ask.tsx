@@ -8,6 +8,15 @@ import { useTheme } from '../lib/theme';
 import { createListener, speak, stopSpeaking } from '../lib/voice';
 import { PropertyCard } from './PropertyCard';
 
+/** A reply is written to be spoken, as one run of sentences. On screen: the first sentence alone, then two at a time. */
+function paragraphs(reply: string): string[] {
+  const sentences = reply.split(/(?<=[.!?])\s+(?=[A-Z₹"“(])/).map((x) => x.trim()).filter(Boolean);
+  if (sentences.length < 3) return [reply];
+  const out = [sentences[0]];
+  for (let i = 1; i < sentences.length; i += 2) out.push(sentences.slice(i, i + 2).join(' '));
+  return out;
+}
+
 interface Entry { question: string; result: AskResult | null; error?: string }
 
 const EXAMPLES = ['3 BHK in Whitefield under 1.5 crore', 'Ready to move flats in Sector 57 Gurgaon', 'Average rate in Powai', 'Cheapest 2 BHK in Pune'];
@@ -73,7 +82,9 @@ export function Ask({ header }: { header?: React.ReactNode }) {
             <View style={[s.answer, { backgroundColor: t.soft, borderColor: t.line }]}>
               {e.result ? (
                 <>
-                  <Text accessibilityLiveRegion="polite" style={{ color: t.fg, fontSize: 16, lineHeight: 23 }}>{e.result.reply}</Text>
+                  <View accessibilityLiveRegion="polite" style={{ gap: 8 }}>
+                    {paragraphs(e.result.reply).map((x, n) => <Text key={n} style={{ color: n === 0 ? t.fg : t.muted, fontSize: 16, lineHeight: 24, fontWeight: n === 0 ? '600' : '400' }}>{x}</Text>)}
+                  </View>
                   {e.result.properties.map((p) => <PropertyCard key={p.slug} p={p} />)}
                   {(e.result.projects ?? []).map((p) => (
                     <View key={p.slug} style={{ borderWidth: 1, borderColor: t.line, backgroundColor: t.card, borderRadius: 14, padding: 12, gap: 8 }}>

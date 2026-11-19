@@ -8,6 +8,18 @@ import { monthYear } from '@/lib/format';
 import { PropertyGrid } from './PropertyCard';
 import { ProjectTile } from './ProjectTile';
 
+/**
+ * A reply comes as one run of sentences, written to be spoken. On screen it is shown as short paragraphs: the first
+ * sentence on its own (the answer), then the rest two at a time.
+ */
+function paragraphs(reply: string): string[] {
+  const sentences = reply.split(/(?<=[.!?])\s+(?=[A-Z₹"“(])/).map((x) => x.trim()).filter(Boolean);
+  if (sentences.length < 3) return [reply];
+  const out = [sentences[0]];
+  for (let i = 1; i < sentences.length; i += 2) out.push(sentences.slice(i, i + 2).join(' '));
+  return out;
+}
+
 interface Entry { question: string; result: AskResult | null; error?: string }
 
 interface Props {
@@ -104,7 +116,7 @@ export function AskBox({ initial, context, placeholder, autoFocus }: Props) {
               <p className="you">{e.question}</p>
               {e.result ? (
                 <div className="answer">
-                  <p>{e.result.reply}</p>
+                  <div className="reply">{paragraphs(e.result.reply).map((t, n) => <p key={n}>{t}</p>)}</div>
                   {e.result.properties.length > 0 && <PropertyGrid items={e.result.properties} />}
                   {(e.result.projects?.length ?? 0) > 0 && (
                     <ul className="tiles">

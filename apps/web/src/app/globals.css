@@ -7,19 +7,29 @@
 @media (prefers-color-scheme: dark) {
   :root { --bg: #0e1116; --fg: #eef1f5; --muted: #98a2b3; --line: #252b35; --soft: #151a21; --card: #151a21; --brand: #8b85ff; --brand-2: #2dd4bf; --ready: #5fd3a2; --ready-bg: #12281f; --danger: #ff8a7a; --shadow: none; }
 }
+/* Inter, served from this site (two files: everyday Latin, and the wider set that holds the rupee sign, fetched only
+   by pages that use it). The fallback face is Arial resized to Inter's proportions, so text does not jump when Inter arrives. */
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 100 900; font-display: swap; src: url('./fonts/inter-latin.woff2') format('woff2-variations'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 100 900; font-display: swap; src: url('./fonts/inter-latin-ext.woff2') format('woff2-variations'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'Inter Fallback'; src: local('Arial'); size-adjust: 107.4%; ascent-override: 90.2%; descent-override: 22.5%; line-gap-override: 0%; }
+
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
-body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.55 system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', sans-serif; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 400 16px/1.6 'Inter', 'Inter Fallback', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', sans-serif; font-feature-settings: 'cv11', 'ss03', 'calt'; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; }
+button, input, select, textarea { font-family: inherit; }
 a { color: var(--brand); text-decoration: none; }
 a:hover { text-decoration: underline; }
-h1 { font-size: clamp(1.6rem, 4vw, 2.3rem); line-height: 1.15; margin: 0 0 .5rem; letter-spacing: -.02em; }
-h2 { font-size: 1.25rem; margin: 0 0 .9rem; letter-spacing: -.01em; }
-h3 { font-size: 1rem; margin: 0; line-height: 1.35; }
-p { margin: 0 0 1rem; }
+/* Type: one scale, with headings a touch lighter and tighter than the browser's bold, and room under each. */
+h1 { font-size: clamp(1.6rem, 3.4vw, 2.15rem); font-weight: 700; line-height: 1.2; margin: 0 0 .7rem; letter-spacing: -.022em; text-wrap: balance; }
+h2 { font-size: 1.3rem; font-weight: 650; line-height: 1.3; margin: 0 0 1rem; letter-spacing: -.015em; text-wrap: balance; }
+h3 { font-size: 1.02rem; font-weight: 600; margin: 0; line-height: 1.4; letter-spacing: -.005em; }
+p { margin: 0 0 1rem; text-wrap: pretty; }
+strong, b { font-weight: 600; }
+small { font-size: .875rem; }
 .wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
 main.wrap { padding-top: 20px; padding-bottom: 56px; min-height: 60vh; }
-.lead { color: var(--muted); font-size: 1.05rem; max-width: 68ch; }
-.section { margin-top: 44px; }
+.lead { color: var(--muted); font-size: 1.0625rem; line-height: 1.65; max-width: 66ch; }
+.section { margin-top: 56px; }
 
 .site-header { border-bottom: 1px solid var(--line); position: sticky; top: 0; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px); z-index: 10; }
 .site-header .wrap { display: flex; align-items: center; gap: 20px; height: 56px; }
@@ -53,13 +63,18 @@ main.wrap { padding-top: 20px; padding-bottom: 56px; min-height: 60vh; }
 @keyframes pulse { 50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--brand-2) 25%, transparent); } }
 @media (prefers-reduced-motion: reduce) { .is-listening .mic { animation: none; } }
 .askmeta { display: flex; gap: 16px; justify-content: space-between; color: var(--muted); font-size: .88rem; padding: 8px 14px 0; min-height: 1.4em; }
-.thread { margin-bottom: 14px; display: grid; gap: 18px; }
-.you { margin: 0 0 8px auto; width: fit-content; max-width: 85%; background: var(--brand); color: #fff; padding: 8px 14px; border-radius: 18px 18px 4px 18px; }
+.thread { margin-bottom: 18px; display: grid; gap: 26px; }
+.you { margin: 0 0 12px auto; width: fit-content; max-width: 85%; background: var(--brand); color: #fff; font-size: .95rem; font-weight: 500; padding: 8px 14px; border-radius: 18px 18px 4px 18px; }
 @media (prefers-color-scheme: dark) { .you { color: #0e1116; } }
-.answer { background: var(--soft); border: 1px solid var(--line); border-radius: 4px 18px 18px 18px; padding: 14px 16px; }
-.answer > p:first-child { font-size: 1.05rem; }
-.answer .grid { margin-top: 4px; }
-.answer .more { margin: 12px 0 0; font-weight: 600; }
+.answer { background: var(--soft); border: 1px solid var(--line); border-radius: 4px 18px 18px 18px; padding: 20px 22px; }
+/* The reply itself: a comfortable line length and space between its short paragraphs, the first a little stronger. */
+.reply { max-width: 64ch; }
+.reply p { margin: 0 0 .7rem; line-height: 1.65; }
+.reply p:first-child { font-size: 1.06rem; font-weight: 500; }
+.reply p:last-child { margin-bottom: 0; }
+.reply p:not(:first-child) { color: color-mix(in srgb, var(--fg) 82%, var(--muted)); }
+.answer .grid, .answer .tiles { margin-top: 18px; }
+.answer .more { margin: 16px 0 0; font-weight: 600; font-size: .95rem; }
 .answer.thinking { color: var(--muted); }
 .answer.error { color: var(--danger); }
 
@@ -76,8 +91,8 @@ main.wrap { padding-top: 20px; padding-bottom: 56px; min-height: 60vh; }
 .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; list-style: none; padding: 0; margin: 0; }
 .tiles > li > a { display: block; border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; color: var(--fg); background: var(--card); height: 100%; }
 .tiles > li > a:hover { border-color: var(--brand); text-decoration: none; }
-.tiles > li > a strong { display: block; font-size: 1.05rem; }
-.tiles > li > a span { color: var(--muted); font-size: .9rem; display: block; }
+.tiles > li > a strong { display: block; font-size: 1rem; line-height: 1.35; margin-bottom: 4px; letter-spacing: -.005em; }
+.tiles > li > a span { color: var(--muted); font-size: .875rem; line-height: 1.5; display: block; }
 
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 18px 0; }
 .stats div { background: var(--soft); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 16px; }
@@ -94,7 +109,7 @@ main.wrap { padding-top: 20px; padding-bottom: 56px; min-height: 60vh; }
 .detail div { border-top: 1px solid var(--line); padding: 10px 0; }
 .detail dt { color: var(--muted); font-size: .82rem; }
 .detail dd { margin: 0; font-weight: 600; }
-.price-line { font-size: 1.8rem; font-weight: 800; margin: 6px 0 2px; }
+.price-line { font-size: 1.8rem; font-weight: 700; margin: 6px 0 2px; }
 .price-line small { font-size: .95rem; font-weight: 500; color: var(--muted); margin-left: 8px; }
 .pills { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 0; }
 .pills li { background: var(--soft); border: 1px solid var(--line); padding: 5px 12px; border-radius: 999px; font-size: .9rem; }
@@ -213,7 +228,7 @@ ol.bullets li { margin-bottom: 4px; }
 .calc-out { display: grid; gap: 18px; align-content: start; background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; }
 .calc-hero { margin: 0; display: grid; }
 .calc-hero span { color: var(--muted); font-size: .9rem; }
-.calc-hero strong { font-size: clamp(2rem, 6vw, 3rem); font-weight: 800; line-height: 1.1; letter-spacing: -.02em; }
+.calc-hero strong { font-size: clamp(2rem, 6vw, 3rem); font-weight: 700; line-height: 1.1; letter-spacing: -.02em; }
 .calc-hero small { color: var(--muted); font-size: .88rem; margin-top: 4px; }
 .calc-result { margin: 0; display: grid; gap: 8px; align-content: start; }
 .calc-result div { display: flex; justify-content: space-between; gap: 12px; border-top: 1px solid var(--line); padding-top: 8px; }
@@ -262,7 +277,7 @@ ol.bullets li { margin-bottom: 4px; }
 .quick-out a { display: grid; gap: 2px; height: 100%; align-content: start; background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; color: var(--fg); transition: border-color .15s, transform .15s; }
 .quick-out a:hover { border-color: var(--brand); transform: translateY(-2px); text-decoration: none; }
 .quick-out span { color: var(--muted); font-size: .85rem; }
-.quick-out strong { font-size: clamp(1.2rem, 2.4vw, 1.6rem); font-weight: 800; letter-spacing: -.01em; }
+.quick-out strong { font-size: clamp(1.2rem, 2.4vw, 1.6rem); font-weight: 700; letter-spacing: -.01em; }
 .quick-out small { color: var(--brand); font-size: .82rem; }
 @media (max-width: 860px) { .quick { grid-template-columns: 1fr; } }
 @media (max-width: 520px) { .quick-out { grid-template-columns: 1fr; } }
@@ -333,7 +348,7 @@ body:has(> .auth-page) { display: grid; place-items: center; min-height: 100vh; 
 .auth-art { position: relative; overflow: hidden; padding: 36px 32px; color: #fff; background: linear-gradient(150deg, #4338ca 0%, #4f46e5 45%, #0d9488 100%); display: flex; flex-direction: column; gap: 22px; isolation: isolate; }
 .auth-logo { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; font-size: 1.15rem; color: #fff; }
 .auth-logo .orb { background: #fff; }
-.auth-kicker { font-size: clamp(1.35rem, 2.4vw, 1.8rem); font-weight: 800; line-height: 1.2; letter-spacing: -.02em; margin: auto 0 0; max-width: 16ch; }
+.auth-kicker { font-size: clamp(1.35rem, 2.4vw, 1.8rem); font-weight: 700; line-height: 1.2; letter-spacing: -.02em; margin: auto 0 0; max-width: 16ch; }
 .auth-points { list-style: none; padding: 0; margin: 0 0 auto; display: grid; gap: 14px; }
 .auth-points li { display: flex; gap: 12px; align-items: flex-start; animation: rise .55s both ease-out; }
 .auth-points strong { display: block; font-size: 1rem; }
@@ -556,4 +571,3 @@ p > .connect { margin: 0; }
 .viewer-strip button { position: relative; } .strip-play { width: 22px; height: 22px; font-size: .6rem; padding-left: 2px; }
 .viewer-video { width: min(100%, calc((100dvh - 240px) * 16 / 9)); aspect-ratio: 16 / 9; height: auto; border: 0; border-radius: 8px; background: #000; }
 
-.answer .tiles { margin-top: 10px; }
