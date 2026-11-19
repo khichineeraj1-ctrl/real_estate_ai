@@ -30,6 +30,7 @@ export class CatalogController {
   @Get('projects/:slug') project(@Param('slug') slug: string) { return this.catalog.project(slug); }
   @Get('properties/:slug') property(@Param('slug') slug: string) { return this.catalog.property(slug); }
   @Get('sitemap') sitemap() { return this.catalog.sitemap(); }
+  @Get('compare/projects') compareProjects(@Query('slugs') slugs?: string) { return this.catalog.compareProjects((slugs ?? '').split(',')); }
   @Get('compare') compare(@Query('slugs') slugs?: string) { return this.catalog.compare((slugs ?? '').split(',')); }
 
   @Post('properties/:slug/enquiries')

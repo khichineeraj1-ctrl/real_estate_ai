@@ -12,6 +12,21 @@ each city's buying charges; it never deletes anything and is safe to run again. 
 RERA registers, which carry no prices. Homes and prices appear only when an owner, agent or builder posts them, so
 locality pages show no price figures until then.
 
+## Comparing, side by side
+
+Comparison is the thing this site does that the large portals do not, so it is offered wherever a buyer is choosing:
+
+- **Builder projects** (`/compare/projects?ids=a,b`): up to four, on where they are, who is building and how much
+  else that builder has registered in the city, how each RERA registration stands, verified agents, homes for sale
+  and what the locality is known for. A few sentences above the table say what differs. Where a fact is not known
+  (prices, for a register project) the cell says so. Cells are highlighted only where the projects differ.
+- **Localities** (`/<city>/compare/<a>-vs-<b>`) and **homes** (`/compare?ids=a,b`), as before.
+- **Where it appears:** a "⇄ Compare" button on every project card and listing card, a shortlist bar at the bottom of
+  the screen naming what is chosen, ready-made "X vs Y" links on each project page, "Compare" in the header, a
+  section on the home page, and the `/compare` hub. The assistant answers "X vs Y" for projects and links the
+  side-by-side page.
+- Shortlists live in the visitor's browser. Combination pages are not indexed; the hub is.
+
 ## What the assistant can look up
 
 - **Homes** (`search_properties`): by city, locality, size, type, status and price.

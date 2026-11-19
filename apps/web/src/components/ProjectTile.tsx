@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { media, projectPath } from '@/lib/seo';
 import { ConnectButton } from './ConnectButton';
+import { CompareToggle } from './tools/Compare';
 
 interface Project { slug: string; name: string; brand?: { slug: string; name: string } | null; registerSource?: string | null; agents?: number; photos?: { file: string }[] }
 
@@ -16,7 +17,10 @@ export function ProjectTile({ city, p, lines }: { city: string; p: Project; line
         {lines.filter(Boolean).map((l) => <span key={l as string}>{l}</span>)}
         {agents > 0 && <span className="ptile-agents">✓ {agents === 1 ? 'A verified agent sells this' : `${agents} verified agents sell this`}</span>}
       </Link>
-      <ConnectButton kind="project" slug={p.slug} name={p.name} mode={agents > 0 ? 'agent' : 'callback'} agents={agents} unclaimed={!!p.registerSource} />
+      <div className="ptile-actions">
+        <ConnectButton kind="project" slug={p.slug} name={p.name} mode={agents > 0 ? 'agent' : 'callback'} agents={agents} unclaimed={!!p.registerSource} />
+        <CompareToggle kind="projects" slug={p.slug} title={p.name} />
+      </div>
     </li>
   );
 }

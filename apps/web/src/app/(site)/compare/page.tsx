@@ -5,10 +5,12 @@ import { api } from '@/lib/api';
 import { LOAN_DEFAULTS, buyingCosts, loanPlan } from '@/lib/finance';
 import { monthYear, num, price, rate, statusLabel, typeLabel } from '@/lib/format';
 import { media, projectPath, pageMeta } from '@/lib/seo';
-import type { PropertyDetail } from '@/lib/types';
+import { Shortlists } from '@/components/tools/Compare';
+import { LocalityPicker } from '@/components/tools/Hub';
+import type { CitySummary, PropertyDetail } from '@/lib/types';
 
 // A page per combination of listings would be endless near-duplicates, so comparisons are not indexed.
-export const metadata: Metadata = pageMeta({ title: 'Compare homes side by side', description: 'Put up to four homes side by side: price, rate per sq ft, size, buying costs and amenities.', path: '/compare', noindex: true });
+export const metadata: Metadata = pageMeta({ title: 'Compare Projects, Localities and Homes Side by Side', description: 'Put builder projects, localities or homes next to each other: RERA standing, asking rates, the full cost of buying and more, with nothing left out.', path: '/compare' });
 
 type Home = Omit<PropertyDetail, 'similar'>;
 type Props = { searchParams: Promise<{ ids?: string | string[] }> };
@@ -19,12 +21,29 @@ export default async function ComparePage({ searchParams }: Props) {
   const homes = ids.length ? (await api<Home[]>(`/compare?slugs=${encodeURIComponent(ids.join(','))}`, { revalidate: 60 })) ?? [] : [];
 
   if (homes.length < 2) {
+    const cities = (await api<CitySummary[]>('/cities')) ?? [];
     return (
       <>
-        <Breadcrumbs crumbs={[{ name: 'Tools', path: '/tools' }, { name: 'Compare homes', path: '/compare' }]} />
-        <h1>Compare homes side by side</h1>
-        <p className="lead">{homes.length === 1 ? 'Choose at least one more home.' : 'Choose two to four homes to compare.'} Press “+ Compare” on any listing, then “Compare” in the bar at the bottom of the screen.</p>
-        <p><Link href="/">Browse homes</Link> or <Link href="/ask">ask for what you want</Link>.</p>
+        <Breadcrumbs crumbs={[{ name: 'Compare', path: '/compare' }]} />
+        <h1>Compare before you decide</h1>
+        <p className="lead">Put builder projects, localities or homes next to each other and see where they differ, with nothing left out: where a fact is not known, the table says so.</p>
+        {homes.length === 1 && <p className="astatus">You have chosen one home. Choose at least one more to compare homes.</p>}
+
+        <section className="section">
+          <h2>Your shortlist</h2>
+          <Shortlists />
+        </section>
+
+        <section className="section">
+          <h2>Three things you can compare</h2>
+          <ul className="tools">
+            <li><Link href="/builders"><em>Which project is on firmer ground?</em><strong>Builder projects</strong><span>RERA registration and how it stands, the builder’s other projects, verified agents and homes for sale. Press “⇄ Compare” on up to four project cards.</span><b aria-hidden="true">Find projects <i>→</i></b></Link></li>
+            <li><a href="#localities"><em>Which area suits me?</em><strong>Localities</strong><span>Asking rates, what is for sale by size, registered projects and what each area is known for.</span><b aria-hidden="true">Pick two below <i>↓</i></b></a></li>
+            <li><Link href="/"><em>Which of these homes is better?</em><strong>Homes</strong><span>Price, rate per sq ft against the area, the full cost with stamp duty, and EMI. Press “⇄ Compare” on up to four listings.</span><b aria-hidden="true">Browse homes <i>→</i></b></Link></li>
+          </ul>
+        </section>
+
+        <div id="localities"><LocalityPicker cities={cities.map((c) => ({ slug: c.slug, name: c.name, localities: (c.localities ?? []).map((l) => ({ slug: l.slug, name: l.name })) }))} /></div>
       </>
     );
   }
@@ -50,7 +69,7 @@ export default async function ComparePage({ searchParams }: Props) {
 
   return (
     <>
-      <Breadcrumbs crumbs={[{ name: 'Tools', path: '/tools' }, { name: 'Compare homes', path: '/compare' }]} />
+      <Breadcrumbs crumbs={[{ name: 'Compare', path: '/compare' }, { name: 'Homes', path: '/compare' }]} />
       <h1>Comparing {homes.length} homes</h1>
       <p className="lead">The best figure in each row is highlighted. EMI assumes {LOAN_DEFAULTS.downPct}% down, {LOAN_DEFAULTS.ratePct}% interest and {LOAN_DEFAULTS.years} years; total cost adds estimated stamp duty, registration and GST.</p>
       <div className="atable compare"><table>

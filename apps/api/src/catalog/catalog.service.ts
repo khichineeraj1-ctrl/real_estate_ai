@@ -194,6 +194,23 @@ export class CatalogService {
     return found.filter((p): p is NonNullable<typeof p> => p !== null).map(({ similar, ...p }) => p);
   }
 
+  /**
+   * Up to four builder projects, each with what a buyer weighs side by side: where it is, who is building it and how
+   * much else they have registered in the city, how its RERA registration stands, and what we hold about it.
+   */
+  async compareProjects(slugs: string[]) {
+    const wanted = [...new Set(slugs.map((s) => s.trim()).filter(Boolean))].slice(0, 4);
+    const found = (await Promise.all(wanted.map((s) => this.project(s).catch(() => null)))).filter((p): p is NonNullable<typeof p> => p !== null);
+    return Promise.all(found.map(async ({ more, properties, ...p }) => {
+      const [builderProjects, localityProjects, locality] = await Promise.all([
+        p.brand ? this.db.project.count({ where: { brand: { slug: p.brand.slug }, locality: { city: { slug: p.city.slug } } } }) : 0,
+        this.db.project.count({ where: { locality: { slug: p.locality.slug, city: { slug: p.city.slug } } } }),
+        this.db.locality.findFirst({ where: { slug: p.locality.slug, city: { slug: p.city.slug } }, select: { highlights: true } }),
+      ]);
+      return { ...p, homes: properties.length, builderProjects, localityProjects, highlights: locality?.highlights ?? [] };
+    }));
+  }
+
   /** Names the question parser and the assistant match against. Small enough to read on every question. */
   async gazetteer() {
     const cities = await this.db.city.findMany({ select: { slug: true, name: true, localities: { select: { slug: true, name: true } } } });

@@ -29,6 +29,16 @@ export default async function Home() {
         </ul>
       </section>
 
+      <section className="section usp">
+        <h2>Compare before you decide</h2>
+        <p className="lead">Put projects, areas or homes side by side and see where they differ. Where a fact is not known, we say so instead of leaving it out.</p>
+        <ul className="tools">
+          <li><Link href="/compare"><em>Which project is on firmer ground?</em><strong>Builder projects</strong><span>RERA registration and how it stands, the builder’s other projects, and agents we have verified.</span><b aria-hidden="true">Compare projects <i>→</i></b></Link></li>
+          <li><Link href="/compare#localities"><em>Which area suits me?</em><strong>Localities</strong><span>Asking rates, what is for sale by size, and what each area is known for.</span><b aria-hidden="true">Compare localities <i>→</i></b></Link></li>
+          <li><Link href="/compare"><em>Which of these homes is better?</em><strong>Homes</strong><span>Price against the area, the full cost with stamp duty, and the monthly EMI.</span><b aria-hidden="true">Compare homes <i>→</i></b></Link></li>
+        </ul>
+      </section>
+
       <section className="section">
         <h2>Browse property by city</h2>
         <ul className="tiles">

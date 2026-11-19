@@ -1,3 +1,4 @@
+import { CompareToggle } from '@/components/tools/Compare';
 import { Gallery } from '@/components/Gallery';
 import { ConnectButton } from '@/components/ConnectButton';
 import { ProjectTile } from '@/components/ProjectTile';
@@ -68,6 +69,17 @@ export function ProjectView({ p }: { p: ProjectDetail }) {
           <p><ConnectButton kind="project" slug={p.slug} name={p.name} mode="agent" agents={p.agents.length} unclaimed={!!p.registerSource} /></p>
         </section>
       )}
+
+      <section className="section compare-cta">
+        <h2>How does {p.name} compare?</h2>
+        <p>Put it next to other projects and see where they differ: who is building, how the RERA registration stands, verified agents and homes for sale.</p>
+        <p className="compare-line"><CompareToggle kind="projects" slug={p.slug} title={p.name} />{[...p.more.inLocality, ...p.more.byBuilder].slice(0, 4).length > 0 && <span className="compare-hint">or open a comparison:</span>}</p>
+        {[...p.more.inLocality, ...p.more.byBuilder].slice(0, 4).length > 0 && (
+          <ul className="chips left">
+            {[...p.more.inLocality, ...p.more.byBuilder].slice(0, 4).map((x) => <li key={x.slug}><Link href={`/compare/projects?ids=${p.slug},${x.slug}`} rel="nofollow">{p.name} vs {x.name}</Link></li>)}
+          </ul>
+        )}
+      </section>
 
       <section className="section enquiry" id="contact">
         <h2>{p.registerSource ? 'Interested in this project?' : 'Get prices, floor plans and a site visit'}</h2>

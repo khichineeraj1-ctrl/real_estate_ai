@@ -305,7 +305,23 @@ ol.bullets li { margin-bottom: 4px; }
 .compare-toggle:disabled { color: var(--muted); cursor: not-allowed; }
 @media (prefers-color-scheme: dark) { .compare-toggle.on { color: #0e1116; } }
 .compare-line { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin: 14px 0 0; }
-.compare-bar { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 20; display: flex; align-items: center; gap: 14px; background: var(--card); border: 1.5px solid var(--brand); border-radius: 999px; padding: 8px 10px 8px 18px; box-shadow: var(--shadow); max-width: calc(100vw - 24px); white-space: nowrap; }
+.compare-bar { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 20; display: grid; gap: 8px; background: var(--card); border: 1.5px solid var(--brand); border-radius: 18px; padding: 10px 14px; box-shadow: 0 12px 36px -12px rgba(16, 24, 40, .35); width: max-content; max-width: calc(100vw - 20px); }
+.compare-row { display: flex; align-items: center; gap: 10px 12px; flex-wrap: wrap; }
+.compare-count { font-size: .9rem; white-space: nowrap; }
+.compare-picks { list-style: none; display: flex; gap: 6px; margin: 0; padding: 0; flex: 1 1 auto; min-width: 0; overflow-x: auto; }
+.compare-picks li { display: flex; align-items: center; gap: 4px; background: var(--soft); border: 1px solid var(--line); border-radius: 999px; padding: 2px 4px 2px 10px; font-size: .82rem; white-space: nowrap; }
+.compare-picks span { max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
+.compare-picks button { border: 0; background: transparent; color: var(--muted); font-size: 1rem; line-height: 1; cursor: pointer; padding: 2px 6px; border-radius: 50%; }
+.compare-picks button:hover { color: var(--danger); }
+.compare-row .abtn { padding: 7px 14px; font-size: .9rem; white-space: nowrap; }
+.compare-inline { display: grid; gap: 10px; background: var(--soft); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; }
+@media (max-width: 640px) { .compare-picks { display: none; } }
+.ptile-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 0 12px 12px; }
+.ptile-actions .connect { margin: 0; flex: 1 1 auto; }
+.compare-cta { background: var(--soft); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; }
+.compare-cta h2 { margin-bottom: .4rem; } .compare-cta p { color: var(--muted); max-width: 66ch; }
+.usp .tools { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+.tools a[href^='#'] { cursor: pointer; }
 .compare-hint { color: var(--muted); font-size: .9rem; }
 .atable.compare th[scope="row"] { background: var(--soft); color: var(--muted); font-weight: 600; white-space: nowrap; position: sticky; left: 0; }
 .atable.compare thead th { white-space: normal; min-width: 190px; vertical-align: bottom; font-size: .92rem; color: var(--fg); }

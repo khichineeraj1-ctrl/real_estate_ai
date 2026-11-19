@@ -80,6 +80,9 @@ const SEARCH_TOOL = {
   },
 };
 
+/** A question that sets one thing against another. */
+const WEIGHING = /\b(vs\.?|versus|compare[ds]?|comparison|better|difference between)\b/i;
+
 const PROJECT_TOOL = {
   name: 'search_projects',
   description: 'Search builder projects by name. Use this whenever the buyer names a builder (for example "M3M", "DLF", "Godrej") or a project (for example "The Dahlias"), or asks what projects there are in a place. The projects come from the public RERA registers: you get the project, its builder, where it is and how its RERA registration stands. The registers give no prices, sizes or possession dates, so never state any for a project.',
@@ -171,6 +174,25 @@ export class AskService {
     return { path: '/builders', label: 'All builders' };
   }
 
+  /** The side-by-side page for the projects a buyer named. */
+  private projectsVersus(ps: ProjectHit[]): AskResult['page'] {
+    const four = ps.slice(0, 4);
+    return { path: `/compare/projects?ids=${four.map((p) => p.slug).join(',')}`, label: `${four.map((p) => p.name).join(' vs ')}, side by side` };
+  }
+
+  /** Without Claude: "X vs Y" where X and Y are projects. Each side is looked up by name and the two are set against each other. */
+  private async scriptedVersus(question: string): Promise<AskResult | null> {
+    const sides = question.replace(/\b(compare|comparison of|which is better|difference between)\b/gi, ' ').split(/\s+(?:vs\.?|versus|or|and)\s+/i).map((x) => x.replace(/[^a-z0-9\s]/gi, ' ').trim()).filter((x) => x.length >= 2);
+    if (!WEIGHING.test(question) || sides.length < 2 || sides.length > 4) return null;
+    const hits = (await Promise.all(sides.map((text) => this.catalog.searchProjects({ text }, 1)))).map((r) => r.items[0]).filter(Boolean);
+    const unique = hits.filter((p, i) => hits.findIndex((x) => x.slug === p.slug) === i);
+    if (unique.length < 2) return null;
+    return {
+      reply: `${unique.map((p) => `${p.name} is by ${p.brand?.name ?? p.builder} in ${p.locality.name}, ${p.city.name}, and is ${registration(p)}`).join('. ')}. The registers give no prices; the page below sets them side by side.`,
+      live: false, properties: [], total: 0, page: this.projectsVersus(unique), relaxed: null, projects: unique, projectsTotal: unique.length,
+    };
+  }
+
   /** Without Claude: a question that is just a builder's or project's name ("m3m", "godrej projects in mumbai") is answered from the project search. */
   private async scriptedProjects(question: string, gazetteer: Gazetteer): Promise<AskResult | null> {
     const place = matchPlace(question, gazetteer);
@@ -190,6 +212,8 @@ export class AskService {
   async scripted(question: string, gazetteer: Gazetteer, context = ''): Promise<AskResult> {
     const versus = comparison(question, gazetteer);
     if (versus) return this.compareLocalities(versus);
+    const projectsVersus = await this.scriptedVersus(question);
+    if (projectsVersus) return projectsVersus;
     const p = parseQuestion(question, gazetteer);
     // A builder's or a project's name, with nothing about size or budget: answer from the projects.
     if (!p.bhk && !p.type && p.minPrice == null && p.maxPrice == null) { const byName = await this.scriptedProjects(question, gazetteer); if (byName) return byName; }
@@ -226,6 +250,7 @@ export class AskService {
       `Places covered: ${gazetteer.map((c) => `${c.name} (${c.localities.map((l) => l.name).join(', ')})`).join('; ')}.`,
       'Anything you say about what is for sale, what an area costs, or a specific home must come from the search_properties tool: search first, then answer. If a search finds nothing, say so and suggest the nearest alternative the tool shows you (it loosens the budget or area itself and tells you in "note"). Never invent a listing, price or project.',
       'Builders and their projects are a separate search. When the buyer names a builder or a project, or asks what projects an area has, call search_projects and answer from it: how many there are, where, and how their RERA registration stands. The projects come from the public RERA registers, which give no prices, sizes or possession dates, so say none; tell the buyer they can ask for a call back on a project to get prices. The matching projects appear as cards under your reply.',
+      'When the buyer weighs one project against another ("X vs Y", "compare X and Y", "which is better"), call search_projects once for each project by name, then say in two or three sentences how they differ on what you were given: where they are, who is building, and how each RERA registration stands. Do not pick a winner on facts you do not have. A link to the two side by side appears under your reply.',
       'For general questions (home loans, stamp duty, RERA, how to check a title, which area suits a commute) answer from what you know, briefly, and say when a figure varies by state or should be confirmed with a professional.',
       'Each home in a search result has a "confidence": how far our team has verified the home and its seller. Results come most-verified first. When you single out a home, prefer one with good or high confidence and say so in a few words; if the only matches are not yet verified, say that plainly and remind the buyer to see the home and its papers before paying anything. Never describe a home as verified, safe or genuine beyond what its confidence says.',
       'Because replies are spoken, keep them to two or three short sentences with no lists, markdown or links; the matching homes appear as cards under your reply, so summarise them (how many, price range, one standout) instead of reading each one. Say amounts the Indian way, like "₹85 lakh" or "₹1.2 crore". Reply in the language the buyer used, including Hindi or Hinglish.',
@@ -252,8 +277,11 @@ export class AskService {
     const messages: Anthropic.Beta.BetaMessageParam[] = [...history.map((t) => ({ role: t.role, content: t.text })), { role: 'user' as const, content: context ? `${q}\n\n[The buyer is currently viewing: ${context}]` : q }];
     let last: Outcome | null = null;
     let found: { items: ProjectHit[]; total: number; place: ReturnType<typeof matchPlace>; text: string } | null = null;
+    // The best match of each project the buyer named, for a question that weighs one against another.
+    const named: ProjectHit[] = [];
     // When the question weighs two localities, the answer links to their side-by-side page whatever the model searched last.
     const versus = comparison(q, gazetteer);
+    const weighing = WEIGHING.test(q);
     try {
       for (let round = 0; round < 4; round++) {
         const res = await this.client.beta.messages.create({
@@ -274,6 +302,7 @@ export class AskService {
               const text = typeof i.name === 'string' ? i.name : '';
               const r = await this.catalog.searchProjects({ text, city: where.city?.slug, locality: where.locality?.slug });
               found = { ...r, place: where, text };
+              if (text && r.items[0] && !named.some((x) => x.slug === r.items[0].slug)) named.push(r.items[0]);
               results.push({
                 type: 'tool_result', tool_use_id: c.id,
                 content: JSON.stringify({
@@ -309,8 +338,8 @@ export class AskService {
         if (!reply) throw new Error(`empty reply (${res.stop_reason})`);
         return {
           reply: reply.slice(0, 900), live: true, properties: last?.items ?? [], total: last?.total ?? 0,
-          page: versus ? this.comparePage(versus) : last && last.total > 0 ? this.pageFor(last.filters, gazetteer) : found ? this.projectsPage(found) : last ? this.pageFor(last.filters, gazetteer) : null,
-          relaxed: last?.relaxed ?? null, projects: found?.items ?? [], projectsTotal: found?.total ?? 0,
+          page: versus ? this.comparePage(versus) : weighing && named.length > 1 ? this.projectsVersus(named) : last && last.total > 0 ? this.pageFor(last.filters, gazetteer) : found ? this.projectsPage(found) : last ? this.pageFor(last.filters, gazetteer) : null,
+          relaxed: last?.relaxed ?? null, projects: weighing && named.length > 1 ? named.slice(0, 4) : found?.items ?? [], projectsTotal: weighing && named.length > 1 ? Math.min(named.length, 4) : found?.total ?? 0,
         };
       }
       throw new Error('too many tool rounds');

@@ -11,6 +11,7 @@ export async function Header() {
         <Link href="/" className="logo"><span className="orb" aria-hidden="true" />{BRAND}</Link>
         <nav aria-label="Cities">{cities.map((c) => <Link key={c.slug} href={`/${c.slug}`}>{c.name}</Link>)}</nav>
         <Link href="/builders" className="post-link">Builders</Link>
+        <Link href="/compare" className="post-link">Compare</Link>
         <Link href="/tools" className="post-link">Tools</Link>
         <Link href="/post-property" className="post-link">Post property</Link>
         <Link href="/ask" className="ask-link">Ask</Link>
@@ -33,7 +34,7 @@ export async function Footer() {
             </div>
           ))}
         </div>
-        <p className="fine"><Link href="/builders">Builders and developers</Link> · <Link href="/tools">Home buying tools</Link> · <Link href="/tools/emi-calculator">EMI calculator</Link> · <Link href="/tools/home-affordability">How much can I afford?</Link> · <Link href="/tools/cost-of-buying">True cost of buying</Link> · <Link href="/compare" rel="nofollow">Compare homes</Link></p>
+        <p className="fine"><Link href="/builders">Builders and developers</Link> · <Link href="/tools">Home buying tools</Link> · <Link href="/tools/emi-calculator">EMI calculator</Link> · <Link href="/tools/home-affordability">How much can I afford?</Link> · <Link href="/tools/cost-of-buying">True cost of buying</Link> · <Link href="/compare">Compare projects, localities and homes</Link></p>
         <p className="fine"><Link href="/post-property">Post your property</Link> · <Link href="/admin/login" rel="nofollow">Sign in</Link></p>
         <p className="fine">{BRAND} — {TAGLINE}. Builder projects are taken from the public RERA registers; homes are listed by owners, agents and builders.</p>
       </div>
