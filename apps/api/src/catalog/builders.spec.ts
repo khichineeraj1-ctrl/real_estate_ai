@@ -41,6 +41,8 @@ test('names a person confirmed as one builder', () => {
   assert.equal(builderFor('Countrywide Promoters Private Limited').slug, 'bptp');
   assert.deepEqual(builderFor('MANGLAM MULTIPLEX PRIVATE LIMITED'), { slug: 'm3m', name: 'M3M' });
   assert.equal(builderFor('Union Buildmart Private Limited').slug, 'm3m');
+  assert.equal(builderFor('Manglam Multiplex PVT. LTD and Others').slug, 'm3m', 'a joint registration goes to the group');
+  assert.equal(builderFor('Country Side Properties Private Limited').slug, builderFor('Countryside Properties Private Limited').slug);
   assert.deepEqual(builderFor('City Realty & Development Private Limited'), { slug: 'city-group', name: 'City Group' });
 });
 

@@ -31,6 +31,9 @@ const SAME: Record<string, string> = {
   'countrywide-promoters': 'bptp', // a BPTP company
   // M3M registers each project under a separate company; every project of these four carries the M3M name
   'manglam-multiplex': 'm3m', 'lekh-buildtech': 'm3m', 'union-buildmart': 'm3m', 'metro-education-and-welfare': 'm3m',
+  'manglam-multiplex-pvt-ltd-and-others': 'm3m', 'marconi-infratech': 'm3m', // M3M Latitude and M3M Tee Point
+  'olive-realcon': 'm3m', 'olive-realcon-pvt-ltd-and-manglam-multiplex': 'm3m', // Trump Towers Delhi NCR, registered with Manglam Multiplex
+  'country-side-properties': 'countryside-properties',
   'city-realty-and-development': 'city-corporation', // both City Group, the developer of Amanora
 };
 /**
