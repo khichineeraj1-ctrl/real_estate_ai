@@ -1,3 +1,4 @@
+import { areaScorecard, localityInsights, type Area } from './locality-insights';
 import { compareInsights, scorecard, standingOf, type Facts } from './insights';
 import { BAND_LABEL, intentInWords, readIntent, scoreLead } from '../leads/score';
 import { displayName } from '../rera/parse';
@@ -233,6 +234,22 @@ export class CatalogService {
       };
     }));
     return { projects, scorecards: facts.map((f) => scorecard(f, now)), insights: compareInsights(facts, now) };
+  }
+
+  /** Two localities of one city with what a buyer should notice about them (see locality-insights.ts). */
+  async compareLocalityInsights(citySlug: string, slugA: string, slugB: string) {
+    const localities = await Promise.all([this.locality(citySlug, slugA), this.locality(citySlug, slugB)]);
+    const now = new Date();
+    const areas: Area[] = await Promise.all(localities.map(async (l) => {
+      const rows = await this.db.project.findMany({ where: { locality: { slug: l.slug, city: { slug: citySlug } } }, select: { builder: true, brandId: true, registerStatus: true, registerValidUntil: true, _count: AGENT_COUNT } });
+      const projects = { total: rows.length, current: 0, ended: 0, lapsed: 0 };
+      for (const r of rows) { const k = standingOf(r, now); if (k !== 'unknown') projects[k] += 1; }
+      return {
+        slug: l.slug, name: l.name, city: l.city.name, homes: l.stats.count, avgRate: l.stats.avgRate, minPrice: l.stats.minPrice, maxPrice: l.stats.maxPrice, sizes: l.bhk.map((x) => x.bhk),
+        projects, builders: new Set(rows.map((r) => r.brandId ?? r.builder)).size, withAgents: rows.filter((r) => r._count.sellers > 0).length, highlights: l.highlights, lat: l.lat, lng: l.lng,
+      };
+    }));
+    return { localities, scorecards: [areaScorecard(areas[0], areas[1]), areaScorecard(areas[1], areas[0])], insights: localityInsights(areas[0], areas[1]) };
   }
 
   /** Names the question parser and the assistant match against. Small enough to read on every question. */

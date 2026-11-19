@@ -9,6 +9,10 @@ import { price, rate } from '@/lib/format';
 import { comparePath, configSlug, projectPath, pageMeta } from '@/lib/seo';
 import type { LocalityDetail } from '@/lib/types';
 
+type Tone = 'good' | 'warn' | 'info' | 'none';
+interface Scorecard { slug: string; tag: { tone: Tone; text: string }; checks: { label: string; tone: Tone; text: string }[] }
+interface Insight { key: string; tone: Tone; icon: string; title: string; text: string; slugs: string[] }
+const MARK: Record<Tone, string> = { good: '✓', warn: '!', info: 'i', none: '–' };
 type Props = { params: Promise<{ city: string; pair: string }> };
 
 // Built the first time someone asks for it, then served from cache and refreshed in the background every two minutes,
@@ -22,8 +26,8 @@ async function load(params: Props['params']) {
   if (parts.length !== 2 || !parts[0] || !parts[1] || parts[0] === parts[1]) return null;
   // One address per pair: /a-vs-b and /b-vs-a are the same comparison, so the unsorted form moves to the sorted one.
   if (comparePath(city, parts[0], parts[1]) !== `/${city}/compare/${pair}`) permanentRedirect(comparePath(city, parts[0], parts[1]));
-  const [a, b] = await Promise.all(parts.map((slug) => api<LocalityDetail>(`/localities/${city}/${slug}`)));
-  return a && b ? { a, b } : null;
+  const found = await api<{ localities: [LocalityDetail, LocalityDetail]; scorecards: Scorecard[]; insights: Insight[] }>(`/compare/localities/${city}?a=${encodeURIComponent(parts[0])}&b=${encodeURIComponent(parts[1])}`);
+  return found ? { a: found.localities[0], b: found.localities[1], scorecards: found.scorecards, insights: found.insights } : null;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -41,7 +45,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function CompareLocalities({ params }: Props) {
   const d = await load(params);
   if (!d) notFound();
-  const { a, b } = d;
+  const { a, b, scorecards, insights } = d;
+  const warnings = insights.filter((x) => x.tone === 'warn').length;
   const both = [a, b];
   const city = a.city;
   const cheaper = a.stats.avgRate && b.stats.avgRate && a.stats.avgRate !== b.stats.avgRate ? (a.stats.avgRate < b.stats.avgRate ? a : b) : null;
@@ -64,7 +69,38 @@ export default async function CompareLocalities({ params }: Props) {
     <>
       <Breadcrumbs crumbs={[{ name: city.name, path: `/${city.slug}` }, { name: `${a.name} vs ${b.name}`, path: comparePath(city.slug, a.slug, b.slug) }]} />
       <h1>{a.name} vs {b.name}: property in {city.name} compared</h1>
-      <p className="lead">{verdict}{more ? ` ${more.name} has more to choose from, with ${more.stats.count} homes listed.` : ''}</p>
+      <p className="lead">{warnings ? `${warnings} thing${warnings === 1 ? '' : 's'} to check before you choose, and ${insights.length - warnings} more worth knowing.` : `${insights.length} things worth knowing before you choose.`}</p>
+
+      <ul className="cards-vs">
+        {both.map((l, i) => {
+          const card = scorecards[i];
+          return (
+            <li key={l.slug} className={`vcard tone-${card.tag.tone}`}>
+              <span className={`vtag tone-${card.tag.tone}`}>{card.tag.text}</span>
+              <h2><Link href={`/${city.slug}/${l.slug}`}>{l.name}</Link></h2>
+              <p className="vcard-sub">{l.highlights[0] ?? city.name}</p>
+              <ul className="vchecks">
+                {card.checks.map((c) => <li key={c.label} className={`tone-${c.tone}`}><i aria-hidden="true">{MARK[c.tone]}</i><span>{c.label}</span><strong>{c.text}</strong></li>)}
+              </ul>
+              <Link className="abtn quiet" href={`/${city.slug}/${l.slug}`}>See {l.name}</Link>
+            </li>
+          );
+        })}
+      </ul>
+
+      <section className="section">
+        <h2>What separates them</h2>
+        <ul className="insights">
+          {insights.map((x) => (
+            <li key={x.key} className={`insight tone-${x.tone}`}>
+              <span className="insight-icon" aria-hidden="true">{x.icon}</span>
+              <div><h3>{x.title}</h3><p>{x.text}</p></div>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <h2 className="section">Every fact, side by side</h2>
 
       <div className="atable compare"><table>
         <thead><tr><th><span className="sr">Measure</span></th>{both.map((l) => <th key={l.slug} scope="col"><Link href={`/${city.slug}/${l.slug}`}>{l.name}</Link></th>)}</tr></thead>
@@ -81,7 +117,7 @@ export default async function CompareLocalities({ params }: Props) {
               {both.map((l) => { const x = l.bhk.find((y) => y.bhk === n); return <td key={l.slug}>{x ? <Link href={`/${city.slug}/${l.slug}/${configSlug(n)}`}>{x.count} from {price(x.minPrice)}</Link> : 'None listed'}</td>; })}
             </tr>
           ))}
-          <tr><th scope="row">Projects</th>{both.map((l) => <td key={l.slug}>{l.projects.length ? l.projects.map((p, i) => <span key={p.slug}>{i > 0 && ', '}<Link href={projectPath(city.slug, p)}>{p.name}</Link></span>) : '—'}</td>)}</tr>
+          <tr><th scope="row">Projects</th>{both.map((l) => <td key={l.slug}>{l.projects.length ? <>{l.projects.slice(0, 6).map((p, i) => <span key={p.slug}>{i > 0 && ', '}<Link href={projectPath(city.slug, p)}>{p.name}</Link></span>)}{l.projects.length > 6 && <> and <Link href={`/${city.slug}/${l.slug}`}>more</Link></>}</> : '—'}</td>)}</tr>
           <tr><th scope="row">Known for</th>{both.map((l) => <td key={l.slug} className="awrap"><ul className="bullets">{l.highlights.map((h) => <li key={h}>{h}</li>)}</ul></td>)}</tr>
           <tr><th scope="row"><span className="sr">Links</span></th>{both.map((l) => <td key={l.slug}><Link className="abtn quiet" href={`/${city.slug}/${l.slug}`}>See homes in {l.name}</Link></td>)}</tr>
         </tbody>

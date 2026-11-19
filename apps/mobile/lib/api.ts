@@ -96,6 +96,7 @@ export interface Scorecard { slug: string; tag: { tone: Tone; text: string }; ch
 export interface Insight { key: string; tone: Tone; icon: string; title: string; text: string; slugs: string[] }
 /** A comparison with what a buyer should notice about it. */
 export const getProjectInsights = (slugs: string[]) => call<{ projects: CompareProject[]; scorecards: Scorecard[]; insights: Insight[] }>(`/compare/projects/insights?slugs=${encodeURIComponent(slugs.slice(0, 4).join(','))}`);
+export const getLocalityInsights = (city: string, a: string, b: string) => call<{ localities: [LocalityDetail, LocalityDetail]; scorecards: Scorecard[]; insights: Insight[] }>(`/compare/localities/${encodeURIComponent(city)}?a=${encodeURIComponent(a)}&b=${encodeURIComponent(b)}`);
 export const searchProjects = (text: string, city?: string) => call<{ total: number; items: ProjectHit[] }>(`/projects?text=${encodeURIComponent(text.slice(0, 80))}${city ? `&city=${encodeURIComponent(city)}` : ''}`);
 export const getCompare = (slugs: string[]) => call<CompareHome[]>(`/compare?slugs=${encodeURIComponent(slugs.slice(0, 4).join(','))}`);
 export const ask = (message: string, history: Turn[], context?: string) =>

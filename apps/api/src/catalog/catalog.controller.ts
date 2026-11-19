@@ -31,6 +31,7 @@ export class CatalogController {
   @Get('projects/:slug') project(@Param('slug') slug: string) { return this.catalog.project(slug); }
   @Get('properties/:slug') property(@Param('slug') slug: string) { return this.catalog.property(slug); }
   @Get('sitemap') sitemap() { return this.catalog.sitemap(); }
+  @Get('compare/localities/:city') compareLocalities(@Param('city') city: string, @Query('a') a = '', @Query('b') b = '') { return this.catalog.compareLocalityInsights(city, a, b); }
   @Get('compare/projects/insights') compareProjectInsights(@Query('slugs') slugs?: string) { return this.catalog.compareProjectInsights((slugs ?? '').split(',')); }
   @Get('compare/projects') compareProjects(@Query('slugs') slugs?: string) { return this.catalog.compareProjects((slugs ?? '').split(',')); }
   @Get('compare') compare(@Query('slugs') slugs?: string) { return this.catalog.compare((slugs ?? '').split(',')); }

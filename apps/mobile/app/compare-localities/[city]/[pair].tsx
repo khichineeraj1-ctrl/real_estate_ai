@@ -1,7 +1,8 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { getLocality, type LocalityDetail } from '../../../lib/api';
+import { InsightList, ScoreChecks, ScoreTag, insightSummary, toneOf } from '../../../components/Insights';
+import { getLocalityInsights, type Insight, type LocalityDetail, type Scorecard } from '../../../lib/api';
 import { num, price } from '../../../lib/format';
 import { useTheme } from '../../../lib/theme';
 
@@ -12,25 +13,20 @@ export default function CompareLocalities() {
   const router = useRouter();
   const { city, pair } = useLocalSearchParams<{ city: string; pair: string }>();
   const [both, setBoth] = useState<[LocalityDetail, LocalityDetail] | null>(null);
+  const [cards, setCards] = useState<Scorecard[]>([]);
+  const [insights, setInsights] = useState<Insight[]>([]);
   const [error, setError] = useState('');
   useEffect(() => {
     const parts = pair.split('-vs-');
     if (parts.length !== 2) { setError('That comparison could not be opened.'); return; }
     setBoth(null);
-    Promise.all([getLocality(city, parts[0]), getLocality(city, parts[1])]).then(([a, b]) => setBoth([a, b])).catch((e: Error) => setError(e.message));
+    getLocalityInsights(city, parts[0], parts[1]).then((d) => { setCards(d.scorecards); setInsights(d.insights); setBoth(d.localities); }).catch((e: Error) => setError(e.message));
   }, [city, pair]);
 
   if (error) return <Text style={{ color: t.danger, padding: 16 }}>{error}</Text>;
   if (!both) return <ActivityIndicator style={{ marginTop: 40 }} color={t.brand} />;
   const [a, b] = both;
-  const cheaper = a.stats.avgRate && b.stats.avgRate && a.stats.avgRate !== b.stats.avgRate ? (a.stats.avgRate < b.stats.avgRate ? a : b) : null;
-  const dearer = cheaper === a ? b : a;
   const priced = both.some((l) => l.stats.count > 0);
-  const verdict = !priced
-    ? `No homes are listed in ${a.name} or ${b.name} yet, so there are no prices to compare. Here is what each is known for.`
-    : cheaper
-    ? `${cheaper.name} is the cheaper of the two: its homes are asking ${rate(cheaper.stats.avgRate)} on average, ${Math.round(((dearer.stats.avgRate! - cheaper.stats.avgRate!) / dearer.stats.avgRate!) * 100)}% less than ${dearer.name} at ${rate(dearer.stats.avgRate)}.`
-    : `${a.name} and ${b.name} are asking about the same on average, ${rate(a.stats.avgRate)}.`;
   const sizes = [...new Set(both.flatMap((l) => l.bhk.map((x) => x.bhk)))].sort((x, y) => x - y);
   const low = (x: number | null, y: number | null) => (x != null && y != null && x !== y ? Math.min(x, y) : null);
   const rows: { label: string; cells: string[]; best?: number | null; values?: (number | null)[] }[] = [
@@ -48,7 +44,22 @@ export default function CompareLocalities() {
     <ScrollView contentContainerStyle={{ padding: 16, gap: 14 }}>
       <Stack.Screen options={{ title: `${a.name} vs ${b.name}` }} />
       <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 21, fontWeight: '700', lineHeight: 27 }}>{a.name} vs {b.name}, {a.city.name}</Text>
-      <Text style={{ color: t.fg, fontSize: 16, lineHeight: 23 }}>{verdict}</Text>
+      <Text style={{ color: t.muted, fontSize: 15 }}>{insightSummary(insights)}</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -16 }} contentContainerStyle={{ gap: 12, paddingHorizontal: 16 }}>
+        {both.map((l, i) => {
+          const card = cards[i]; if (!card) return null;
+          return (
+            <View key={l.slug} style={[s.card, { backgroundColor: t.card, borderColor: t.line, borderTopColor: toneOf(t, card.tag.tone).ink }]}>
+              <ScoreTag tag={card.tag} />
+              <Text style={{ color: t.fg, fontSize: 17, fontWeight: '700' }}>{l.name}</Text>
+              <Text numberOfLines={1} style={{ color: t.muted, fontSize: 13 }}>{l.highlights[0] ?? l.city.name}</Text>
+              <ScoreChecks checks={card.checks} />
+            </View>
+          );
+        })}
+      </ScrollView>
+      <InsightList insights={insights} />
+      <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 18, fontWeight: '700', marginTop: 6 }}>Every fact, side by side</Text>
       <View style={[s.table, { borderColor: t.line }]}>
         <View style={s.line}>
           {both.map((l) => <Text key={l.slug} style={[s.cell, { color: t.fg, fontWeight: '700', backgroundColor: t.soft }]}>{l.name}</Text>)}
@@ -77,6 +88,7 @@ export default function CompareLocalities() {
 }
 
 const s = StyleSheet.create({
+  card: { width: 250, borderWidth: 1, borderTopWidth: 4, borderRadius: 16, padding: 12, gap: 6 },
   table: { borderWidth: 1, borderRadius: 14, overflow: 'hidden' },
   line: { flexDirection: 'row', gap: 0 },
   cell: { flex: 1, padding: 10, fontSize: 15, lineHeight: 21 },
