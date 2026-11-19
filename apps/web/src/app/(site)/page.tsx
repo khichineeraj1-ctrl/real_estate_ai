@@ -14,7 +14,8 @@ export const metadata: Metadata = {
   title: { absolute: `${BRAND} — ${TAGLINE}` },
 };
 
-const EXAMPLES = ['3 BHK in Whitefield under 1.5 crore', 'Ready to move flats in Sector 57 Gurgaon', 'What is the average rate in Powai?', 'Cheapest 2 BHK in Pune', 'Villas in Bengaluru above 3 crore'];
+// Short enough to sit on one line under the box.
+const EXAMPLES = ['3 BHK in Whitefield', 'M3M projects in Gurgaon', 'Average rate in Powai?', 'Cheapest 2 BHK in Pune'];
 
 export default async function Home() {
   const [cities, latest, builders] = await Promise.all([api<CitySummary[]>('/cities'), api<Listing>('/properties?pageSize=6'), api<BuilderSummary[]>('/builders')]);
@@ -22,9 +23,8 @@ export default async function Home() {
   return (
     <>
       <section className="hero">
-        <h1>Ask. Find your home.<span>Property and builder projects in Gurgaon, Bengaluru, Mumbai and Pune</span></h1>
-        <p className="lead">Type or speak your question and get a straight answer, with the matching homes and builder projects.</p>
-        <AskBox autoFocus />
+        <h1>Ask. Find your home.<span>Homes and builder projects in Gurgaon, Bengaluru, Mumbai and Pune</span></h1>
+        <AskBox autoFocus placeholder="Type or speak, e.g. 3 BHK in Whitefield" />
         <ul className="chips" aria-label="Example questions">
           {EXAMPLES.map((q) => <li key={q}><Link href={`/ask?q=${encodeURIComponent(q)}`} rel="nofollow">{q}</Link></li>)}
         </ul>

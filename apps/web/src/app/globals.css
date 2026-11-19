@@ -681,3 +681,4 @@ p > .connect { margin: 0; }
 .ptile-actions .compare-toggle { border-color: var(--line); background: var(--soft); }
 .ptile-actions .compare-toggle:hover:not(:disabled) { border-color: var(--brand); }
 .ptile-actions .compare-toggle.on { background: var(--brand); border-color: var(--brand); }
+.hero h1 { margin-bottom: 26px; }
