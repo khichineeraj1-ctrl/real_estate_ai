@@ -91,7 +91,7 @@ export class InvestService {
       if (word) throw new BadRequestException(`${label} says “${word}”. This corner reports what is planned and how far along it is; it must not promise or predict prices or returns. Reword it as a fact from the source.`);
     }
     return { title, driver: i.oneOf('driver', 'What is driving it', DRIVERS), stateSlug: state.slug, state: state.name, districts: districts.map((d) => d.name), districtSlugs: districts.map((d) => d.slug), summary, plan,
-      stage: i.oneOf('stage', 'Stage', STAGES), stageNote, authority: i.optionalText('authority', 'Authority', 120), sources, milestones, watch };
+      stage: i.oneOf('stage', 'Stage', STAGES), stageNote, authority: i.optionalText('authority', 'Authority', 120), sources, milestones, watch, staffNote: i.optionalText('staffNote', 'Notes for staff', 3_000) };
   }
   async save(id: string | null, body: Body) {
     const data = this.read(body);

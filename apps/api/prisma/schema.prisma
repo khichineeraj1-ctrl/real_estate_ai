@@ -868,6 +868,8 @@ model InvestArea {
   milestones Json
   /// What could go wrong or should be checked, one per entry.
   watch     String[]
+  /// Private to our team: what still has to be checked before this is published. Never shown to readers.
+  staffNote String?
   /// "DRAFT" or "LIVE".
   status    String   @default("DRAFT")
   /// When someone on our team last checked the facts against the sources. Shown to readers.

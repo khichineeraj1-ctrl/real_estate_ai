@@ -6,7 +6,7 @@ import { api } from '@/lib/api';
 import { publishInvest, removeInvest, saveInvest } from '../../../actions';
 
 export const metadata = { title: 'Investor corner: area' };
-interface Edit { id: string; slug: string; title: string; driver: string; stateSlug: string; districts: string[]; summary: string; plan: string; stage: string; stageNote: string | null; authority: string | null; sourcesText: string; milestonesText: string; watch: string[]; status: string; reviewedAt: string | null }
+interface Edit { id: string; slug: string; title: string; driver: string; stateSlug: string; districts: string[]; summary: string; plan: string; stage: string; stageNote: string | null; authority: string | null; sourcesText: string; milestonesText: string; watch: string[]; staffNote: string | null; status: string; reviewedAt: string | null }
 interface Options { notice: string; stages: { code: string; label: string; means: string }[]; drivers: { code: string; label: string }[] }
 
 export default async function EditInvest({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ saved?: string; done?: string }> }) {
@@ -22,6 +22,8 @@ export default async function EditInvest({ params, searchParams }: { params: Pro
       {sp.done && <p role="status" className="astatus">{sp.done === 'LIVE' ? 'Published.' : sp.done === 'REVIEWED' ? 'Marked as checked today.' : 'Taken down. It is a draft again.'}</p>}
       <p className="astatus"><strong>Facts from the documents only.</strong> Say what is planned, who is in charge and how far along it is. No forecasts: words such as “guaranteed”, “prices will rise” or “20% returns” are refused. Readers are shown: “{o?.notice}”</p>
 
+      {a?.staffNote && !live && <div className="land-refused" role="note"><strong>Check before publishing</strong><p style={{ whiteSpace: 'pre-wrap' }}>{a.staffNote}</p></div>}
+
       <AdminForm action={saveInvest.bind(null, a?.id ?? null)} submit={a ? 'Save' : 'Save as draft'}>
         <Field label="Title" name="title" defaultValue={a?.title} maxLength={120} hint="The plan’s own name, e.g. the airport, city or corridor." />
         <Select label="What is driving it" name="driver" defaultValue={a?.driver ?? 'CITY'} options={(o?.drivers ?? []).map((d) => ({ value: d.code, label: d.label }))} />
@@ -35,6 +37,7 @@ export default async function EditInvest({ params, searchParams }: { params: Pro
         <Area label="Dates the authority has given" name="milestones" rows={4} required={false} defaultValue={a?.milestonesText} hint="One per line as: When | What. e.g. 2027 | Phase 1 opening (authority’s target)" />
         <Area label="What to watch" name="watch" rows={4} required={false} defaultValue={a?.watch.join('\n')} hint="One risk or check per line, specific to this plan." />
         <Area label="Sources" name="sources" rows={4} required={false} defaultValue={a?.sourcesText} hint="One per line as: Name | https://… Official documents and pages only. At least one is needed to publish." />
+        <Area label="Notes for staff (private)" name="staffNote" rows={5} required={false} defaultValue={a?.staffNote} hint="What still needs checking before this is published. Never shown to readers." />
       </AdminForm>
 
       {a && (
