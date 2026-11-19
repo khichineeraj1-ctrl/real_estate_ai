@@ -1,6 +1,7 @@
 import { GuidesRow } from './GuidesRow';
 import { Launches } from './Launches';
 import { Upcoming } from './Upcoming';
+import { LandRow } from './Land';
 import { CompareToggle } from './tools/Compare';
 import { Cover } from './Cover';
 import { ConnectButton } from './LeadForm';
@@ -81,6 +82,7 @@ export function Ask({ header }: { header?: React.ReactNode }) {
             </View>
             <Launches />
             <Upcoming />
+            <LandRow />
             <GuidesRow />
           </View>
         ) : thread.map((e, i) => (

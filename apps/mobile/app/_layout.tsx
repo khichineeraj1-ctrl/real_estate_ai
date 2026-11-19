@@ -30,6 +30,11 @@ export default function RootLayout() {
         <Stack.Screen name="account" options={{ title: 'My account' }} />
         <Stack.Screen name="new-launches" options={{ title: 'New launches' }} />
         <Stack.Screen name="upcoming/[slug]" options={{ title: 'Upcoming project' }} />
+        <Stack.Screen name="land/index" options={{ title: 'Land and warehouses' }} />
+        <Stack.Screen name="land/listing/[slug]" options={{ title: 'Land' }} />
+        <Stack.Screen name="land/wanted/[slug]" options={{ title: 'Wanted' }} />
+        <Stack.Screen name="land/post" options={{ title: 'List your land free' }} />
+        <Stack.Screen name="land/want" options={{ title: 'Post what you need' }} />
         <Stack.Screen name="guides/index" options={{ title: 'Home buying guides' }} />
         <Stack.Screen name="guides/[slug]" options={{ title: 'Guide' }} />
         <Stack.Screen name="compare" options={{ title: 'Compare homes' }} />

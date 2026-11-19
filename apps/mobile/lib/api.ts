@@ -154,3 +154,23 @@ export const TIMELINES = [['NOW', 'Within a month'], ['SOON', '1 to 3 months'], 
 export interface Plans { timeline?: string; wantsVisit?: boolean; /** 'agent': connect the buyer to a verified agent selling the project. */ via?: 'agent' }
 export const sendEnquiry = (slug: string, body: { name: string; phone: string; message?: string } & Plans) =>
   call<EnquiryResult>(`/properties/${slug}/enquiries`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+
+// ---- Land and commercial space: listings anywhere in India, and what companies are looking for
+export interface LandItem {
+  slug: string; kind: string; deal: string; title: string; kindLabel: string; state: string; stateSlug: string; district: string; districtSlug: string; place: string;
+  area: string; areaAlso: string | null; rate: string | null; priceInr: number | null; roadFt: number | null; highway: string | null; highwayKm: number | null; landUse: string | null; posterIs: string; createdAt: string;
+}
+export type LandDetail = LandItem & { description: string | null; closed: boolean; features: string[]; clearHeightFt: number | null; powerKva: number | null; docks: number | null; checks: { key: string; title: string; why: string }[]; nearby: LandItem[] };
+export interface WantedItem { slug: string; kind: string; deal: string; purpose: string; purposeLabel: string; kindLabel: string; title: string; details: string | null; state: string; stateSlug: string; where: string | null; size: string; budgetInr: number | null; by: string | null; answers: number; createdAt: string }
+export interface LandOptions { states: Place[]; kinds: { code: string; label: string }[]; purposes: { code: string; label: string }[]; units: { code: string; label: string; local: boolean }[]; landUses: string[]; features: { code: string; label: string }[] }
+export interface LandMine { type: 'listing' | 'wanted'; slug: string; title: string; status: string; note: string | null; replies: number }
+export const getLand = (q: { kind?: string; deal?: string } = {}) => call<{ total: number; items: LandItem[] }>(`/land?take=40${q.kind ? `&kind=${q.kind}` : ''}${q.deal ? `&deal=${q.deal}` : ''}`);
+export const getLandPlaces = () => call<{ kinds: { kind: string; label: string; count: number }[]; wanted: number }>('/land/places');
+export const getLandOne = (slug: string) => call<LandDetail>(`/land/listing/${encodeURIComponent(slug)}`);
+export const getWanted = () => call<{ items: WantedItem[] }>('/land/wanted?take=30');
+export const getWantedOne = (slug: string) => call<WantedItem & { closed: boolean }>(`/land/wanted/${encodeURIComponent(slug)}`);
+export const getLandOptions = () => call<LandOptions>('/land/options');
+export const postLand = (type: 'listing' | 'wanted', body: Record<string, unknown>) => call<{ ok: true; slug: string; token: string }>(type === 'listing' ? '/land' : '/land/wanted', { ...JSON_POST, body: JSON.stringify({ ...body, consent: true }) });
+export const replyLand = (type: 'listing' | 'wanted', slug: string, body: { name: string; phone: string; message?: string }) => call<{ ok: true }>(type === 'listing' ? `/land/listing/${encodeURIComponent(slug)}/enquire` : `/land/wanted/${encodeURIComponent(slug)}/answer`, { ...JSON_POST, body: JSON.stringify({ ...body, consent: true }) });
+export const landMine = (token: string) => call<LandMine>('/land/manage', { ...JSON_POST, body: JSON.stringify({ token }) });
+export const closeLand = (token: string) => call<{ ok: true }>('/land/manage', { ...JSON_POST, body: JSON.stringify({ token, close: true }) });
