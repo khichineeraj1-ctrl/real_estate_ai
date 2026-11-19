@@ -10,7 +10,7 @@ const clamp = (n: number, lo: number, hi: number) => Math.min(Math.max(n, lo), h
 /* ---------- Inputs: a slider to drag, the exact figure to type, and one-tap common values ---------- */
 
 /** A slider drawn from plain views, so it needs nothing installed. Drag or tap along the track; screen readers get step up and step down. */
-function Slider({ t, label, value, min, max, step, onChange }: { t: Theme; label: string; value: number; min: number; max: number; step: number; onChange: (n: number) => void }) {
+export function Slider({ t, label, value, min, max, step, onChange }: { t: Theme; label: string; value: number; min: number; max: number; step: number; onChange: (n: number) => void }) {
   const [width, setWidth] = useState(0);
   const at = clamp((value - min) / (max - min), 0, 1);
   const snap = (n: number) => clamp(Number((Math.round(n / step) * step).toFixed(2)), min, max);
