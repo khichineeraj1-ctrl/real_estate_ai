@@ -84,6 +84,14 @@ export default function Tools() {
           <Text style={{ color: t.brand, fontWeight: '700' }}>→</Text>
         </Pressable>
       ))}
+      <Pressable accessibilityRole="button" accessibilityLabel="Home buying guides" onPress={() => router.push('/guides')} style={({ pressed }) => [s.card, { borderColor: pressed ? t.brand : t.line, backgroundColor: t.soft, transform: [{ scale: pressed ? 0.98 : 1 }] }]}>
+        <View style={[s.icon, { backgroundColor: t.card }]}><Text style={{ fontSize: 20 }}>📖</Text></View>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: t.fg, fontSize: 16, fontWeight: '700' }}>Home buying guides</Text>
+          <Text style={{ color: t.muted, fontSize: 13 }}>RERA, carpet area, cost sheets, your rights</Text>
+        </View>
+        <Text style={{ color: t.brand, fontWeight: '700' }}>→</Text>
+      </Pressable>
       <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 18, fontWeight: '700', marginTop: 8 }}>Compare side by side</Text>
       <View style={{ flexDirection: 'row', gap: 8 }}>
         {COMPARE.map((c) => (

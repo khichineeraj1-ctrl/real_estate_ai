@@ -22,6 +22,10 @@ A buyer signs in with a six-digit code sent to their email (no password); the fi
 - **Search alerts.** "Set an alert" on city and locality pages (and the app's locality screen): an email when a new project is registered there, or a new home is listed, optionally by bedrooms and maximum price. Signed-in buyers need no email box; others give one and agree. One email per batch of new matches, each with a stop link (`/unfollow?token=`, shared with project follows). The account page lists alerts and followed projects, each with Stop. `SearchAlert` rows; `AlertService` (`catalog/alerts.ts`) checks every ten minutes and straight after a register read. Set `ALERTS=off` to disable.
 - **How it works.** `apps/api/src/buyer`: `Buyer`, `BuyerCode` (hashed, ten minutes, five tries), `BuyerSession` (hashed token, 60 days), `SavedItem`. Routes under `/me`. The site keeps the token in an http-only cookie and calls the API from the server; the app keeps it in the phone's secure storage. Codes are only logged until `SMTP_URL` is set. A buyer can delete their account from the account page.
 
+## Buyer guides
+
+Seven short guides (carpet area, RERA registration, the 10% rule and the agreement, reading a cost sheet, under construction against ready, delayed possession, the occupation certificate). The text lives once, in `apps/api/src/guides/guides.ts`, and is served by `GET /guides` and `GET /guides/:slug` to the website (`/guides`, each with Article and FAQ structured data, in the sitemap) and the app (Tools → Home buying guides). Each guide has a summary box, sections, a link to the tool that puts it to use, and common questions. They describe Indian law as we understand it and say they are not legal advice: have someone qualified review them before launch, and update `reviewed` when the text is next checked.
+
 ## Help for buyers that comes from the registers
 
 Worked out from the RERA registers we already read, and stated as facts and questions to ask, never as a rating.

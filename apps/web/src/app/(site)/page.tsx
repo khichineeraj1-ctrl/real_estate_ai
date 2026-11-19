@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 const EXAMPLES = ['3 BHK in Whitefield', 'M3M projects in Gurgaon', 'Average rate in Powai?', 'Cheapest 2 BHK in Pune'];
 
 export default async function Home() {
-  const [cities, latest, builders] = await Promise.all([api<CitySummary[]>('/cities'), api<Listing>('/properties?pageSize=6'), api<BuilderSummary[]>('/builders')]);
+  const [cities, latest, builders, guides] = await Promise.all([api<CitySummary[]>('/cities'), api<Listing>('/properties?pageSize=6'), api<BuilderSummary[]>('/builders'), api<{ slug: string; short: string; icon: string }[]>('/guides')]);
   const topBuilders = [...(builders ?? [])].sort((a, b) => b.projects - a.projects || a.name.localeCompare(b.name)).slice(0, 12);
   return (
     <>
@@ -68,6 +68,14 @@ export default async function Home() {
           </ul>
         </section>
       )}
+
+      <section className="section">
+        <h2>Know before you buy</h2>
+        <ul className="chips left">
+          {(guides ?? []).map((g) => <li key={g.slug}><Link href={`/guides/${g.slug}`}>{g.icon} {g.short}</Link></li>)}
+          <li><Link href="/guides">All guides</Link></li>
+        </ul>
+      </section>
 
       <section className="section">
         <h2>Work out the money</h2>

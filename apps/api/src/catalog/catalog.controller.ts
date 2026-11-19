@@ -1,7 +1,8 @@
+import { guideBySlug, guideCards } from '../guides/guides';
 import { AlertService } from './alerts';
 import { BuyerService } from '../buyer/buyer.service';
 import { WatchService } from './watch';
-import { BadRequestException, Body, Controller, Get, HttpCode, HttpException, Ip, Param, Post, Query, Headers } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, HttpCode, HttpException, Ip, Param, Post, Query, Headers, NotFoundException } from '@nestjs/common';
 import { Limiter } from '../ask/ask.service';
 import { ConstructionStatus, PropertyType } from '@prisma/client';
 import { CatalogService, PropertyFilters } from './catalog.service';
@@ -25,6 +26,8 @@ export class CatalogController {
   constructor(private readonly catalog: CatalogService, private readonly watch: WatchService, private readonly buyers: BuyerService, private readonly alerts: AlertService) {}
 
   @Get('health') health() { return { ok: true }; }
+  @Get('guides') guides() { return guideCards(); }
+  @Get('guides/:slug') guide(@Param('slug') slug: string) { const g = guideBySlug(slug); if (!g) throw new NotFoundException('Guide not found'); return { ...g, more: guideCards().filter((x) => x.slug !== slug) }; }
   @Get('cities') cities() { return this.catalog.cities(); }
   @Get('cities/:slug') city(@Param('slug') slug: string) { return this.catalog.city(slug); }
   @Get('localities/:city/:slug') locality(@Param('city') city: string, @Param('slug') slug: string) { return this.catalog.locality(city, slug); }

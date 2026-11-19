@@ -832,3 +832,20 @@ p > .connect { margin: 0; }
 p.follow-consent { margin: 0; }
 .alerts { list-style: none; margin: 0; padding: 0; display: grid; }
 .alerts li { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); } .alerts li:first-child { border-top: 0; } .alerts li > :nth-child(2) { flex: 1; }
+
+/* Guides: a grid of cards, and an article with a summary box, jump links and room to read. */
+.guides { list-style: none; margin: 18px 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 14px; }
+.guides a { display: grid; gap: 6px; align-content: start; height: 100%; padding: 18px; color: var(--fg); background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); transition: border-color .15s, transform .15s, box-shadow .15s; }
+.guides a:hover { border-color: var(--brand); transform: translateY(-3px); box-shadow: 0 10px 24px -14px color-mix(in srgb, var(--brand) 60%, transparent); text-decoration: none; }
+.guide-icon { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; font-size: 1.35rem; background: color-mix(in srgb, var(--brand) 10%, transparent); margin-bottom: 4px; transition: transform .2s; } .guides a:hover .guide-icon { transform: rotate(-6deg) scale(1.08); }
+.guides strong { font-size: 1.05rem; } .guides a > span:not(.guide-icon) { color: var(--muted); font-size: .9rem; line-height: 1.5; }
+.guides b { margin-top: 6px; color: var(--brand); font-size: .85rem; font-weight: 600; } .guides b i { display: inline-block; font-style: normal; transition: transform .15s; } .guides a:hover b i { transform: translateX(4px); }
+.guide { max-width: 760px; }
+.guide-meta { color: var(--muted); font-size: .85rem; margin: -4px 0 18px; }
+.guide-take { background: linear-gradient(135deg, color-mix(in srgb, var(--brand) 9%, var(--card)), var(--card)); border: 1px solid color-mix(in srgb, var(--brand) 25%, var(--line)); border-radius: var(--radius); padding: 16px 18px; }
+.guide-take h2 { margin: 0 0 8px; font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; color: var(--brand); }
+.guide-take ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; } .guide-take li { padding-left: 26px; position: relative; } .guide-take li::before { content: '✓'; position: absolute; left: 0; top: 0; color: var(--ready); font-weight: 800; }
+.guide-toc { display: flex; flex-wrap: wrap; gap: 6px; margin: 16px 0 6px; } .guide-toc a { font-size: .85rem; color: var(--fg); border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 4px 12px; } .guide-toc a:hover { border-color: var(--brand); text-decoration: none; }
+.guide-part { margin-top: 26px; scroll-margin-top: 80px; } .guide-part h2 { margin-bottom: .5rem; } .guide-part p, .guide-part li { line-height: 1.7; } .guide-part ul { margin: 0 0 1rem; padding-left: 1.2rem; display: grid; gap: 6px; }
+.guide-tool { margin-top: 28px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; background: var(--soft); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; } .guide-tool div { display: grid; } .guide-tool span { color: var(--muted); font-size: .9rem; }
+@media (prefers-reduced-motion: reduce) { .guides a, .guide-icon, .guides b i { transition: none; } .guides a:hover { transform: none; } }

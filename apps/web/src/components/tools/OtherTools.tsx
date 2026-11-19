@@ -16,6 +16,7 @@ export function OtherTools({ current }: { current: string }) {
       <ul className="chips left">
         {TOOLS.filter((t) => t.href !== current).map((t) => <li key={t.href}><Link href={t.href}>{t.name}</Link></li>)}
         <li><Link href="/tools">All tools</Link></li>
+        <li><Link href="/guides">Home buying guides</Link></li>
         <li><Link href="/builders">Builders and their projects</Link></li>
       </ul>
     </section>
