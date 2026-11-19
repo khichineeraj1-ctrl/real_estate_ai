@@ -17,6 +17,7 @@ interface Props {
   reveal?: boolean;
   /** Choices for "Interested in" on a project, e.g. the sizes it offers. */
   interests?: string[];
+  interest?: string;
   /** The project's or home's name, for the wording. */
   projectName?: string;
   /** A project page made from a RERA register, whose builder has not joined us: our own team answers, not the builder's. */
@@ -84,7 +85,7 @@ function Taps({ name, label, options }: { name: string; label: string; options: 
   );
 }
 
-export function EnquiryForm({ slug, kind = 'property', reveal = true, interests, projectName, unclaimed, via, compact }: Props) {
+export function EnquiryForm({ slug, kind = 'property', reveal = true, interests, interest, projectName, unclaimed, via, compact }: Props) {
   const [state, run, pending] = useActionState<EnquiryState, FormData>(enquire.bind(null, kind, slug, via ?? null), {});
   const path = usePathname();
   const opened = useRef(Date.now());
@@ -139,7 +140,7 @@ export function EnquiryForm({ slug, kind = 'property', reveal = true, interests,
       {!compact && <label className="afield"><span>Email <em>(optional)</em></span><input name="email" type="email" autoComplete="email" /></label>}
       {!compact && project && interests && interests.length > 0 && (
         <label className="afield"><span>Interested in <em>(optional)</em></span>
-          <select name="interest" defaultValue=""><option value="">Any size</option>{interests.map((x) => <option key={x} value={x}>{x}</option>)}</select>
+          <select name="interest" defaultValue={interest && interests.includes(interest) ? interest : ''}><option value="">Any size</option>{interests.map((x) => <option key={x} value={x}>{x}</option>)}</select>
         </label>
       )}
 

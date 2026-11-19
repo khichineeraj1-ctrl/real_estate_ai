@@ -1,3 +1,4 @@
+import { Amenities, ProjectUnits } from '@/components/ProjectUnits';
 import { CompareToggle } from '@/components/tools/Compare';
 import { Checklist } from '@/components/Checklist';
 import { SaveButton } from '@/components/account/SaveButton';
@@ -40,6 +41,12 @@ export function ProjectView({ p }: { p: ProjectDetail }) {
       <p className="lead">{p.description}</p>
       <SaveButton kind="project" slug={p.slug} name={p.name} />
       <Gallery photos={photos} videos={p.videos ?? []} name={`${p.name}, ${p.locality.name}`} />
+      {p.units.length > 0 && (
+        <section className="section section-tight" id="homes-on-offer">
+          <h2>Homes on offer in {p.name}</h2>
+          <ProjectUnits units={p.units} slug={p.slug} name={p.name} unclaimed={!!p.registerSource} />
+        </section>
+      )}
       {p.registerSource && (
         <div className="astatus">
           <p><strong>From the public RERA register, not yet confirmed by the builder.</strong> These details are as published by {p.registerName}{p.sourceFetchedAt ? `, read on ${new Date(p.sourceFetchedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' })}` : ''}. The register does not give prices, floor plans or whether building is finished, so we do not show them. {p.sourceUrl && <a href={p.sourceUrl} target="_blank" rel="noopener noreferrer nofollow">See the register’s own page</a>}</p>
@@ -76,6 +83,34 @@ export function ProjectView({ p }: { p: ProjectDetail }) {
           <p><ConnectButton kind="project" slug={p.slug} name={p.name} mode="agent" agents={p.agents.length} unclaimed={!!p.registerSource} /></p>
         </section>
       )}
+
+      {p.amenityGroups.length > 0 && (
+        <section className="section" id="amenities">
+          <h2>Amenities</h2>
+          <Amenities groups={p.amenityGroups} />
+        </section>
+      )}
+
+      <section className="section" id="nearby">
+        <h2>What is near {p.name}</h2>
+        <div className="near">
+          <div className="near-map">
+            <iframe title={`Map showing ${p.place.exact ? p.name : p.locality.name}`} loading="lazy" referrerPolicy="no-referrer" src={`https://www.openstreetmap.org/export/embed.html?bbox=${p.place.lng - 0.03}%2C${p.place.lat - 0.02}%2C${p.place.lng + 0.03}%2C${p.place.lat + 0.02}&layer=mapnik&marker=${p.place.lat}%2C${p.place.lng}`} />
+            <p><a href={`https://www.openstreetmap.org/?mlat=${p.place.lat}&mlon=${p.place.lng}#map=15/${p.place.lat}/${p.place.lng}`} target="_blank" rel="noopener noreferrer nofollow">Open a larger map ↗</a>{!p.place.exact && <span> · The pin is the centre of {p.locality.name}, not the project’s gate.</span>}</p>
+          </div>
+          {p.place.nearby.length > 0 ? (
+            <div className="near-list">
+              {p.place.nearby.map((g) => (
+                <div key={g.kind} className="near-group">
+                  <h3><span aria-hidden="true">{g.icon}</span>{g.label}</h3>
+                  <ul>{g.items.map((x) => <li key={x.name}><span>{x.name}</span><b>{x.km < 1 ? `${Math.round(x.km * 1000 / 50) * 50} m` : `${x.km} km`}</b></li>)}</ul>
+                </div>
+              ))}
+              <p className="calc-note">Straight-line distances from {p.place.exact ? 'the project’s pin' : `the centre of ${p.locality.name}`}. The road is always longer, so check the drive at the hour you would travel.</p>
+            </div>
+          ) : <p className="near-none">Distances to the metro, airport and offices will show here once our team has mapped them for {p.city.name}. Meanwhile, <Link href={localityPath}>see {p.locality.name}</Link>.</p>}
+        </div>
+      </section>
 
       <Checklist slug={p.slug} name={p.name} items={p.checklist} />
       {p.registerSource && <Follow slug={p.slug} name={p.name} />}
@@ -121,12 +156,6 @@ export function ProjectView({ p }: { p: ProjectDetail }) {
             {p.more.inLocality.map((x) => <ProjectTile key={x.slug} city={p.city.slug} p={x} lines={[x.brand?.name ?? x.builder]} />)}
           </ul>
           <p><Link href={localityPath}>All projects and property in {p.locality.name}</Link></p>
-        </section>
-      )}
-      {p.amenities.length > 0 && (
-        <section className="section">
-          <h2>Amenities</h2>
-          <ul className="pills">{p.amenities.map((a) => <li key={a}>{a}</li>)}</ul>
         </section>
       )}
 

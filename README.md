@@ -504,3 +504,17 @@ what land is for. Staff write each one at `/admin/invest` from the official docu
 - Readers press "I am interested" (name, phone, and optionally budget, what they want, when). These appear under
   "Interested people" in `/admin/invest` for the team to call.
 - Rules are in `apps/api/src/invest/rules.ts`.
+
+## Project page: homes on offer, amenities, what is nearby
+
+Three sections on a builder project's page, filled in by staff on the project's edit screen (`/admin/projects/<id>`).
+
+- **Homes on offer**: one entry per kind of home (label, carpet area, optional price range, optional floor plan chosen
+  from the project's "Floor plans" photos). Shown as tabs; each has a button that asks for that kind's price. Where a
+  price is given, the rate per carpet sq ft is shown. Hidden until at least one is added.
+- **Amenities**: ticked from a fixed list in `apps/api/src/catalog/amenities.ts` (grouped, with icons), plus free text
+  shown under "Other". Hidden until any are set.
+- **What is nearby**: a map and straight-line distances to the places staff keep per city at `/admin/landmarks`
+  (metro, railway, airport, business districts, schools, hospitals, malls). Measured from the project's own map pin
+  when one is set, otherwise from the centre of its locality, and the page says which.
+- The RERA registers do not carry any of this; the Haryana form gives only one total row, not a split by 2/3 BHK.

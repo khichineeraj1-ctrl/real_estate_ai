@@ -48,6 +48,7 @@ model City {
   lat        Float
   lng        Float
   localities Locality[]
+  landmarks  Landmark[]
   /// Government charges on a purchase in this city, used by the "true cost" calculator. Percent of the price.
   stampDutyPct       Float?
   /// Rate when the sole buyer is a woman, where the state gives a concession; same as stampDutyPct otherwise.
@@ -106,7 +107,12 @@ model Project {
   reraId      String?
   /// Unknown for projects taken from a RERA register, which does not list it.
   totalUnits  Int?
+  /// Amenity codes from src/catalog/amenities.ts; anything else is free text shown under "Other".
   amenities   String[]
+  /// The project's own map pin, when someone has placed it. Without one, distances are measured from the locality's centre.
+  lat         Float?
+  lng         Float?
+  units       ProjectUnit[]
   /// Set when this project page was created from a public RERA register rather than entered by our team or the builder.
   registerSource     RegisterSource?
   /// The register's own status wording, e.g. "Registered", "APPROVED" or "Lapsed".
@@ -900,4 +906,41 @@ model InvestInterest {
   createdAt DateTime @default(now())
 
   @@index([status, createdAt])
+}
+
+/// One kind of home a project offers, e.g. "3 BHK + Study": its carpet area and, where the builder has given one, its
+/// price. Entered by our team from the builder's own material and shown as "as stated by the builder".
+model ProjectUnit {
+  id            String   @id @default(cuid())
+  projectId     String
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  label         String
+  /// Bedrooms, for sorting and for the enquiry form; null for plots, shops and the like.
+  bhk           Int?
+  carpetMinSqft Int
+  carpetMaxSqft Int?
+  priceMinInr   BigInt?
+  priceMaxInr   BigInt?
+  /// The floor plan: one of the project's own photos (from its "Floor plans" group).
+  planFile      String?
+  position      Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  @@index([projectId, position])
+}
+
+/// A place buyers measure from: a metro station, an airport, a business district. Kept by our team, one list per city,
+/// and used to show straight-line distances on project pages.
+model Landmark {
+  id     String @id @default(cuid())
+  cityId String
+  city   City   @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  /// "METRO", "RAIL", "AIRPORT", "HUB", "SCHOOL", "HOSPITAL" or "MALL".
+  kind   String
+  name   String
+  lat    Float
+  lng    Float
+
+  @@unique([cityId, kind, name])
+  @@index([cityId, kind])
 }

@@ -1,3 +1,4 @@
+import { readPin } from '../catalog/nearby';
 import { createHash } from 'node:crypto';
 import { intentInWords } from '../leads/score';
 import { aside, ensureBuilder } from '../catalog/builders';
@@ -616,6 +617,11 @@ export class AdminService implements OnModuleInit {
     const status = i.oneOf('status', 'Status', Object.values(ConstructionStatus));
     const accountId = i.optionalText('accountId', 'Builder login');
     if (accountId && !(await this.db.user.findFirst({ where: { id: accountId, role: 'BUILDER' }, select: { id: true } }))) throw new BadRequestException('Choose a builder login from the list');
+    // The map pin, pasted as "latitude, longitude". Empty clears it, and distances fall back to the locality's centre.
+    const pinText = i.optionalText('pin', 'Map pin', 60);
+    const at = pinText ? readPin(pinText) : null;
+    if (pinText && !at) throw new BadRequestException('The map pin must be two numbers for a place in India, like 28.4089, 77.0421. In Google Maps, right-click the spot and choose the numbers at the top to copy them.');
+    const pin = { lat: at?.lat ?? null, lng: at?.lng ?? null };
     const leadEmail = i.optionalText('leadEmail', 'Sales email for leads', 160);
     if (leadEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(leadEmail)) throw new BadRequestException('Enter a valid sales email, or leave it empty');
     return {
@@ -623,7 +629,7 @@ export class AdminService implements OnModuleInit {
       data: {
         name: i.text('name', 'Name', 120), builder: i.text('builder', 'Builder', 120), description: i.text('description', 'Description', 2000), status,
         possession: status === 'UNDER_CONSTRUCTION' ? i.optionalMonth('possession', 'Possession') : null, reraId: i.optionalText('reraId', 'RERA number', 80),
-        totalUnits: i.optionalNumber('totalUnits', 'Total units', 1, 50_000), amenities: i.list('amenities', 'Amenities'), leadEmail: leadEmail ? normalEmail(leadEmail) : null, accountId, localityId,
+        totalUnits: i.optionalNumber('totalUnits', 'Total units', 1, 50_000), amenities: [...new Set(i.list('amenities', 'Amenities', 80))], ...pin, leadEmail: leadEmail ? normalEmail(leadEmail) : null, accountId, localityId,
       },
     };
   }

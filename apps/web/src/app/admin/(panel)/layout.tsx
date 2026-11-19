@@ -30,7 +30,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       item('/admin/upcoming', 'Upcoming projects', '🚧'),
     ] },
     ...(staff ? [
-      { title: 'Catalogue', items: [item('/admin/projects', 'Projects', '🏗️'), item('/admin/builder-pages', 'Builder pages', '🏢'), item('/admin/register', 'RERA registers', '📚'), item('/admin/localities', 'Localities', '📍'), item('/admin/cities', 'Cities', '🌆')] },
+      { title: 'Catalogue', items: [item('/admin/projects', 'Projects', '🏗️'), item('/admin/builder-pages', 'Builder pages', '🏢'), item('/admin/register', 'RERA registers', '📚'), item('/admin/localities', 'Localities', '📍'), item('/admin/landmarks', 'Nearby places', '🧭'), item('/admin/cities', 'Cities', '🌆')] },
       { title: 'Site', items: [item('/admin/articles', 'Guides and blog', '✍️'), item('/admin/questions', 'Questions', '💬'), item('/admin/import', 'Import', '⬆️'), ...(me.role === 'ADMIN' ? [item('/admin/users', 'Users', '👥')] : [])] },
     ] : []),
   ];

@@ -49,7 +49,14 @@ export interface BuilderDetail extends Place {
   /** False when the page says no more than its one project's own page, so it is kept out of search. */
   indexable: boolean;
 }
+export interface ProjectUnit { id: string; label: string; bhk: number | null; carpetMinSqft: number; carpetMaxSqft: number | null; priceMinInr: number | null; priceMaxInr: number | null; planFile: string | null; ratePerCarpetSqft: number | null }
+export interface NearbyGroup { kind: string; label: string; icon: string; items: { name: string; km: number }[] }
 export interface ProjectDetail extends Place {
+  /** The kinds of home on offer, as stated by the builder; empty until our team has them. */
+  units: ProjectUnit[];
+  amenityGroups: { group: string; items: { label: string; icon: string }[] }[];
+  /** Where distances are measured from: the project's own pin (exact) or the centre of its locality. */
+  place: { lat: number; lng: number; exact: boolean; nearby: NearbyGroup[] };
   checklist: CheckItem[];
   /** What the builder declared in its registration application, where we have read it; unchecked. */
   declared: { litigation: boolean | null; apartments: number | null; towers: number | null; start: string | null; completion: string | null; readAt: string } | null;

@@ -1,3 +1,6 @@
+import { amenityGroups, amenityNames } from './amenities';
+import { nearby } from './nearby';
+import { unitOut } from './project-details';
 import { beforeYouPay, builderRecord } from './guidance';
 import { registeredOn } from './insights';
 
@@ -153,7 +156,7 @@ export class CatalogService {
   }
 
   async project(slug: string) {
-    const project = await this.db.project.findUnique({ where: { slug }, include: { register: { select: { declaredLitigation: true, declaredApartments: true, declaredTowers: true, declaredStart: true, declaredCompletion: true, formFetchedAt: true } }, locality: { include: { city: true } }, brand: { select: { slug: true, name: true } }, videos: { where: { approved: true }, orderBy: { position: 'asc' }, select: { youtubeId: true, title: true, addedBy: { select: { name: true, dealer: { select: { firmName: true } } } } } }, photos: { orderBy: { position: 'asc' }, select: { file: true, width: true, height: true, category: true } } } });
+    const project = await this.db.project.findUnique({ where: { slug }, include: { units: { orderBy: [{ position: 'asc' }, { createdAt: 'asc' }] }, register: { select: { declaredLitigation: true, declaredApartments: true, declaredTowers: true, declaredStart: true, declaredCompletion: true, formFetchedAt: true } }, locality: { include: { city: true } }, brand: { select: { slug: true, name: true } }, videos: { where: { approved: true }, orderBy: { position: 'asc' }, select: { youtubeId: true, title: true, addedBy: { select: { name: true, dealer: { select: { firmName: true } } } } } }, photos: { orderBy: { position: 'asc' }, select: { file: true, width: true, height: true, category: true } } } });
     if (!project) throw new NotFoundException('Project not found');
     const [properties, stats, bhk] = await Promise.all([
       this.db.property.findMany({ where: { projectId: project.id, state: 'PUBLISHED' }, select: CARD, orderBy: { priceInr: 'asc' } }),
@@ -176,7 +179,12 @@ export class CatalogService {
       name: project.name, builder: project.brand?.name ?? project.builder, city: locality.city.name, registerStatus: project.registerStatus, registerValidUntil: project.registerValidUntil, reraId: project.reraId,
       sourceUrl: project.sourceUrl, registerName, litigation: declared?.litigation ?? null, othersLapsed: others.filter((o) => standingOf(o) === 'lapsed').length, others: others.length, priced: stats.count > 0, agents: agents.length,
     });
-    return { ...rest, videos: rest.videos.map(publicVideo), registerName, locality: { slug: locality.slug, name: locality.name, lat: locality.lat, lng: locality.lng }, city: { slug: locality.city.slug, name: locality.city.name, state: locality.city.state }, properties, stats, bhk, more: { byBuilder: byBuilder.map(withAgents), inLocality: inLocality.map(withAgents) }, agents, checklist, declared };
+    // Distances are measured from the project's own pin when it has one, otherwise from the centre of its locality, and the page says which.
+    const pinned = project.lat != null && project.lng != null;
+    const from = pinned ? { lat: project.lat!, lng: project.lng! } : { lat: locality.lat, lng: locality.lng };
+    const spots = await this.db.landmark.findMany({ where: { cityId: locality.cityId }, select: { kind: true, name: true, lat: true, lng: true } });
+    const units = project.units.map(unitOut);
+    return { ...rest, amenities: amenityNames(project.amenities), amenityGroups: amenityGroups(project.amenities), units, place: { ...from, exact: pinned, nearby: nearby(from, spots) }, videos: rest.videos.map(publicVideo), registerName, locality: { slug: locality.slug, name: locality.name, lat: locality.lat, lng: locality.lng }, city: { slug: locality.city.slug, name: locality.city.name, state: locality.city.state }, properties, stats, bhk, more: { byBuilder: byBuilder.map(withAgents), inLocality: inLocality.map(withAgents) }, agents, checklist, declared };
   }
 
   async property(slug: string) {

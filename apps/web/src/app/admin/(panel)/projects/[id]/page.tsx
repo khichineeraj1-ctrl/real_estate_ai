@@ -6,19 +6,23 @@ import { adminGet, requireStaff } from '@/lib/admin';
 import { media } from '@/lib/seo';
 import { PhotoGroup, PhotoGroupField } from '@/components/admin/PhotoGroup';
 import { Videos, type AdminVideo } from '@/components/admin/Videos';
-import { addVideo, groupPhoto, remove, removeProjectPhoto, removeVideo, save } from '../../../actions';
+import { addUnit, addVideo, groupPhoto, remove, removeProjectPhoto, removeUnit, removeVideo, save } from '../../../actions';
+import { price } from '@/lib/format';
 
 const MAX_PHOTOS = 12;
 
 interface Project { id: string; photos: { id: string; file: string; category: string | null }[]; videos: AdminVideo[]; slug: string; name: string; builder: string; description: string; status: string; possession: string | null; reraId: string | null; totalUnits: number | null; amenities: string[]; localityId: string; leadEmail: string | null; accountId: string | null; _count: { enquiries: number } }
+interface Details { amenities: string[]; amenityOptions: { group: string; items: { code: string; label: string; icon: string }[] }[]; pin: string; locality: { name: string }; units: { id: string; label: string; carpetMinSqft: number; carpetMaxSqft: number | null; priceMinInr: number | null; priceMaxInr: number | null; planFile: string | null }[]; plans: string[] }
 interface Builder { id: string; name: string; email: string; active: boolean }
 
-export default async function EditProject({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ photos?: string; photoDeleted?: string; error?: string; refused?: string }> }) {
+export default async function EditProject({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ photos?: string; photoDeleted?: string; error?: string; refused?: string; unit?: string }> }) {
   const { id } = await params;
   const sp = await searchParams;
   await requireStaff();
   const isNew = id === 'new';
   const [options, builders, p] = await Promise.all([adminGet<Options>('/options'), adminGet<Builder[]>('/builders'), isNew ? null : adminGet<Project>(`/projects/${encodeURIComponent(id)}`)]);
+  const d = isNew ? null : await adminGet<Details>(`/projects/${encodeURIComponent(id)}/details`);
+  const known = new Set((d?.amenityOptions ?? []).flatMap((g) => g.items.map((x) => x.code)));
   return (
     <>
       <p><Link href="/admin/projects">← Projects</Link></p>
@@ -40,8 +44,46 @@ export default async function EditProject({ params, searchParams }: { params: Pr
         <Field label="Sales email for leads" name="leadEmail" type="email" required={false} defaultValue={p?.leadEmail} autoComplete="off" hint="The builder’s sales address. When filled in, every lead on this project is emailed there as it arrives. Buyers never see it." />
         <Select label="Builder login" name="accountId" required={false} defaultValue={p?.accountId} options={builders.map((b) => ({ value: b.id, label: `${b.name} (${b.email})${b.active ? '' : ' — deactivated'}` }))} hint="The builder account that can sign in and see this project’s leads. Create one under Users with the role Builder. If no sales email is set above, leads are emailed to this login." />
         <Area label="Description" name="description" rows={5} defaultValue={p?.description} />
-        <Area label="Amenities" name="amenities" rows={3} required={false} defaultValue={p?.amenities.join(', ')} hint="Separate with commas or new lines." />
+        <Field label="Map pin" name="pin" required={false} defaultValue={d?.pin} maxLength={60} hint={`Two numbers, like 28.4089, 77.0421. In Google Maps, right-click the project’s gate and click the numbers at the top to copy them. Leave empty and distances are measured from the centre of ${d?.locality.name ?? 'the locality'}.`} />
+        {d ? (
+          <fieldset className="afield wide amen-pick">
+            <legend>Amenities <em>(tick what the builder states)</em></legend>
+            {d.amenityOptions.map((g) => (
+              <div key={g.group}><strong>{g.group}</strong><p>{g.items.map((x) => <label key={x.code}><input type="checkbox" name="amenities" value={x.code} defaultChecked={d.amenities.includes(x.code)} /> <span aria-hidden="true">{x.icon}</span> {x.label}</label>)}</p></div>
+            ))}
+            <label className="afield"><span>Anything not in the list <em>(optional)</em></span><input name="amenities" defaultValue={d.amenities.filter((a) => !known.has(a)).join(', ')} maxLength={400} /><small>Separate with commas. Shown under “Other”.</small></label>
+          </fieldset>
+        ) : <Area label="Amenities" name="amenities" rows={3} required={false} hint="Separate with commas. After saving you can tick them from a list." />}
       </AdminForm>
+      {p && d && (
+        <section className="section" id="units">
+          <h2>Homes on offer ({d.units.length})</h2>
+          <p className="lead">One line per kind of home: 2 BHK, 3 BHK + Study, Penthouse. Take sizes and prices from the builder’s own price list or brochure; buyers see them marked “as stated by the builder”. To attach a floor plan, first upload it below under Photos in the group “Floor plans”.</p>
+          {sp.unit && <p role="status" className="anotice">{sp.unit === 'added' ? 'Added.' : 'Removed.'}</p>}
+          {d.units.length > 0 && (
+            <div className="atable"><table>
+              <thead><tr><th>Home</th><th>Carpet area</th><th>Price</th><th>Floor plan</th><th><span className="sr">Remove</span></th></tr></thead>
+              <tbody>{d.units.map((u) => (
+                <tr key={u.id}>
+                  <td>{u.label}</td>
+                  <td>{u.carpetMinSqft}{u.carpetMaxSqft ? ` to ${u.carpetMaxSqft}` : ''} sq ft</td>
+                  <td>{u.priceMinInr ? `${price(u.priceMinInr)}${u.priceMaxInr ? ` to ${price(u.priceMaxInr)}` : ''}` : 'On request'}</td>
+                  <td>{u.planFile ? <img src={media(u.planFile, 'card')} alt="" width={84} height={64} style={{ objectFit: 'contain', background: '#fff', borderRadius: 6 }} /> : '—'}</td>
+                  <td><ActionButton action={removeUnit.bind(null, p.id, u.id)} label="Remove" confirm={`Remove ${u.label}?`} tone="danger" /></td>
+                </tr>))}</tbody>
+            </table></div>
+          )}
+          <AdminForm action={addUnit.bind(null, p.id)} submit="Add this home" pendingLabel="Adding…">
+            <Field label="Name" name="label" maxLength={60} hint="As the builder calls it, e.g. 3 BHK + Study" />
+            <Field label="Carpet area, sq ft" name="carpetMinSqft" type="number" min={100} hint="Carpet area, not super built-up. The smallest, if sizes vary." />
+            <Field label="Largest carpet area, sq ft" name="carpetMaxSqft" type="number" min={100} required={false} />
+            <Field label="Price from, in rupees" name="priceMinInr" type="number" min={100000} required={false} hint="Leave empty to show “On request”." />
+            <Field label="Price to, in rupees" name="priceMaxInr" type="number" min={100000} required={false} />
+            <Select label="Floor plan" name="planFile" required={false} options={d.plans.map((f, i) => ({ value: f, label: `Floor plan ${i + 1}` }))} hint={d.plans.length ? 'Numbered in the order they appear under Photos.' : 'None uploaded yet in the “Floor plans” group.'} />
+          </AdminForm>
+        </section>
+      )}
+
       {p && (
         <section className="section" id="photos">
           <h2>Photos ({p.photos.length} of {MAX_PHOTOS})</h2>

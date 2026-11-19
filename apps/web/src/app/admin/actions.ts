@@ -9,7 +9,12 @@ export interface FormState { error?: string; ok?: string; rows?: { row: number; 
 const ENTITIES = ['properties', 'projects', 'localities', 'cities', 'users'] as const;
 export type Entity = (typeof ENTITIES)[number];
 
-const fields = (form: FormData) => Object.fromEntries([...form.entries()].filter(([k, v]) => !k.startsWith('$') && typeof v === 'string'));
+/** A form's text fields. A name that appears several times (tick boxes sharing one name) is sent as one comma-separated list. */
+const fields = (form: FormData) => {
+  const out: Record<string, string> = {};
+  for (const [k, v] of form.entries()) if (!k.startsWith('$') && typeof v === 'string') out[k] = k in out ? [out[k], v].filter(Boolean).join(',') : v;
+  return out;
+};
 
 async function startSession(token: string) {
   (await cookies()).set(ADMIN_COOKIE, token, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', path: '/', maxAge: 12 * 3600 });
@@ -385,4 +390,30 @@ export async function investDone(id: string, _: FormState): Promise<FormState> {
   const r = await adminFetch(`/invest/interests/${encodeURIComponent(id)}/done`, { method: 'POST' });
   if (!r.ok) return failed(r);
   redirect('/admin/invest?tab=interests&saved=1');
+}
+
+/** A project's kinds of home (2 BHK, 3 BHK…), and the places distances are measured to in each city. */
+export async function addUnit(projectId: string, _: FormState, form: FormData): Promise<FormState> {
+  const r = await adminFetch(`/projects/${encodeURIComponent(projectId)}/units`, { method: 'POST', body: fields(form) });
+  if (!r.ok) return failed(r);
+  revalidatePath('/', 'layout');
+  redirect(`/admin/projects/${projectId}?unit=added#units`);
+}
+export async function removeUnit(projectId: string, unitId: string, _: FormState): Promise<FormState> {
+  const r = await adminFetch(`/projects/${encodeURIComponent(projectId)}/units/${encodeURIComponent(unitId)}`, { method: 'DELETE' });
+  if (!r.ok) return failed(r);
+  revalidatePath('/', 'layout');
+  redirect(`/admin/projects/${projectId}?unit=removed#units`);
+}
+export async function addLandmarks(city: string, _: FormState, form: FormData): Promise<FormState> {
+  const r = await adminFetch<{ added: number }>(`/landmarks/${encodeURIComponent(city)}`, { method: 'POST', body: { lines: String(form.get('lines') ?? '') } });
+  if (!r.ok) return failed(r);
+  revalidatePath('/', 'layout');
+  redirect(`/admin/landmarks?city=${city}&added=${r.data.added}`);
+}
+export async function removeLandmark(city: string, id: string, _: FormState): Promise<FormState> {
+  const r = await adminFetch(`/landmarks/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  if (!r.ok) return failed(r);
+  revalidatePath('/', 'layout');
+  redirect(`/admin/landmarks?city=${city}&removed=1`);
 }

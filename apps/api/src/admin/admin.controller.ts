@@ -1,5 +1,6 @@
 import { ArticleService } from '../articles/articles.service';
 import { UpcomingService } from '../catalog/upcoming';
+import { ProjectDetailsService } from '../catalog/project-details';
 import { Body, Controller, Delete, Get, Header, HttpCode, HttpException, Ip, Param, Patch, Post, Query, UploadedFiles, UseGuards, UseInterceptors, Put } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { Limiter } from '../ask/ask.service';
@@ -27,7 +28,7 @@ export class AdminController {
   private signups = new Limiter(20, 5_000);
   private emails = new Limiter(2, 10_000); // per account or email: emails cost money and can be used to pester someone
   private key = (v: unknown) => (typeof v === 'string' ? v.trim().toLowerCase().slice(0, 160) : '');
-  constructor(private readonly admin: AdminService, private readonly reminders: Reminders, private readonly upcoming: UpcomingService, private readonly articles: ArticleService) {}
+  constructor(private readonly admin: AdminService, private readonly reminders: Reminders, private readonly upcoming: UpcomingService, private readonly articles: ArticleService, private readonly details: ProjectDetailsService) {}
 
   @Post('login')
   @HttpCode(200)
@@ -126,6 +127,12 @@ export class AdminController {
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Get('projects/:id') project(@Param('id') id: string) { return this.admin.project(id); }
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Post('projects') createProject(@Body() b: Json) { return this.admin.createProject(b); }
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Patch('projects/:id') updateProject(@Param('id') id: string, @Body() b: Json) { return this.admin.updateProject(id, b); }
+  @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Get('projects/:id/details') projectDetails(@Param('id') id: string) { return this.details.forEdit(id); }
+  @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Post('projects/:id/units') addUnit(@Param('id') id: string, @Body() b: Json) { return this.details.addUnit(id, b); }
+  @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Delete('projects/:id/units/:unit') removeUnit(@Param('id') id: string, @Param('unit') unit: string) { return this.details.removeUnit(id, unit); }
+  @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Get('landmarks') landmarks(@Query('city') city?: string) { return this.details.landmarks(city); }
+  @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Post('landmarks/:city') addLandmarks(@Param('city') city: string, @Body() b: Json) { return this.details.addLandmarks(city, b); }
+  @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Delete('landmarks/:id') removeLandmark(@Param('id') id: string) { return this.details.removeLandmark(id); }
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Delete('projects/:id') deleteProject(@Param('id') id: string) { return this.admin.deleteProject(id); }
 
   @UseGuards(AdminGuard) @Roles('ADMIN', 'EDITOR') @Get('localities') localities() { return this.admin.localities(); }
