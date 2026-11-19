@@ -1004,3 +1004,6 @@ p.follow-consent { margin: 0; }
 .post-tag { justify-self: start; font-size: .72rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; background: rgba(255, 255, 255, .18); border-radius: 999px; padding: 3px 10px; }
 .guide-cols.is-plain { grid-template-columns: minmax(0, 1fr); } .guide-more { margin-top: 36px; } .guide-more h2 { font-size: 1.15rem; }
 @media (prefers-reduced-motion: reduce) { .acards a, .post-lead { transition: none; } .acards a:hover, .post-lead:hover { transform: none; } }
+/* The top menu has grown: a little less space between items, and on a mid-width screen the city names give way first. */
+.site-header .wrap { gap: 16px; }
+@media (max-width: 1040px) { .site-header nav[aria-label="Cities"] { display: none; } .site-header .logo { margin-right: auto; } }
