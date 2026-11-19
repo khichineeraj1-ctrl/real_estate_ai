@@ -1,0 +1,46 @@
+AIRPORT | Indira Gandhi International Airport | 28.55541, 77.09712
+METRO | A.I.I.M.S. | 28.56686, 77.20781
+METRO | Arjan Garh | 28.48074, 77.12576
+METRO | Belvedere Towers | 28.4917, 77.08813
+METRO | Chhatarpur | 28.50672, 77.175
+METRO | Cyber City | 28.49807, 77.08926
+METRO | Delhi Aerocity | 28.54878, 77.12079
+METRO | DLF Phase 1 | 28.47143, 77.09396
+METRO | DLF Phase 2 | 28.48756, 77.09299
+METRO | Dwarka Sector 21 | 28.55192, 77.05856
+METRO | Dwarka Sector 8 | 28.56561, 77.06704
+METRO | Ghitorni | 28.49375, 77.14919
+METRO | Green Park | 28.55801, 77.20679
+METRO | Guru Dronacharya | 28.48202, 77.10227
+METRO | Hauz Khas | 28.54381, 77.20588
+METRO | IFFCO Chowk | 28.47233, 77.07242
+METRO | IGI Airport | 28.55646, 77.0867
+METRO | IIT Delhi | 28.54701, 77.19455
+METRO | Malviya Nagar | 28.52907, 77.20482
+METRO | M G Road | 28.47955, 77.07989
+METRO | Millennium City Centre Gurugram | 28.45934, 77.07266
+METRO | Moulsari Avenue | 28.50078, 77.09463
+METRO | Munirka | 28.5569, 77.17506
+METRO | Phase 3 | 28.49357, 77.09366
+METRO | Qutab Minar | 28.51295, 77.18645
+METRO | R. K. Puram | 28.55038, 77.18552
+METRO | Saket | 28.52117, 77.20222
+METRO | Sector 42-43 | 28.45743, 77.09695
+METRO | Sector 53-54 | 28.4464, 77.10042
+METRO | Sector 54 Chowk | 28.43298, 77.1049
+METRO | Sector 55-56 | 28.42336, 77.10513
+METRO | Shankar Vihar | 28.56085, 77.14028
+METRO | Sikanderpur | 28.48113, 77.09372
+METRO | Sultanpur | 28.49912, 77.16137
+METRO | Terminal 1 IGI Airport | 28.56483, 77.12266
+METRO | Vasant Vihar | 28.55783, 77.16112
+METRO | Yashobhoomi Dwarka Sector 25 | 28.55083, 77.04531
+RAIL | Gurgaon railway station | 28.48909, 77.01116
+RAIL | New Delhi railway station | 28.64028, 77.22041
+RAIL | Hazrat Nizamuddin railway station | 28.58641, 77.25298
+HUB | DLF Cyber City | 28.49731, 77.0918
+HUB | Udyog Vihar | 28.49173, 77.08197
+HUB | Golf Course Road (One Horizon Center) | 28.45162, 77.09714
+HUB | Sohna Road (Vatika Business Park) | 28.40615, 77.04514
+HUB | IMT Manesar | 28.36719, 76.92067
+HUB | Connaught Place, Delhi | 28.63177, 77.21938

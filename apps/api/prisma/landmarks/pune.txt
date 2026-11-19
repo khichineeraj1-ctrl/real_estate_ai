@@ -1,0 +1,59 @@
+AIRPORT | Pune International Airport | 18.5802, 73.91949
+METRO | Agriculture College | 18.53301, 73.84149
+METRO | Anandnagar | 18.50957, 73.81407
+METRO | Aundh | 18.55031, 73.80826
+METRO | Bopodi | 18.56966, 73.8381
+METRO | Bund Garden | 18.54059, 73.88344
+METRO | Chhatrapati Sambhaji Udyan | 18.52008, 73.84738
+METRO | Civil Court | 18.52709, 73.8574
+METRO | Dapodi | 18.58376, 73.83377
+METRO | Deccan Gymkhana | 18.51645, 73.84445
+METRO | District Court | 18.5273, 73.85689
+METRO | Garware College | 18.51199, 73.83805
+METRO | Hadapsar | 18.50367, 73.92277
+METRO | Hinjawadi Phase 1 | 18.59097, 73.7463
+METRO | Hinjawadi Phase 2 Circle 1 | 18.59659, 73.71716
+METRO | Hinjawadi Phase 2 Circle 2 | 18.5942, 73.70922
+METRO | Kalyani Nagar | 18.54448, 73.9057
+METRO | Kasarwadi | 18.59962, 73.82726
+METRO | Kasba Peth | 18.52137, 73.85962
+METRO | Khadki | 18.56226, 73.84208
+METRO | Kothrud | 18.50389, 73.80767
+METRO | Maan | 18.57921, 73.68802
+METRO | Maan Bus Depot | 18.5881, 73.7029
+METRO | Maan MIDC Circle - Phase 2 | 18.58402, 73.69482
+METRO | Mahatma Phule Mandai | 18.5129, 73.85701
+METRO | Mangalwar Peth | 18.53007, 73.8651
+METRO | Mitcon Balewadi | 18.57503, 73.76606
+METRO | Nashik Phata | 18.6093, 73.8201
+METRO | Padmabhushan Chowk | 18.59449, 73.72783
+METRO | Paud Phata | 18.50888, 73.82214
+METRO | Phugewadi | 18.59111, 73.83115
+METRO | Pimpri Chinchwad Municipal Corporation (PCMC) | 18.62932, 73.80329
+METRO | PMC Bhavan | 18.52274, 73.85335
+METRO | Pune Railway | 18.52976, 73.87241
+METRO | Ramwadi | 18.55703, 73.90856
+METRO | R K Laxman Museum Balewadi | 18.57434, 73.77185
+METRO | Ruby Hall Clinic | 18.53272, 73.87775
+METRO | Sakal Nagar | 18.54633, 73.81967
+METRO | Sant Tukaram Nagar | 18.61452, 73.81575
+METRO | Savitribai Phule Pune University | 18.54235, 73.82717
+METRO | Shivaji Nagar | 18.53217, 73.84966
+METRO | Shivaji Nagar Railway | 18.5324, 73.85138
+METRO | Shree Shiv Chhatrapati Shivaji Maharaj Chowk Hinjawadi | 18.59239, 73.73736
+METRO | Shree Shiv Chhatrapati Sports Complex Mahalunge | 18.57971, 73.76154
+METRO | SNDT College | 18.50736, 73.82878
+METRO | Swargate | 18.49975, 73.85746
+METRO | Vanaz | 18.50719, 73.80519
+METRO | Wakad Chowk | 18.5903, 73.75756
+METRO | Yerwada | 18.5453, 73.88662
+RAIL | Pune Junction | 18.52888, 73.87441
+RAIL | Shivajinagar railway station | 18.53259, 73.85131
+RAIL | Hadapsar railway station | 18.52697, 73.92783
+RAIL | Chinchwad railway station | 18.63948, 73.7915
+HUB | Hinjawadi (Rajiv Gandhi Infotech Park) | 18.58107, 73.74056
+HUB | EON IT Park, Kharadi | 18.55413, 73.95158
+HUB | Baner | 18.55899, 73.78452
+HUB | Kalyani Nagar | 18.54814, 73.90255
+HUB | Viman Nagar | 18.57039, 73.91333
+HUB | Pimpri-Chinchwad MIDC | 18.6287, 73.83002

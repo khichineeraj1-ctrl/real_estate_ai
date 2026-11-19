@@ -8,8 +8,8 @@ export const LANDMARK_KINDS = ['METRO', 'RAIL', 'AIRPORT', 'HUB', 'SCHOOL', 'HOS
 export type LandmarkKind = (typeof LANDMARK_KINDS)[number];
 export const LANDMARK_LABEL: Record<LandmarkKind, string> = { METRO: 'Metro', RAIL: 'Railway station', AIRPORT: 'Airport', HUB: 'Offices and business districts', SCHOOL: 'Schools', HOSPITAL: 'Hospitals', MALL: 'Shopping' };
 export const LANDMARK_ICON: Record<LandmarkKind, string> = { METRO: '🚇', RAIL: '🚆', AIRPORT: '✈️', HUB: '🏢', SCHOOL: '🏫', HOSPITAL: '🏥', MALL: '🛍️' };
-/** How many of each to show, and how far is still "near". An airport is always shown, however far. */
-const SHOW: Record<LandmarkKind, { take: number; within: number }> = { METRO: { take: 3, within: 12 }, RAIL: { take: 2, within: 40 }, AIRPORT: { take: 1, within: Infinity }, HUB: { take: 4, within: 30 }, SCHOOL: { take: 3, within: 8 }, HOSPITAL: { take: 3, within: 12 }, MALL: { take: 3, within: 12 } };
+/** How many of each to show, and how far is still "near". Airports are always shown, however far. */
+const SHOW: Record<LandmarkKind, { take: number; within: number }> = { METRO: { take: 3, within: 12 }, RAIL: { take: 2, within: 40 }, AIRPORT: { take: 2, within: Infinity }, HUB: { take: 4, within: 30 }, SCHOOL: { take: 3, within: 8 }, HOSPITAL: { take: 3, within: 12 }, MALL: { take: 3, within: 12 } };
 
 export interface Spot { kind: string; name: string; lat: number; lng: number }
 export function nearby(from: { lat: number; lng: number }, spots: Spot[]) {

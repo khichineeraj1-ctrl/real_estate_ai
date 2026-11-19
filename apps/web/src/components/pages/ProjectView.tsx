@@ -106,7 +106,7 @@ export function ProjectView({ p }: { p: ProjectDetail }) {
                   <ul>{g.items.map((x) => <li key={x.name}><span>{x.name}</span><b>{x.km < 1 ? `${Math.round(x.km * 1000 / 50) * 50} m` : `${x.km} km`}</b></li>)}</ul>
                 </div>
               ))}
-              <p className="calc-note">Straight-line distances from {p.place.exact ? 'the project’s pin' : `the centre of ${p.locality.name}`}. The road is always longer, so check the drive at the hour you would travel.</p>
+              <p className="calc-note">Straight-line distances from {p.place.exact ? 'the project’s pin' : `the centre of ${p.locality.name}`}. The road is always longer, so check the drive at the hour you would travel. Places and map © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer nofollow">OpenStreetMap</a> contributors.</p>
             </div>
           ) : <p className="near-none">Distances to the metro, airport and offices will show here once our team has mapped them for {p.city.name}. Meanwhile, <Link href={localityPath}>see {p.locality.name}</Link>.</p>}
         </div>

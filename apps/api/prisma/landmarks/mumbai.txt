@@ -1,0 +1,111 @@
+AIRPORT | Chhatrapati Shivaji Maharaj International Airport | 19.09015, 72.86291
+AIRPORT | Navi Mumbai International Airport | 18.99139, 73.06463
+METRO | Aarey | 19.16932, 72.85879
+METRO | Aarey JVLR | 19.13043, 72.88435
+METRO | Acharya Atre Chowk | 18.99782, 72.81772
+METRO | Airport Road | 19.11013, 72.87417
+METRO | Akurli | 19.19816, 72.86049
+METRO | Anand Nagar | 19.25721, 72.86635
+METRO | Andheri L1 | 19.12056, 72.84884
+METRO | Andheri (West) | 19.12913, 72.83143
+METRO | Asalpha | 19.09642, 72.89488
+METRO | Azad Nagar | 19.12691, 72.83765
+METRO | Azad Nagar Bus Stop | 19.24104, 72.981
+METRO | Bandra Colony | 19.06996, 72.84936
+METRO | Bandra Kurla Complex | 19.06066, 72.85468
+METRO | Bangur Nagar | 19.16247, 72.83487
+METRO | Belpada | 19.02527, 73.05494
+METRO | Borivali (West) | 19.23139, 72.84086
+METRO | CBD Belapur | 19.0206, 73.04027
+METRO | Central Park | 19.05361, 73.076
+METRO | Chakala - J.B. Nagar | 19.11204, 72.86762
+METRO | Chembur | 19.05413, 72.89281
+METRO | Chhatrapati Shivaji Maharaj International Airport - T1 | 19.0939, 72.85358
+METRO | Chhatrapati Shivaji Maharaj International Airport - T2 | 19.10233, 72.87447
+METRO | Chhatrapati Shivaji Maharaj Terminus | 18.94083, 72.83186
+METRO | Churchgate | 18.93149, 72.82694
+METRO | Cuffe Parade | 18.91357, 72.82072
+METRO | Dadar | 19.02362, 72.83922
+METRO | Dahanukarwadi | 19.20623, 72.83481
+METRO | Dahisar (East) [Line 2] | 19.25173, 72.86733
+METRO | Dahisar (East) [Line 7] | 19.2507, 72.86667
+METRO | Dahisar (East) [Line 9] | 19.25108, 72.86745
+METRO | Deonar | 19.04483, 72.9175
+METRO | Devipada | 19.22404, 72.86433
+METRO | Dharavi | 19.04626, 72.84974
+METRO | Diamond Garden | 19.05172, 72.90184
+METRO | Dindoshi | 19.17976, 72.8583
+METRO | D. N. Nagar | 19.12829, 72.83019
+METRO | Eksar | 19.24035, 72.84343
+METRO | Ghatkopar L1 | 19.0867, 72.90807
+METRO | Girgaon | 18.9521, 72.82221
+METRO | Goregaon (East) | 19.15245, 72.8566
+METRO | Goregaon (West) | 19.15302, 72.83567
+METRO | Grant Road | 18.96322, 72.81804
+METRO | Gundavali | 19.11451, 72.85516
+METRO | Hutatma Chowk | 18.93418, 72.8325
+METRO | Jagannath Shankar Sheth | 18.96999, 72.82118
+METRO | Jagruti Nagar | 19.09258, 72.90191
+METRO | Jogeshwari (East) | 19.14295, 72.85519
+METRO | Kalbadevi | 18.94633, 72.82719
+METRO | Kandarpada | 19.25663, 72.8505
+METRO | Kandivali (West) | 19.214, 72.83731
+METRO | Kashigaon | 19.27767, 72.88024
+METRO | Kendriya Vihar | 19.03767, 73.06408
+METRO | Khandeshwar | 19.00735, 73.09528
+METRO | Khargar Village | 19.04311, 73.0743
+METRO | Kurar | 19.1873, 72.85845
+METRO | Lower Malad | 19.1731, 72.83648
+METRO | Lower Oshiwara | 19.1407, 72.83171
+METRO | Magathane | 19.2168, 72.8668
+METRO | Mahalaxmi | 18.97947, 72.8254
+METRO | Malad (West) | 19.18529, 72.83586
+METRO | Mandale | 19.04959, 72.93866
+METRO | Mandapeshwar - I.C. Colony | 19.24959, 72.8458
+METRO | Mankhurd | 19.04922, 72.93123
+METRO | Mansarovar | 19.01643, 73.08066
+METRO | Marol Naka | 19.10833, 72.87903
+METRO | MIDC - Andheri | 19.11735, 72.8736
+METRO | Miragaon | 19.27101, 72.8807
+METRO | Mogra | 19.12844, 72.85546
+METRO | Oshiwara | 19.14604, 72.83395
+METRO | Ovaripada | 19.24315, 72.86414
+METRO | Panchanand | 19.07454, 73.09077
+METRO | Pandurang Wadi | 19.25973, 72.87249
+METRO | Pendhar | 19.07221, 73.09784
+METRO | Pethpada | 19.06382, 73.07737
+METRO | Poisar | 19.20377, 72.86332
+METRO | Rashtriya Udyan | 19.23461, 72.86314
+METRO | RBI Colony | 19.02298, 73.04794
+METRO | Sahar Road | 19.1022, 72.86524
+METRO | Saki Naka | 19.10354, 72.88796
+METRO | Santacruz | 19.07929, 72.84712
+METRO | SBI-Dadar | 19.02465, 72.83993
+METRO | Science Centre | 18.99089, 72.82135
+METRO | Sector-34 | 19.07365, 73.08181
+METRO | SEEPZ | 19.126, 72.87373
+METRO | Shimpoli | 19.22283, 72.84094
+METRO | Shitala Devi Mandir | 19.03846, 72.84196
+METRO | Shivaji Chowk (Chembur) | 19.04794, 72.90698
+METRO | Siddhivinayak Temple | 19.01589, 72.83092
+METRO | Utsav Chowk | 19.03258, 73.05906
+METRO | Valnai-Meeth Chowky | 19.19683, 72.83378
+METRO | Versova | 19.13025, 72.82138
+METRO | Vidhan Bhavan | 18.92478, 72.82549
+METRO | Western Express Highway | 19.11586, 72.85642
+METRO | Worli | 19.00861, 72.81927
+RAIL | Chhatrapati Shivaji Maharaj Terminus | 18.93986, 72.83552
+RAIL | Mumbai Central | 18.96959, 72.81932
+RAIL | Dadar railway station | 19.01738, 72.84303
+RAIL | Lokmanya Tilak Terminus | 19.06947, 72.89198
+RAIL | Bandra Terminus | 19.06239, 72.84092
+RAIL | Borivali railway station | 19.23139, 72.84086
+RAIL | Thane railway station | 19.18461, 72.97103
+RAIL | Panvel railway station | 18.98917, 73.12122
+HUB | Bandra Kurla Complex | 19.05927, 72.86133
+HUB | Lower Parel | 18.99568, 72.83028
+HUB | Nariman Point | 18.92709, 72.82359
+HUB | Powai (Hiranandani) | 19.11839, 72.91146
+HUB | Airoli (Mindspace) | 19.16149, 73.00215
+HUB | Goregaon (NESCO) | 19.15249, 72.85502
+HUB | Andheri SEEPZ | 19.12536, 72.87517
