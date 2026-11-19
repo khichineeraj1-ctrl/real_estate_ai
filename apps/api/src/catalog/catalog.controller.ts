@@ -1,4 +1,4 @@
-import { guideBySlug, guideCards } from '../guides/guides';
+import { STAGES, guideBySlug, guideCards } from '../guides/guides';
 import { AlertService } from './alerts';
 import { BuyerService } from '../buyer/buyer.service';
 import { WatchService } from './watch';
@@ -27,7 +27,8 @@ export class CatalogController {
 
   @Get('health') health() { return { ok: true }; }
   @Get('guides') guides() { return guideCards(); }
-  @Get('guides/:slug') guide(@Param('slug') slug: string) { const g = guideBySlug(slug); if (!g) throw new NotFoundException('Guide not found'); return { ...g, more: guideCards().filter((x) => x.slug !== slug) }; }
+  @Get('guide-stages') guideStages() { const cards = guideCards(); return STAGES.map((st) => ({ ...st, guides: cards.filter((g) => g.stage === st.key) })); }
+  @Get('guides/:slug') guide(@Param('slug') slug: string) { const g = guideBySlug(slug); if (!g) throw new NotFoundException('Guide not found'); const cards = guideCards(); const order = STAGES.flatMap((st) => cards.filter((c) => c.stage === st.key)); const i = order.findIndex((c) => c.slug === slug); return { ...g, stageInfo: STAGES.find((st) => st.key === g.stage), prev: order[i - 1] ?? null, next: order[i + 1] ?? null, more: cards.filter((x) => x.slug !== slug) }; }
   @Get('cities') cities() { return this.catalog.cities(); }
   @Get('cities/:slug') city(@Param('slug') slug: string) { return this.catalog.city(slug); }
   @Get('localities/:city/:slug') locality(@Param('city') city: string, @Param('slug') slug: string) { return this.catalog.locality(city, slug); }

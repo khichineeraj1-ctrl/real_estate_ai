@@ -9,6 +9,10 @@ export interface Guide {
   /** The page's headline, and a shorter name for cards and links. */
   title: string; short: string;
   summary: string; icon: string; minutes: number;
+  /** Where in buying a home this guide belongs, and the colour it wears. */
+  stage: StageKey; accent: string;
+  /** Two or three figures worth remembering, shown large. */
+  stats: { value: string; label: string }[];
   /** The three or four things to remember, shown at the top. */
   takeaways: string[];
   sections: GuideSection[];
@@ -21,9 +25,20 @@ export interface Guide {
 
 const REVIEWED = '2026-11-19';
 
+export type StageKey = 'shortlist' | 'price' | 'book' | 'wait' | 'move';
+/** The buyer's journey, in order. Guides are grouped under these on the guides page. */
+export const STAGES: { key: StageKey; step: string; title: string; blurb: string }[] = [
+  { key: 'shortlist', step: 'Step 1', title: 'Shortlisting', blurb: 'Know what you are looking at before you fall for it.' },
+  { key: 'price', step: 'Step 2', title: 'Comparing prices', blurb: 'Put every quote on the same footing.' },
+  { key: 'book', step: 'Step 3', title: 'Booking', blurb: 'What to sign, and how much to pay, first.' },
+  { key: 'wait', step: 'Step 4', title: 'Waiting for possession', blurb: 'What you are owed if the date slips.' },
+  { key: 'move', step: 'Step 5', title: 'Moving in', blurb: 'The paper that makes it legally yours to live in.' },
+];
+
 export const GUIDES: Guide[] = [
   {
-    slug: 'carpet-area-vs-super-built-up-area', short: 'Carpet area vs super built-up', icon: '📐', minutes: 4, reviewed: REVIEWED,
+    slug: 'carpet-area-vs-super-built-up-area', stage: 'price', accent: '#2a78d6',
+    stats: [{ value: '20–40%', label: 'of a quoted area is commonly not yours to use' }, { value: '1,050', label: 'usable sq ft in a “1,500 sq ft” flat at 30% loading' }], short: 'Carpet area vs super built-up', icon: '📐', minutes: 4, reviewed: REVIEWED,
     title: 'Carpet area vs super built-up area: what you actually get',
     summary: 'Two flats quoted at the same rate can differ by a room’s worth of usable floor. Here is what each area means and how to compare them.',
     takeaways: [
@@ -49,7 +64,8 @@ export const GUIDES: Guide[] = [
     ],
   },
   {
-    slug: 'rera-registration-explained', short: 'RERA registration explained', icon: '🏛️', minutes: 5, reviewed: REVIEWED,
+    slug: 'rera-registration-explained', stage: 'shortlist', accent: '#4f46e5',
+    stats: [{ value: '500 sq m', label: 'or more than 8 flats: the project must be registered' }, { value: '3', label: 'states a registration can be in: current, over, lapsed' }], short: 'RERA registration explained', icon: '🏛️', minutes: 5, reviewed: REVIEWED,
     title: 'RERA registration explained, and how to check a project',
     summary: 'What a RERA number proves, what it does not, and what “lapsed” or “registration period over” means for a buyer.',
     takeaways: [
@@ -76,7 +92,8 @@ export const GUIDES: Guide[] = [
     ],
   },
   {
-    slug: 'booking-amount-and-agreement-for-sale', short: 'Booking amount and the agreement', icon: '✍️', minutes: 4, reviewed: REVIEWED,
+    slug: 'booking-amount-and-agreement-for-sale', stage: 'book', accent: '#0f7b4f',
+    stats: [{ value: '10%', label: 'the most a builder may take before a registered agreement' }, { value: '70%', label: 'of buyers’ money must stay in the project’s own account' }], short: 'Booking amount and the agreement', icon: '✍️', minutes: 4, reviewed: REVIEWED,
     title: 'Booking amount and the agreement for sale: the 10% rule',
     summary: 'How much a builder may take before the agreement, where your money must go, and what the agreement should say.',
     takeaways: [
@@ -104,7 +121,8 @@ export const GUIDES: Guide[] = [
     ],
   },
   {
-    slug: 'how-to-read-a-builder-cost-sheet', short: 'Reading a cost sheet', icon: '🧾', minutes: 5, reviewed: REVIEWED,
+    slug: 'how-to-read-a-builder-cost-sheet', stage: 'price', accent: '#eb6834',
+    stats: [{ value: '12–20%', label: 'commonly added to the basic price by extras and taxes' }, { value: '8+', label: 'separate lines on a typical cost sheet' }], short: 'Reading a cost sheet', icon: '🧾', minutes: 5, reviewed: REVIEWED,
     title: 'How to read a builder’s cost sheet',
     summary: 'The basic price is only the first line. These are the charges that follow it, which ones are negotiable, and what to ask about each.',
     takeaways: [
@@ -143,7 +161,8 @@ export const GUIDES: Guide[] = [
     ],
   },
   {
-    slug: 'under-construction-vs-ready-to-move', short: 'Under construction vs ready', icon: '🏗️', minutes: 4, reviewed: REVIEWED,
+    slug: 'under-construction-vs-ready-to-move', stage: 'shortlist', accent: '#0ea5a4',
+    stats: [{ value: '5%', label: 'GST on a home bought under construction' }, { value: '0%', label: 'GST once the building is complete' }], short: 'Under construction vs ready', icon: '🏗️', minutes: 4, reviewed: REVIEWED,
     title: 'Under construction or ready to move: which costs more?',
     summary: 'An under-construction flat looks cheaper. Add GST, rent while you wait and the risk of delay, and the gap narrows or reverses.',
     takeaways: [
@@ -166,7 +185,8 @@ export const GUIDES: Guide[] = [
     ],
   },
   {
-    slug: 'possession-delay-your-rights', short: 'If possession is delayed', icon: '⏳', minutes: 4, reviewed: REVIEWED,
+    slug: 'possession-delay-your-rights', stage: 'wait', accent: '#b54708',
+    stats: [{ value: '2', label: 'choices: stay and be paid interest, or leave with a refund' }, { value: 'SBI + 2%', label: 'the usual interest rate for delay' }], short: 'If possession is delayed', icon: '⏳', minutes: 4, reviewed: REVIEWED,
     title: 'If possession is delayed: your rights under RERA',
     summary: 'What the builder owes you when a home is handed over late, the two choices the law gives you, and how to use them.',
     takeaways: [
@@ -192,7 +212,8 @@ export const GUIDES: Guide[] = [
     ],
   },
   {
-    slug: 'occupation-certificate-explained', short: 'Occupation certificate', icon: '🔑', minutes: 3, reviewed: REVIEWED,
+    slug: 'occupation-certificate-explained', stage: 'move', accent: '#7c3aed',
+    stats: [{ value: '3', label: 'certificates in order: commencement, completion, occupation' }, { value: 'OC', label: 'the one to see before taking possession' }], short: 'Occupation certificate', icon: '🔑', minutes: 3, reviewed: REVIEWED,
     title: 'Occupation certificate: why you should not move in without one',
     summary: 'A finished-looking building is not a legally finished one. The occupation certificate is the paper that says it is.',
     takeaways: [
@@ -219,5 +240,5 @@ export const GUIDES: Guide[] = [
 ];
 
 /** What a list of guides needs: everything but the body. */
-export const guideCards = () => GUIDES.map(({ slug, title, short, summary, icon, minutes }) => ({ slug, title, short, summary, icon, minutes }));
+export const guideCards = () => GUIDES.map(({ slug, title, short, summary, icon, minutes, stage, accent }) => ({ slug, title, short, summary, icon, minutes, stage, accent }));
 export const guideBySlug = (slug: string) => GUIDES.find((g) => g.slug === slug) ?? null;
