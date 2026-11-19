@@ -24,7 +24,7 @@ function ago(iso: string): string {
  * Newly launched projects on the home page: cards that can be narrowed to the ones with a site video, each showing
  * when it was registered and when it is due. A video plays over the page, from YouTube's cookie-free address.
  */
-export function Launches({ items, total, months }: { items: Launch[]; total: number; months: number }) {
+export function Launches({ items, total, months, all = false }: { items: Launch[]; total: number; months: number; all?: boolean }) {
   const [onlyVideo, setOnlyVideo] = useState(false);
   const [playing, setPlaying] = useState<Launch | null>(null);
   const dialog = useRef<HTMLDialogElement>(null);
@@ -35,6 +35,7 @@ export function Launches({ items, total, months }: { items: Launch[]; total: num
     <>
       <div className="launch-head">
         <p className="lead">Registered with RERA in the last {months} months and still being built. {total} so far{withVideo.length ? `, ${withVideo.length} with a video from the site` : ''}.</p>
+        {!all && <Link className="launch-all" href="/new-launches">View all {total} →</Link>}
         {withVideo.length > 0 && (
           <div className="picks" role="group" aria-label="Show">
             <button type="button" className="pick" aria-pressed={!onlyVideo} onClick={() => setOnlyVideo(false)}>All</button>
@@ -42,7 +43,7 @@ export function Launches({ items, total, months }: { items: Launch[]; total: num
           </div>
         )}
       </div>
-      <ul className="launches">
+      <ul className={all ? 'launches is-grid' : 'launches'}>
         {shown.map((p) => {
           const href = projectPath(p.city.slug, p);
           return (
@@ -69,6 +70,9 @@ export function Launches({ items, total, months }: { items: Launch[]; total: num
             </li>
           );
         })}
+        {!all && total > items.length && (
+          <li className="launch launch-more"><Link href="/new-launches"><strong>+{total - items.length}</strong><span>more new launches</span><b>View all →</b></Link></li>
+        )}
       </ul>
       {playing?.video && (
         <dialog ref={dialog} className="viewer launch-viewer" aria-label={`Site video of ${playing.name}`} onClose={() => setPlaying(null)} onClick={(e) => { if (e.target === dialog.current) dialog.current?.close(); }}>

@@ -935,3 +935,11 @@ p.follow-consent { margin: 0; }
 .up-cta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px 24px; padding: 18px; border-radius: var(--radius); background: var(--soft); border: 1px solid var(--line); } .up-cta > div { flex: 1 1 300px; } .up-cta h2 { margin: 0 0 4px; font-size: 1.15rem; } .up-cta p { margin: 0; color: var(--muted); } .up-cta .up-btn { width: auto; }
 /* One or two cards stay card-sized; they do not stretch across the page. */
 .launches { grid-auto-columns: minmax(270px, 330px); justify-content: start; }
+
+/* New launches: a "view all" link on the home row, a last card that leads to the full list, and the full list as a grid. */
+.launch-all { font-weight: 600; white-space: nowrap; }
+.launch-more { justify-content: stretch; border-style: dashed; background: color-mix(in srgb, var(--brand) 5%, var(--card)); }
+.launch-more a { flex: 1; display: grid; place-content: center; justify-items: center; gap: 4px; padding: 20px; text-align: center; color: var(--fg); min-height: 240px; } .launch-more a:hover { text-decoration: none; }
+.launch-more strong { font-size: 2.4rem; font-weight: 800; color: var(--brand); line-height: 1; } .launch-more span { color: var(--muted); } .launch-more b { margin-top: 10px; color: #fff; background: var(--brand); border-radius: 999px; padding: 8px 18px; font-size: .9rem; }
+.launches.is-grid { grid-auto-flow: row; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); grid-auto-columns: auto; overflow: visible; justify-content: stretch; }
+@media (prefers-color-scheme: dark) { .launch-more b { color: #0e1116; } }
