@@ -3,6 +3,7 @@
 import { noteCompared } from '@/lib/intent';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { useSyncExternalStore } from 'react';
 
 /**
@@ -91,8 +92,17 @@ function Row({ kind }: { kind: Kind }) {
 export function CompareBar() {
   const any = usePicks('homes').length + usePicks('projects').length;
   const path = usePathname();
+  // Where the picker's board is on screen it already shows the shortlist, so the bar waits until it is scrolled away.
+  const [boardInView, setBoardInView] = useState(false);
+  useEffect(() => {
+    const board = document.querySelector('.studio');
+    if (!board) { setBoardInView(false); return; }
+    const watch = new IntersectionObserver(([e]) => setBoardInView(e.isIntersecting));
+    watch.observe(board);
+    return () => watch.disconnect();
+  }, [path]);
   // The compare pages show the shortlist themselves.
-  if (!any || path.startsWith('/compare')) return null;
+  if (!any || boardInView || path.startsWith('/compare')) return null;
   return (
     <aside className="compare-bar" aria-label="Chosen to compare">
       <Row kind="projects" />
