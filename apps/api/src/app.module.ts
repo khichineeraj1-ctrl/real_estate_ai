@@ -6,6 +6,8 @@ import { BuyerService } from './buyer/buyer.service';
 import { WatchService } from './catalog/watch';
 import { LandController } from './land/land.controller';
 import { LandService } from './land/land.service';
+import { InvestController } from './invest/invest.controller';
+import { InvestService } from './invest/invest.service';
 import { Module } from '@nestjs/common';
 import { AdminController } from './admin/admin.controller';
 import { AdminService } from './admin/admin.service';
@@ -22,7 +24,7 @@ import { TrustService } from './trust/trust.service';
 import { PrismaService } from './prisma/prisma.service';
 
 @Module({
-  controllers: [CatalogController, AskController, AdminController, TrustController, RegisterController, BuyerController, LandController],
-  providers: [PrismaService, Mailer, TrustService, CatalogService, AskService, AdminService, Reminders, RegisterService, WatchService, BuyerService, AlertService, UpcomingService, ArticleService, LandService],
+  controllers: [CatalogController, AskController, AdminController, TrustController, RegisterController, BuyerController, LandController, InvestController],
+  providers: [PrismaService, Mailer, TrustService, CatalogService, AskService, AdminService, Reminders, RegisterService, WatchService, BuyerService, AlertService, UpcomingService, ArticleService, LandService, InvestService],
 })
 export class AppModule {}

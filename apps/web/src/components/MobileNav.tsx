@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 
 interface City { slug: string; name: string }
 const LINKS: { title: string; items: [string, string, string][] }[] = [
-  { title: 'Find', items: [['/new-launches', 'New launches', '🚀'], ['/builders', 'Builders', '🏢'], ['/land', 'Land and warehouses', '🌾'], ['/compare', 'Compare', '⇄']] },
+  { title: 'Find', items: [['/new-launches', 'New launches', '🚀'], ['/builders', 'Builders', '🏢'], ['/land', 'Land and warehouses', '🌾'], ['/invest', 'Investor corner', '📈'], ['/compare', 'Compare', '⇄']] },
   { title: 'Decide', items: [['/tools', 'Tools and calculators', '🧮'], ['/guides', 'Guides', '📖'], ['/blog', 'Blog', '📰']] },
   { title: 'You', items: [['/account', 'My account', '♡'], ['/post-property', 'Post a property', '➕']] },
 ];

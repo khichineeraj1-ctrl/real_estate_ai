@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { AskBox } from '@/components/AskBox';
+import { InvestGrid, type InvestItem } from '@/components/invest/cards';
 import { KIND_ICON, KIND_PLURAL, type Places } from '@/components/land/cards';
 import { Upcoming, type UpcomingItem } from '@/components/Upcoming';
 import { Launches, type Launch } from '@/components/Launches';
@@ -21,7 +22,7 @@ export const metadata: Metadata = {
 const EXAMPLES = ['3 BHK in Whitefield', 'M3M projects in Gurgaon', 'Farm land in Rajasthan', 'Warehouse on rent', 'Cheapest 2 BHK in Pune'];
 
 export default async function Home() {
-  const [cities, latest, builders, stages, launches, upcoming, land] = await Promise.all([api<CitySummary[]>('/cities'), api<Listing>('/properties?pageSize=6'), api<BuilderSummary[]>('/builders'), api<{ key: string; title: string; guides: { slug: string; short: string; summary: string; icon: string; minutes: number; accent: string }[] }[]>('/guide-stages'), api<{ total: number; months: number; items: Launch[] }>('/launches'), api<{ notice: string; items: UpcomingItem[] }>('/upcoming', { revalidate: 60 }), api<Places>('/land/places', { revalidate: 60 })]);
+  const [cities, latest, builders, stages, launches, upcoming, land, invest] = await Promise.all([api<CitySummary[]>('/cities'), api<Listing>('/properties?pageSize=6'), api<BuilderSummary[]>('/builders'), api<{ key: string; title: string; guides: { slug: string; short: string; summary: string; icon: string; minutes: number; accent: string }[] }[]>('/guide-stages'), api<{ total: number; months: number; items: Launch[] }>('/launches'), api<{ notice: string; items: UpcomingItem[] }>('/upcoming', { revalidate: 60 }), api<Places>('/land/places', { revalidate: 60 }), api<{ notice: string; items: InvestItem[] }>('/invest', { revalidate: 60 })]);
   const topBuilders = [...(builders ?? [])].sort((a, b) => b.projects - a.projects || a.name.localeCompare(b.name)).slice(0, 12);
   return (
     <>
@@ -49,6 +50,14 @@ export default async function Home() {
           <Link href="/land/wanted/post" className="land-door"><span aria-hidden="true">🏭</span><div><strong>My company needs land or space</strong><small>Warehouse, factory, dark store, shop. Say the size and the area; owners come to you.</small></div><b>Post a requirement →</b></Link>
         </div>
         <p className="land-band-foot"><Link href="/land">Browse all land →</Link>{land?.wanted ? <Link href="/land/wanted">{land.wanted} compan{land.wanted === 1 ? 'y is' : 'ies are'} looking now →</Link> : <Link href="/land/wanted">What companies are looking for →</Link>}<Link href="/tools/land-area">Convert acres, bigha, gaj →</Link></p>
+      </section>
+
+      <section className="section inv-home" id="invest">
+        <div className="know-head">
+          <div><p className="inv-kicker">Investor corner</p><h2>See where the map is about to change</h2><p className="lead">New cities, airports and corridors from the government’s own plans: what is planned, how far along it is, and the land listed nearby. Facts and sources, no forecasts.</p></div>
+          <Link className="launch-all" href="/invest">{invest?.items.length ? 'All areas →' : 'Open investor corner →'}</Link>
+        </div>
+        {invest && invest.items.length > 0 && <InvestGrid items={invest.items.slice(0, 3)} />}
       </section>
 
       {launches && launches.items.length > 0 && (

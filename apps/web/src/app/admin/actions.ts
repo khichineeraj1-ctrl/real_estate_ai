@@ -361,3 +361,28 @@ export async function landReplyDone(id: string, _: FormState): Promise<FormState
   if (!r.ok) return failed(r);
   redirect('/admin/land?tab=replies&saved=1');
 }
+
+/** Investor corner: staff write an area from the official documents, then publish it or take it down. */
+export async function saveInvest(id: string | null, _: FormState, form: FormData): Promise<FormState> {
+  const r = id ? await adminFetch(`/invest/${encodeURIComponent(id)}`, { method: 'PUT', body: fields(form) }) : await adminFetch<{ id: string }>('/invest', { method: 'POST', body: fields(form) });
+  if (!r.ok) return failed(r);
+  revalidatePath('/', 'layout');
+  if (!id) redirect(`/admin/invest/${(r.data as { id: string }).id}?saved=1`);
+  return { ok: 'Saved.' };
+}
+export async function publishInvest(id: string, to: 'LIVE' | 'DRAFT' | 'REVIEWED', _: FormState): Promise<FormState> {
+  const r = await adminFetch(`/invest/${encodeURIComponent(id)}/publish`, { method: 'POST', body: { to } });
+  if (!r.ok) return failed(r);
+  revalidatePath('/', 'layout');
+  redirect(`/admin/invest/${id}?done=${to}`);
+}
+export async function removeInvest(id: string, _: FormState): Promise<FormState> {
+  const r = await adminFetch(`/invest/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  if (!r.ok) return failed(r);
+  redirect('/admin/invest?removed=1');
+}
+export async function investDone(id: string, _: FormState): Promise<FormState> {
+  const r = await adminFetch(`/invest/interests/${encodeURIComponent(id)}/done`, { method: 'POST' });
+  if (!r.ok) return failed(r);
+  redirect('/admin/invest?tab=interests&saved=1');
+}

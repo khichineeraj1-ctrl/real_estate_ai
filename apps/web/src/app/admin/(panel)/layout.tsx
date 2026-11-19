@@ -22,7 +22,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       item('/admin', 'Overview', '🏠'),
       ...(!builder ? [item('/admin/properties', staff ? 'Listings' : 'My listings', '🏘️')] : []),
       item('/admin/enquiries', builder ? 'Leads' : 'Enquiries', '📨'),
-      ...(staff ? [item('/admin/properties?state=PENDING', 'Review queue', '🗂️'), item('/admin/reports?status=NEW', 'Reports', '🚩'), item('/admin/land', 'Land', '🌾')] : []),
+      ...(staff ? [item('/admin/properties?state=PENDING', 'Review queue', '🗂️'), item('/admin/reports?status=NEW', 'Reports', '🚩'), item('/admin/land', 'Land', '🌾'), item('/admin/invest', 'Investor corner', '📈')] : []),
     ] },
     { title: staff ? 'Partners' : 'Selling', items: [
       ...(me.role === 'AGENT' ? [item('/admin/verification', 'Get verified', '🛡️'), item('/admin/selling', 'Projects I sell', '🤝')] : []),

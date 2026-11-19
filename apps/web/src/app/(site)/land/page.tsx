@@ -60,7 +60,8 @@ export default async function Land({ searchParams }: { searchParams: Promise<{ k
         </section>
       )}
 
-      <p className="section"><Link href="/tools/land-area">Land area converter: acres, hectares, gaj, guntha, kanal and more →</Link></p>
+      <p className="section"><Link href="/invest">Investor corner: where new cities, airports and corridors are planned →</Link></p>
+      <p><Link href="/tools/land-area">Land area converter: acres, hectares, gaj, guntha, kanal and more →</Link></p>
 
       <Faq title="Land on this site: common questions" faqs={[
         { q: 'Who can list land here?', a: 'Owners and their families, dealers and companies, anywhere in India. You do not need an account: fill one form, and our team checks it before it shows.' },

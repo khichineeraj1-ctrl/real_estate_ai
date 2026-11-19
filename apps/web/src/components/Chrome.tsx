@@ -13,6 +13,7 @@ export async function Header() {
         <nav aria-label="Cities">{cities.map((c) => <Link key={c.slug} href={`/${c.slug}`}>{c.name}</Link>)}</nav>
         <Link href="/builders" className="post-link">Builders</Link>
         <Link href="/land" className="post-link">Land</Link>
+        <Link href="/invest" className="post-link">Invest</Link>
         <Link href="/compare" className="post-link">Compare</Link>
         <Link href="/tools" className="post-link">Tools</Link>
         <Link href="/guides" className="post-link">Guides</Link>
@@ -40,7 +41,7 @@ export async function Footer() {
             </div>
           ))}
         </div>
-        <p className="fine"><Link href="/builders">Builders and developers</Link> · <Link href="/land">Land, plots and warehouses</Link> · <Link href="/land/wanted">Land wanted</Link> · <Link href="/guides">Home buying guides</Link> · <Link href="/blog">Blog</Link> · <Link href="/tools">Home buying tools</Link> · <Link href="/tools/emi-calculator">EMI calculator</Link> · <Link href="/tools/home-affordability">How much can I afford?</Link> · <Link href="/tools/cost-of-buying">True cost of buying</Link> · <Link href="/compare">Compare projects, localities and homes</Link></p>
+        <p className="fine"><Link href="/builders">Builders and developers</Link> · <Link href="/land">Land, plots and warehouses</Link> · <Link href="/land/wanted">Land wanted</Link> · <Link href="/invest">Investor corner</Link> · <Link href="/guides">Home buying guides</Link> · <Link href="/blog">Blog</Link> · <Link href="/tools">Home buying tools</Link> · <Link href="/tools/emi-calculator">EMI calculator</Link> · <Link href="/tools/home-affordability">How much can I afford?</Link> · <Link href="/tools/cost-of-buying">True cost of buying</Link> · <Link href="/compare">Compare projects, localities and homes</Link></p>
         <p className="fine"><Link href="/post-property">Post your property</Link> · <Link href="/admin/login" rel="nofollow">Sign in</Link></p>
         <p className="fine">{BRAND} — {TAGLINE}. Builder projects are taken from the public RERA registers; homes are listed by owners, agents and builders.</p>
       </div>

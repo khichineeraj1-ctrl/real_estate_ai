@@ -489,3 +489,18 @@ in India, placed by state, district and town or village rather than by the four 
   freely and tidied; staff can correct the spelling on approval.
 - Rules and the "before you pay" checks are pure functions in `apps/api/src/land/rules.ts`. The checks are general
   questions to ask, not legal advice, and have not been reviewed by a lawyer.
+
+## Investor corner
+
+`/invest` on the website: areas where a government plan (a new city, airport, corridor, industrial zone) is changing
+what land is for. Staff write each one at `/admin/invest` from the official documents.
+
+- Each area shows what is planned, a five-step stage (Announced, Approved, Land being acquired, Being built, Open),
+  the dates the authority has given, what to check, the linked sources, the date staff last checked them, and land
+  listed in the districts it touches.
+- Nothing predicts a price or a return. Text that does ("guaranteed", "prices will double", "20% returns") is refused
+  when saving. Every page carries a notice that this is information, not investment advice.
+- An area cannot go live without at least one source link. Live areas not re-checked for 90 days are flagged to staff.
+- Readers press "I am interested" (name, phone, and optionally budget, what they want, when). These appear under
+  "Interested people" in `/admin/invest` for the team to call.
+- Rules are in `apps/api/src/invest/rules.ts`.

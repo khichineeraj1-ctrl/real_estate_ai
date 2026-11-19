@@ -839,3 +839,63 @@ model LandReply {
 
   @@index([status, createdAt])
 }
+
+/// Investor corner: a place where a government plan (a new city, an airport, a corridor, an industrial zone) is
+/// changing what land is for. Written by our team from the official documents, which are always linked. It states
+/// what is planned and how far along it is; it never predicts prices or returns. Rules live in src/invest.
+model InvestArea {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  title     String
+  /// What is driving it: "CITY", "AIRPORT", "CORRIDOR", "INDUSTRIAL", "TRANSIT", "PORT" or "OTHER".
+  driver    String
+  stateSlug String
+  state     String
+  /// Districts it touches, tidied the same way as land listings so the two can be matched.
+  districts     String[]
+  districtSlugs String[]
+  summary   String
+  /// What the plan says, in our words, as paragraphs.
+  plan      String
+  /// How far along: "ANNOUNCED", "APPROVED", "LAND", "BUILDING" or "OPEN".
+  stage     String
+  stageNote String?
+  /// The body in charge, e.g. a development authority.
+  authority String?
+  /// [{ label, url }]: the official documents and pages this is drawn from. At least one before it can go live.
+  sources    Json
+  /// [{ when, what }]: dates the authority itself has given, in its words.
+  milestones Json
+  /// What could go wrong or should be checked, one per entry.
+  watch     String[]
+  /// "DRAFT" or "LIVE".
+  status    String   @default("DRAFT")
+  /// When someone on our team last checked the facts against the sources. Shown to readers.
+  reviewedAt DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  interests  InvestInterest[]
+
+  @@index([status, stateSlug])
+}
+
+/// Someone says they are interested in investing, in one area or in general. Read by our team, who follow up.
+model InvestInterest {
+  id       String   @id @default(cuid())
+  areaId   String?
+  area     InvestArea? @relation(fields: [areaId], references: [id], onDelete: SetNull)
+  name     String
+  phone    String
+  email    String?
+  /// "U25L", "25_50L", "50L_1CR", "1_3CR" or "3CR_PLUS".
+  budget   String?
+  /// What they want: a land kind code, "HOME" or "ANY".
+  wants    String?
+  /// "NOW", "6M" or "LATER".
+  horizon  String?
+  note     String?
+  status   String   @default("NEW")
+  createdAt DateTime @default(now())
+
+  @@index([status, createdAt])
+}
