@@ -13,7 +13,7 @@ export interface PropertyCard {
   locality: Place & { city: Place };
   project: (Place & { builder: string; brand: Place | null }) | null;
   /** At most one on cards (the cover); every photo on the detail page. */
-  photos: { file: string; width?: number; height?: number }[];
+  photos: { file: string; width?: number; height?: number; category?: string | null }[];
   /** How far the home and its seller are verified, 0 (not yet) to 3 (high). */
   confidence?: number;
 }
@@ -43,7 +43,7 @@ export interface BuilderDetail extends Place {
 }
 export interface ProjectDetail extends Place {
   /** Every photo of the project, cover first. */
-  photos: { file: string; width: number; height: number }[];
+  photos: { file: string; width: number; height: number; category?: string | null }[];
   /** The promoter's name as registered. `brand` is the builder page the project is listed under. */
   brand: Place | null;
   builder: string; description: string; status: Status; possession: string | null; reraId: string | null; totalUnits: number | null; amenities: string[];

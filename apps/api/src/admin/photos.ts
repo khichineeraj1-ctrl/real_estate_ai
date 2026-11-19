@@ -10,6 +10,9 @@ import sharp from 'sharp';
 export const UPLOAD_DIR = process.env.UPLOAD_DIR || join(process.cwd(), 'uploads');
 export const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 export const MAX_PHOTOS_PER_LISTING = 12;
+/** What a photo shows. The gallery groups photos by these, in this order. */
+export const PHOTO_GROUPS = { OUTSIDE: 'Outdoors', INSIDE: 'Interiors', AMENITIES: 'Amenities', PLAN: 'Floor plans', AREA: 'Neighbourhood' } as const;
+export const photoGroup = (v: unknown) => (typeof v === 'string' && v in PHOTO_GROUPS ? v : null);
 const FULL_PX = 1600; // longest side of the photo shown on the property page
 const CARD_PX = 640; // width of the small version used on listing cards
 const MAX_PIXELS = 50_000_000; // refuse images that would take excessive memory to decode

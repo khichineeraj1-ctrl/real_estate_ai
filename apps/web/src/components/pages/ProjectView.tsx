@@ -1,3 +1,4 @@
+import { Gallery } from '@/components/Gallery';
 import { ConnectButton } from '@/components/ConnectButton';
 import { ProjectTile } from '@/components/ProjectTile';
 import type { Metadata } from 'next';
@@ -34,14 +35,7 @@ export function ProjectView({ p }: { p: ProjectDetail }) {
       <Breadcrumbs crumbs={[{ name: p.city.name, path: `/${p.city.slug}` }, { name: p.locality.name, path: localityPath }, { name: p.name, path: pathOf(p) }]} />
       <h1>{p.name}, {p.locality.name}, {p.city.name}</h1>
       <p className="lead">{p.description}</p>
-      {photos.length > 0 && (
-        <div className={`gallery ${photos.length === 1 ? 'single' : ''}`}>
-          {photos.map((ph, i) => (
-            // The first photo loads at full size; the rest load small and open the full photo when clicked.
-            <a key={ph.file} href={media(ph.file)}><img src={media(ph.file, i === 0 ? 'full' : 'card')} alt={`${p.name}, ${p.locality.name} — photo ${i + 1} of ${photos.length}`} width={i === 0 ? ph.width : 640} height={i === 0 ? ph.height : 480} loading={i === 0 ? 'eager' : 'lazy'} fetchPriority={i === 0 ? 'high' : undefined} decoding="async" /></a>
-          ))}
-        </div>
-      )}
+      <Gallery photos={photos} name={`${p.name}, ${p.locality.name}`} />
       {p.registerSource && (
         <div className="astatus">
           <p><strong>From the public RERA register, not yet confirmed by the builder.</strong> These details are as published by {p.registerName}{p.sourceFetchedAt ? `, read on ${new Date(p.sourceFetchedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' })}` : ''}. The register does not give prices, floor plans or whether building is finished, so we do not show them. {p.sourceUrl && <a href={p.sourceUrl} target="_blank" rel="noopener noreferrer nofollow">See the register’s own page</a>}</p>

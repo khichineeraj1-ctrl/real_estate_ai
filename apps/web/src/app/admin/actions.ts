@@ -238,3 +238,11 @@ export async function removeProjectPhoto(photoId: string, projectId: string, _: 
   revalidatePath('/', 'layout');
   redirect(`/admin/projects/${projectId}?photoDeleted=1#photos`);
 }
+
+/** Says what a photo shows, which decides its group in the gallery. */
+export async function groupPhoto(photoId: string, category: string): Promise<{ error?: string }> {
+  const r = await adminFetch(`/photos/${encodeURIComponent(photoId)}`, { method: 'PATCH', body: { category } });
+  if (!r.ok) return { error: r.status === 401 ? 'Please sign in again' : r.error };
+  revalidatePath('/', 'layout');
+  return {};
+}

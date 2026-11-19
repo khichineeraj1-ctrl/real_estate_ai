@@ -28,6 +28,11 @@ locality pages show no price figures until then.
 - A builder project's photos are added by our team on the project's admin page (up to 12). The first is the cover on
   the project's cards, the gallery sits at the top of its page, and it becomes the picture shown when the page is
   shared. Use the builder's own pictures or ones we have the right to use; the RERA registers supply none.
+- On a page the photos are a banner: the cover large, two beside it, and how many there are. Pressing any opens a
+  full-screen viewer to arrow, swipe or tap through, with a strip of thumbnails. The app has the same banner and a
+  swipe viewer.
+- Each photo can be given a group (Outdoors, Interiors, Amenities, Floor plans, Neighbourhood), at upload or
+  afterwards. The banner's side tiles then show a group and its count, and the viewer can show one group at a time.
 - Every upload is checked, re-encoded and resized to two sizes, and the files are removed when the photo, listing or
   project is deleted. The website and the app both show them.
 

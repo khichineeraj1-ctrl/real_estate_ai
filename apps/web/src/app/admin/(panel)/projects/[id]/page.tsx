@@ -3,11 +3,12 @@ import { ActionButton, AdminForm, DeleteForm } from '@/components/admin/Form';
 import { Area, Field, STATUS, Select, localityGroups, month, type Options } from '@/components/admin/fields';
 import { adminGet, requireStaff } from '@/lib/admin';
 import { media } from '@/lib/seo';
-import { remove, removeProjectPhoto, save } from '../../../actions';
+import { PhotoGroup, PhotoGroupField } from '@/components/admin/PhotoGroup';
+import { groupPhoto, remove, removeProjectPhoto, save } from '../../../actions';
 
 const MAX_PHOTOS = 12;
 
-interface Project { id: string; photos: { id: string; file: string }[]; slug: string; name: string; builder: string; description: string; status: string; possession: string | null; reraId: string | null; totalUnits: number | null; amenities: string[]; localityId: string; leadEmail: string | null; accountId: string | null; _count: { enquiries: number } }
+interface Project { id: string; photos: { id: string; file: string; category: string | null }[]; slug: string; name: string; builder: string; description: string; status: string; possession: string | null; reraId: string | null; totalUnits: number | null; amenities: string[]; localityId: string; leadEmail: string | null; accountId: string | null; _count: { enquiries: number } }
 interface Builder { id: string; name: string; email: string; active: boolean }
 
 export default async function EditProject({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ photos?: string; photoDeleted?: string; error?: string }> }) {
@@ -42,7 +43,7 @@ export default async function EditProject({ params, searchParams }: { params: Pr
       {p && (
         <section className="section" id="photos">
           <h2>Photos ({p.photos.length} of {MAX_PHOTOS})</h2>
-          <p className="lead">The first photo is the cover on the project’s cards; all of them appear on its page. Use the builder’s own pictures, or ones you have the right to use. JPEG, PNG or WebP, up to 5 MB each; they are resized automatically.</p>
+          <p className="lead">The first photo is the cover on the project’s cards; all of them appear on its page. Say what each photo shows and the gallery groups them (Outdoors, Interiors, Floor plans…). Use the builder’s own pictures, or ones you have the right to use. JPEG, PNG or WebP, up to 5 MB each; they are resized automatically.</p>
           {sp.photos && <p role="status" className="anotice">{sp.photos} {sp.photos === '1' ? 'photo' : 'photos'} added.</p>}
           {sp.photoDeleted && <p role="status" className="anotice">Photo deleted.</p>}
           {sp.error && <p role="alert" className="aerror">{sp.error}</p>}
@@ -52,6 +53,7 @@ export default async function EditProject({ params, searchParams }: { params: Pr
                 <li key={ph.id}>
                   <img src={media(ph.file, 'card')} alt={`Photo ${i + 1}`} width={640} height={480} loading="lazy" />
                   {i === 0 && <span className="tag tag-ready">Cover</span>}
+                  <PhotoGroup action={groupPhoto.bind(null, ph.id)} value={ph.category} />
                   <ActionButton action={removeProjectPhoto.bind(null, ph.id, p.id)} label="Delete" confirm="Delete this photo?" tone="danger" />
                 </li>
               ))}
@@ -60,6 +62,7 @@ export default async function EditProject({ params, searchParams }: { params: Pr
           {p.photos.length < MAX_PHOTOS && (
             <form action={`/admin/upload-project/${p.id}`} method="post" encType="multipart/form-data" className="aupload">
               <label className="afield"><span>Add photos</span><input type="file" name="photos" accept="image/jpeg,image/png,image/webp" multiple required /></label>
+              <PhotoGroupField />
               <button type="submit" className="abtn quiet">Upload</button>
             </form>
           )}

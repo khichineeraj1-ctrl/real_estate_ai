@@ -37,7 +37,7 @@ export interface ProjectDetail extends Place {
   registerSource: string | null; registerName: string | null; registerStatus: string | null; registerValidUntil: string | null; sourceUrl: string | null; sourceFetchedAt: string | null;
   locality: Place; city: Place & { state: string }; properties: PropertyCard[]; stats: Stats; bhk: { bhk: number; count: number; minPrice: number | null }[];
   /** Every photo of the project, cover first. */
-  photos?: { file: string; width: number; height: number }[];
+  photos?: { file: string; width: number; height: number; category?: string | null }[];
   /** Agents our team has verified who sell this project. */
   agents?: { id: string; name: string; firmName: string | null; yearsInBusiness: number | null; level: number; label: string }[];
 }

@@ -16,8 +16,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (!token) return go('/admin/login');
 
   let files: File[];
+  let category = '';
   try {
-    files = (await req.formData()).getAll('photos').filter((f): f is File => f instanceof File && f.size > 0);
+    const form = await req.formData();
+    files = form.getAll('photos').filter((f): f is File => f instanceof File && f.size > 0);
+    category = String(form.get('category') ?? '');
   } catch {
     return back(`error=${encodeURIComponent('The upload could not be read. Try again with smaller files.')}`);
   }
@@ -25,6 +28,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   const out = new FormData();
   for (const f of files) out.append('photos', f, 'photo');
+  if (category) out.append('category', category); // what these photos show; the API accepts only its own list
   let res: Response;
   try {
     res = await fetch(`${API_URL}/admin/projects/${id}/photos`, { method: 'POST', headers: { authorization: `Bearer ${token}` }, body: out });

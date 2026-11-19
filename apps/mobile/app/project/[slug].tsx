@@ -1,3 +1,4 @@
+import { Photos } from '../../components/Photos';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
@@ -35,13 +36,7 @@ export default function Project() {
           <Text style={{ color: t.brand }}>{p.locality.name}, {p.city.name}</Text>
         </Pressable>
         <Text style={{ color: t.fg, lineHeight: 22 }}>{p.description}</Text>
-        {(p.photos?.length ?? 0) > 0 && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-            {p.photos!.map((ph, i) => (
-              <Image key={ph.file} source={{ uri: photoUrl(ph.file, i === 0 ? 'full' : 'card') }} accessibilityLabel={`${p.name}: photo ${i + 1} of ${p.photos!.length}`} resizeMode="cover" style={{ width: p.photos!.length === 1 ? 340 : 280, aspectRatio: 4 / 3, borderRadius: 12, backgroundColor: t.soft }} />
-            ))}
-          </ScrollView>
-        )}
+        <Photos photos={p.photos ?? []} name={p.name} />
 
         {p.registerSource && (
           <View style={[s.box, { backgroundColor: t.soft, borderColor: t.line }]}>

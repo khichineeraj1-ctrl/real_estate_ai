@@ -6,13 +6,14 @@ import { Area, Field, STATUS, Select, localityGroups, month, projectGroups, type
 import { adminGet, getMe, isStaff } from '@/lib/admin';
 import { media } from '@/lib/seo';
 import type { Confidence } from '@/lib/trust';
-import { remove, removePhoto, review, save, verifyProperty } from '../../../actions';
+import { PhotoGroup, PhotoGroupField } from '@/components/admin/PhotoGroup';
+import { groupPhoto, remove, removePhoto, review, save, verifyProperty } from '../../../actions';
 
 interface Property {
   id: string; slug: string; title: string; description: string; type: string; bhk: number; bathrooms: number; priceInr: number; areaSqft: number; floor: number | null; totalFloors: number | null;
   facing: string | null; furnishing: string | null; status: string; possession: string | null; amenities: string[]; listedBy: string; localityId: string; projectId: string | null;
   state: 'PUBLISHED' | 'PENDING' | 'REJECTED'; rejectReason: string | null; ownerId: string | null;
-  staffVerified: boolean; staffVerifiedNote: string | null; staffVerifiedAt: string | null; staffVerifiedBy: string | null; confidenceDetail: Confidence; photos: { id: string; file: string }[]; owner: { name: string; email: string; phone: string | null } | null;
+  staffVerified: boolean; staffVerifiedNote: string | null; staffVerifiedAt: string | null; staffVerifiedBy: string | null; confidenceDetail: Confidence; photos: { id: string; category?: string | null; file: string }[]; owner: { name: string; email: string; phone: string | null } | null;
 }
 type Search = { created?: string; photos?: string; photoDeleted?: string; error?: string; verified?: string };
 const MAX_PHOTOS = 12;
@@ -112,6 +113,7 @@ export default async function EditProperty({ params, searchParams }: { params: P
                 <li key={ph.id}>
                   <img src={media(ph.file, 'card')} alt={`Photo ${i + 1}`} width={640} height={480} loading="lazy" />
                   {i === 0 && <span className="tag tag-ready">Cover</span>}
+                  <PhotoGroup action={groupPhoto.bind(null, ph.id)} value={ph.category ?? null} />
                   <ActionButton action={removePhoto.bind(null, ph.id, p.id)} label="Delete" confirm="Delete this photo?" tone="danger" />
                 </li>
               ))}
@@ -121,6 +123,7 @@ export default async function EditProperty({ params, searchParams }: { params: P
             // A plain upload form handled by /admin/upload, so large files do not pass through a server action.
             <form action={`/admin/upload/${p.id}`} method="post" encType="multipart/form-data" className="aupload">
               <label className="afield"><span>Add photos</span><input type="file" name="photos" accept="image/jpeg,image/png,image/webp" multiple required /></label>
+              <PhotoGroupField />
               <button type="submit" className="abtn quiet">Upload</button>
             </form>
           )}

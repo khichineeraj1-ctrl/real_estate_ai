@@ -8,7 +8,7 @@ import { Mailer, SITE_URL } from '../mail/mailer';
 import { SessionUser, emailSecret, hashEmailSecret, hashPassword, isStaff, issueToken, normalEmail, verifyPassword } from './auth';
 import { IMPORT_COLUMNS, parseCsv } from './csv';
 import { Input, slugify } from './input';
-import { MAX_PHOTOS_PER_LISTING, MAX_PHOTO_BYTES, ProcessedPhoto, processPhoto, removePhoto, savePhoto, sniffImage } from './photos';
+import { MAX_PHOTOS_PER_LISTING, MAX_PHOTO_BYTES, ProcessedPhoto, photoGroup, processPhoto, removePhoto, savePhoto, sniffImage } from './photos';
 
 const PAGE = 25;
 const MAX_IMPORT_ROWS = 500;
@@ -233,7 +233,7 @@ export class AdminService implements OnModuleInit {
     return { ...p, confidenceDetail: await this.trust.property(id) };
   }
   private async propertyRow(user: SessionUser, id: string) {
-    const p = await this.db.property.findFirst({ where: { id, ...this.scope(user) }, include: { photos: { orderBy: { position: 'asc' }, select: { id: true, file: true } }, owner: { select: { name: true, email: true, phone: true } } } });
+    const p = await this.db.property.findFirst({ where: { id, ...this.scope(user) }, include: { photos: { orderBy: { position: 'asc' }, select: { id: true, file: true, category: true } }, owner: { select: { name: true, email: true, phone: true } } } });
     if (!p) throw new NotFoundException('Property not found');
     return p;
   }
@@ -311,7 +311,7 @@ export class AdminService implements OnModuleInit {
   // ---- Photos
 
   /** Checks an upload and stores it against a home or a project, after the photos already there. */
-  private async storePhotos(owner: { propertyId: string } | { projectId: string }, have: number, what: string, files: { buffer: Buffer; size: number }[]) {
+  private async storePhotos(owner: { propertyId: string } | { projectId: string }, have: number, what: string, files: { buffer: Buffer; size: number }[], category: string | null = null) {
     if (!files?.length) throw new BadRequestException('Choose at least one photo');
     if (have + files.length > MAX_PHOTOS_PER_LISTING) throw new BadRequestException(`${what} can have at most ${MAX_PHOTOS_PER_LISTING} photos; this one has ${have}`);
     if (files.some((f) => !sniffImage(f.buffer))) throw new BadRequestException('Photos must be JPEG, PNG or WebP images');
@@ -325,24 +325,32 @@ export class AdminService implements OnModuleInit {
     let position = (last._max.position ?? -1) + 1;
     for (const ph of processed) {
       const file = await savePhoto(ph);
-      await this.db.photo.create({ data: { ...owner, file, width: ph.width, height: ph.height, position: position++ } });
+      await this.db.photo.create({ data: { ...owner, file, width: ph.width, height: ph.height, position: position++, category } });
     }
   }
 
-  async addPhotos(user: SessionUser, propertyId: string, files: { buffer: Buffer; size: number }[]) {
+  async addPhotos(user: SessionUser, propertyId: string, files: { buffer: Buffer; size: number }[], category?: unknown) {
     const p = await this.propertyRow(user, propertyId);
-    await this.storePhotos({ propertyId }, p.photos.length, 'A listing', files);
+    await this.storePhotos({ propertyId }, p.photos.length, 'A listing', files, photoGroup(category));
     if (!isStaff(user) && p.state === 'PUBLISHED') await this.db.property.update({ where: { id: propertyId }, data: { state: 'PENDING' } });
     await this.trust.refreshProperty(propertyId);
     return { ok: true, added: files.length };
   }
 
   /** Photos of a builder's project: its cover on cards and the gallery on its page. Added by our team. */
-  async addProjectPhotos(projectId: string, files: { buffer: Buffer; size: number }[]) {
+  async addProjectPhotos(projectId: string, files: { buffer: Buffer; size: number }[], category?: unknown) {
     const have = await this.db.photo.count({ where: { projectId } });
     await this.project(projectId);
-    await this.storePhotos({ projectId }, have, 'A project', files);
+    await this.storePhotos({ projectId }, have, 'A project', files, photoGroup(category));
     return { ok: true, added: files.length };
+  }
+
+  /** Says what a photo shows (or clears it), which decides its group in the gallery. The same people who may delete it may do this. */
+  async groupPhoto(user: SessionUser, photoId: string, body: Record<string, unknown>) {
+    const photo = await this.db.photo.findFirst({ where: { id: photoId, OR: [{ property: this.scope(user) }, ...(isStaff(user) ? [{ projectId: { not: null } }] : [])] }, select: { id: true } });
+    if (!photo) throw new NotFoundException('Photo not found');
+    await this.db.photo.update({ where: { id: photoId }, data: { category: photoGroup(body.category) } });
+    return { ok: true };
   }
 
   async deletePhoto(user: SessionUser, photoId: string) {
@@ -511,7 +519,7 @@ export class AdminService implements OnModuleInit {
     });
   }
   async project(id: string) {
-    const p = await this.db.project.findUnique({ where: { id }, include: { brand: { select: { slug: true, name: true } }, photos: { orderBy: { position: 'asc' }, select: { id: true, file: true } }, _count: { select: { enquiries: true } } } });
+    const p = await this.db.project.findUnique({ where: { id }, include: { brand: { select: { slug: true, name: true } }, photos: { orderBy: { position: 'asc' }, select: { id: true, file: true, category: true } }, _count: { select: { enquiries: true } } } });
     if (!p) throw new NotFoundException('Project not found');
     return p;
   }

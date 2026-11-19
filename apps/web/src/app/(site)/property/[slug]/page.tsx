@@ -1,3 +1,4 @@
+import { Gallery } from '@/components/Gallery';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -52,14 +53,7 @@ export default async function PropertyPage({ params }: Props) {
         </p>
       )}
 
-      {photos.length > 0 && (
-        <div className={`gallery ${photos.length === 1 ? 'single' : ''}`}>
-          {photos.map((ph, i) => (
-            // The first photo loads at full size; the rest load small and open the full photo when clicked.
-            <a key={ph.file} href={media(ph.file)}><img src={media(ph.file, i === 0 ? 'full' : 'card')} alt={`${p.title} — photo ${i + 1} of ${photos.length}`} width={i === 0 ? ph.width : 640} height={i === 0 ? ph.height : 480} loading={i === 0 ? 'eager' : 'lazy'} fetchPriority={i === 0 ? 'high' : undefined} decoding="async" /></a>
-          ))}
-        </div>
-      )}
+      <Gallery photos={photos} name={p.title} />
 
       <dl className="detail">
         <div><dt>Type</dt><dd>{typeLabel(p.type)}</dd></div>

@@ -1,3 +1,4 @@
+import { Photos } from '../../components/Photos';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
@@ -69,13 +70,7 @@ export default function Property() {
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 14 }}>
       <Stack.Screen options={{ title: p.title.split(' in ')[0] }} />
-      {(p.photos?.length ?? 0) > 0 && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -16 }} contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}>
-          {p.photos.map((ph, i) => (
-            <Image key={ph.file} source={{ uri: photoUrl(ph.file) }} accessibilityLabel={`Photo ${i + 1} of ${p.photos.length}`} style={[s.photo, { backgroundColor: t.soft }]} resizeMode="cover" accessibilityIgnoresInvertColors />
-          ))}
-        </ScrollView>
-      )}
+      <Photos photos={p.photos ?? []} name={p.title} />
       <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 21, fontWeight: '700', lineHeight: 27 }}>{p.title}</Text>
       <View>
         <Text style={{ color: t.fg, fontSize: 28, fontWeight: '800' }}>{price(p.priceInr)}</Text>

@@ -142,7 +142,7 @@ export class CatalogService {
   }
 
   async project(slug: string) {
-    const project = await this.db.project.findUnique({ where: { slug }, include: { locality: { include: { city: true } }, brand: { select: { slug: true, name: true } }, photos: { orderBy: { position: 'asc' }, select: { file: true, width: true, height: true } } } });
+    const project = await this.db.project.findUnique({ where: { slug }, include: { locality: { include: { city: true } }, brand: { select: { slug: true, name: true } }, photos: { orderBy: { position: 'asc' }, select: { file: true, width: true, height: true, category: true } } } });
     if (!project) throw new NotFoundException('Project not found');
     const [properties, stats, bhk] = await Promise.all([
       this.db.property.findMany({ where: { projectId: project.id, state: 'PUBLISHED' }, select: CARD, orderBy: { priceInr: 'asc' } }),
@@ -163,7 +163,7 @@ export class CatalogService {
   async property(slug: string) {
     const p = await this.db.property.findFirst({
       where: { slug, state: 'PUBLISHED' },
-      include: { locality: { include: { city: true } }, project: { select: { slug: true, name: true, builder: true, reraId: true, brand: { select: { slug: true, name: true } } } }, photos: { select: { file: true, width: true, height: true }, orderBy: { position: 'asc' } }, owner: { select: { role: true, active: true, phone: true, dealer: { select: { kind: true } } } } },
+      include: { locality: { include: { city: true } }, project: { select: { slug: true, name: true, builder: true, reraId: true, brand: { select: { slug: true, name: true } } } }, photos: { select: { file: true, width: true, height: true, category: true }, orderBy: { position: 'asc' } }, owner: { select: { role: true, active: true, phone: true, dealer: { select: { kind: true } } } } },
     });
     if (!p) throw new NotFoundException('Property not found');
     const similar = await this.db.property.findMany({

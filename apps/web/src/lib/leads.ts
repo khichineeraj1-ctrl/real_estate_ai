@@ -14,3 +14,6 @@ export const LOANS = { APPROVED: 'Loan already approved', NEEDED: 'Will need a h
 export const PURPOSES = { SELF: 'To live in', INVEST: 'An investment' };
 /** How strong a lead looks. Hot: call today. Warm: worth a call this week. Cold: little sign of intent yet. */
 export const BANDS = [{ value: 'HOT', label: 'Hot' }, { value: 'WARM', label: 'Warm' }, { value: 'COLD', label: 'Cold' }] as const;
+
+/** What a photo shows; the gallery groups photos by these, in this order. The codes match apps/api/src/admin/photos.ts. */
+export const PHOTO_GROUPS = { OUTSIDE: 'Outdoors', INSIDE: 'Interiors', AMENITIES: 'Amenities', PLAN: 'Floor plans', AREA: 'Neighbourhood' };

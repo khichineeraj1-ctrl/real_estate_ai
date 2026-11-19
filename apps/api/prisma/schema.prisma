@@ -244,6 +244,8 @@ model Photo {
   createdAt  DateTime @default(now())
   width      Int
   height     Int
+  /// What the photo shows, for grouping in the gallery: one of the codes in src/admin/photos.ts, or empty.
+  category   String?
   /// A photo belongs to one home, or to one builder's project: exactly one of the two is set.
   propertyId String?
   property   Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
