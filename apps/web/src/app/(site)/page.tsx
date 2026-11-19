@@ -20,7 +20,7 @@ export const metadata: Metadata = {
 const EXAMPLES = ['3 BHK in Whitefield', 'M3M projects in Gurgaon', 'Average rate in Powai?', 'Cheapest 2 BHK in Pune'];
 
 export default async function Home() {
-  const [cities, latest, builders, guides, launches, upcoming] = await Promise.all([api<CitySummary[]>('/cities'), api<Listing>('/properties?pageSize=6'), api<BuilderSummary[]>('/builders'), api<{ slug: string; short: string; icon: string }[]>('/guides'), api<{ total: number; months: number; items: Launch[] }>('/launches'), api<{ notice: string; items: UpcomingItem[] }>('/upcoming', { revalidate: 60 })]);
+  const [cities, latest, builders, stages, launches, upcoming] = await Promise.all([api<CitySummary[]>('/cities'), api<Listing>('/properties?pageSize=6'), api<BuilderSummary[]>('/builders'), api<{ key: string; title: string; guides: { slug: string; short: string; summary: string; icon: string; minutes: number; accent: string }[] }[]>('/guide-stages'), api<{ total: number; months: number; items: Launch[] }>('/launches'), api<{ notice: string; items: UpcomingItem[] }>('/upcoming', { revalidate: 60 })]);
   const topBuilders = [...(builders ?? [])].sort((a, b) => b.projects - a.projects || a.name.localeCompare(b.name)).slice(0, 12);
   return (
     <>
@@ -51,6 +51,28 @@ export default async function Home() {
         <p className="lead">Pick two projects, areas or homes and see them side by side.</p>
         <CompareStudio compact cities={(cities ?? []).map((c) => ({ slug: c.slug, name: c.name, localities: c.localities.map((l) => ({ slug: l.slug, name: l.name })) }))} />
       </section>
+
+      {(stages?.length ?? 0) > 0 && (
+        <section className="section" id="guides">
+          <div className="know-head">
+            <div><h2>Know before you buy</h2><p className="lead">Seven short guides, in the order you will need them. A few minutes each.</p></div>
+            <Link className="launch-all" href="/guides">All guides →</Link>
+          </div>
+          <ul className="know">
+            {stages!.flatMap((st, n) => st.guides.map((g) => (
+              <li key={g.slug}>
+                <Link href={`/guides/${g.slug}`} className="know-card" style={{ '--accent': g.accent } as React.CSSProperties}>
+                  <span className="know-step">Step {n + 1} · {st.title}</span>
+                  <span className="know-icon" aria-hidden="true">{g.icon}</span>
+                  <strong>{g.short}</strong>
+                  <span className="know-sum">{g.summary}</span>
+                  <b aria-hidden="true">{g.minutes} min read <i>→</i></b>
+                </Link>
+              </li>
+            )))}
+          </ul>
+        </section>
+      )}
 
       <section className="section">
         <h2>Browse property by city</h2>
@@ -85,13 +107,6 @@ export default async function Home() {
         </section>
       )}
 
-      <section className="section">
-        <h2>Know before you buy</h2>
-        <ul className="chips left">
-          {(guides ?? []).map((g) => <li key={g.slug}><Link href={`/guides/${g.slug}`}>{g.icon} {g.short}</Link></li>)}
-          <li><Link href="/guides">All guides</Link></li>
-        </ul>
-      </section>
 
       <section className="section">
         <h2>Work out the money</h2>
