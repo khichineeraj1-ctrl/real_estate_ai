@@ -146,14 +146,16 @@ export class CatalogService {
   }
 
   async project(slug: string) {
-    const project = await this.db.project.findUnique({ where: { slug }, include: { locality: { include: { city: true } }, brand: { select: { slug: true, name: true } }, videos: { orderBy: { position: 'asc' }, select: { youtubeId: true, title: true } }, photos: { orderBy: { position: 'asc' }, select: { file: true, width: true, height: true, category: true } } } });
+    const project = await this.db.project.findUnique({ where: { slug }, include: { register: { select: { declaredLitigation: true, declaredApartments: true, declaredTowers: true, declaredStart: true, declaredCompletion: true, formFetchedAt: true } }, locality: { include: { city: true } }, brand: { select: { slug: true, name: true } }, videos: { orderBy: { position: 'asc' }, select: { youtubeId: true, title: true } }, photos: { orderBy: { position: 'asc' }, select: { file: true, width: true, height: true, category: true } } } });
     if (!project) throw new NotFoundException('Project not found');
     const [properties, stats, bhk] = await Promise.all([
       this.db.property.findMany({ where: { projectId: project.id, state: 'PUBLISHED' }, select: CARD, orderBy: { priceInr: 'asc' } }),
       this.stats({ project: slug }),
       this.bhkBreakdown({ project: slug }),
     ]);
-    const { locality, localityId, id, leadEmail, accountId, brandId, ...rest } = project;
+    const { locality, localityId, id, leadEmail, accountId, brandId, register, ...rest } = project;
+    // What the builder declared in its registration application, where we have read it. Its own words, unchecked.
+    const declared = register?.formFetchedAt ? { litigation: register.declaredLitigation, apartments: register.declaredApartments, towers: register.declaredTowers, start: register.declaredStart, completion: register.declaredCompletion, readAt: register.formFetchedAt } : null;
     // Other projects a reader of this one is likely to want next: the same builder in this city, and the same locality.
     const link = { slug: true, name: true, builder: true, brand: { select: { slug: true, name: true } }, locality: { select: { name: true } }, photos: COVER, _count: AGENT_COUNT } as const;
     const [byBuilder, inLocality] = await Promise.all([
@@ -165,9 +167,9 @@ export class CatalogService {
     const agents = await this.projectAgents(id);
     const checklist = beforeYouPay({
       name: project.name, builder: project.brand?.name ?? project.builder, city: locality.city.name, registerStatus: project.registerStatus, registerValidUntil: project.registerValidUntil, reraId: project.reraId,
-      sourceUrl: project.sourceUrl, registerName, othersLapsed: others.filter((o) => standingOf(o) === 'lapsed').length, others: others.length, priced: stats.count > 0, agents: agents.length,
+      sourceUrl: project.sourceUrl, registerName, litigation: declared?.litigation ?? null, othersLapsed: others.filter((o) => standingOf(o) === 'lapsed').length, others: others.length, priced: stats.count > 0, agents: agents.length,
     });
-    return { ...rest, registerName, locality: { slug: locality.slug, name: locality.name, lat: locality.lat, lng: locality.lng }, city: { slug: locality.city.slug, name: locality.city.name, state: locality.city.state }, properties, stats, bhk, more: { byBuilder: byBuilder.map(withAgents), inLocality: inLocality.map(withAgents) }, agents, checklist };
+    return { ...rest, registerName, locality: { slug: locality.slug, name: locality.name, lat: locality.lat, lng: locality.lng }, city: { slug: locality.city.slug, name: locality.city.name, state: locality.city.state }, properties, stats, bhk, more: { byBuilder: byBuilder.map(withAgents), inLocality: inLocality.map(withAgents) }, agents, checklist, declared };
   }
 
   async property(slug: string) {

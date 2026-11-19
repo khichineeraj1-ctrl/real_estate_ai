@@ -168,3 +168,50 @@ export function projectName(registered: string, builder?: string): string {
   if (builder && GENERIC.test(name)) name = `${name} by ${builder}`;
   return name;
 }
+
+/**
+ * What a builder declared in its registration application (Haryana's "Form A-H"), for the few facts a buyer can use.
+ * These are the builder's own statements at the time it applied, not checked by the register or by us, and the form
+ * sometimes contradicts itself, so each is kept as written and a figure that fails a plain sanity check is dropped.
+ */
+export interface DeclaredFacts {
+  /** "Whether any litigation is pending against the Project". Null when the form does not answer. */
+  litigation: boolean | null;
+  apartments: number | null;
+  towers: number | null;
+  constructionStart: Date | null;
+  /** "Likely date of completing the project", from the development schedule. */
+  plannedCompletion: Date | null;
+}
+export const haryanaFormUrl = (detailUrl: string): string | null => {
+  const id = /haryanarera\.gov\.in\/view_project\/searchprojectDetail\/(\d+)/.exec(detailUrl)?.[1];
+  return id ? `https://haryanarera.gov.in/view_project/project_preview_open/${id}` : null;
+};
+
+export function parseHaryanaForm(html: string): DeclaredFacts {
+  const lines = html.replace(/<(script|style)[\s\S]*?<\/\1>/gi, '').replace(/<!--[\s\S]*?-->/g, '').replace(/<[^>]+>/g, '\n').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&')
+    .split('\n').map((l) => l.replace(/\s+/g, ' ').trim()).filter(Boolean);
+  const at = (label: RegExp) => lines.findIndex((l) => label.test(l));
+  /** The first line after the label, within a few lines, that looks like an answer. */
+  const answer = (label: RegExp, looksRight: RegExp, within = 5) => { const i = at(label); return i < 0 ? null : lines.slice(i + 1, i + 1 + within).find((l) => looksRight.test(l)) ?? null; };
+  const date = (label: RegExp) => { const m = /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/.exec(answer(label, /^\d{1,2}[-/.]\d{1,2}[-/.]\d{4}$/) ?? ''); if (!m) return null; const d = new Date(Date.UTC(+m[3], +m[2] - 1, +m[1])); return +m[3] >= 2000 && +m[3] <= 2060 && d.getUTCMonth() === +m[2] - 1 ? d : null; };
+
+  const said = answer(/Whether any litigation is pending/i, /^(yes|no)$/i);
+  // The table of apartment types: a header ending "Number of towers", then rows of name, carpet area, apartments, towers.
+  let apartments = 0; let towers = 0; let rows = 0;
+  const head = at(/^Number of towers$/i);
+  if (head >= 0) {
+    for (let i = head + 1; i + 3 < lines.length && rows < 40; i += 4) {
+      const [name, carpet, count, tower] = lines.slice(i, i + 4);
+      if (/^\(|schedule|expenditure/i.test(name) || !/^[\d.]+$/.test(carpet) || !/^\d+$/.test(count) || !/^\d+$/.test(tower)) break;
+      apartments += Number(count); towers += Number(tower); rows += 1;
+    }
+  }
+  const sane = (n: number, max: number) => (rows > 0 && n >= 1 && n <= max ? n : null);
+  return {
+    litigation: said ? /^yes$/i.test(said) : null,
+    apartments: sane(apartments, 20_000), towers: sane(towers, 200),
+    constructionStart: date(/Likely date of starting the construction work/i),
+    plannedCompletion: date(/Likely date of completing the project/i),
+  };
+}

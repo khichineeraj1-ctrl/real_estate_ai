@@ -40,6 +40,8 @@ export interface ProjectFacts {
   /** The builder's other projects in the city marked lapsed, and how many others there are. */
   othersLapsed: number; others: number;
   priced: boolean; agents: number;
+  /** What the builder declared about pending litigation in its registration application; null when not read. */
+  litigation?: boolean | null;
 }
 export interface CheckItem { key: string; tone: Tone; title: string; why: string; link?: { href: string; label: string } }
 
@@ -54,6 +56,7 @@ export function beforeYouPay(p: ProjectFacts, now = new Date()): CheckItem[] {
   else if (st === 'ended') items.push({ key: 'oc', tone: 'info', title: 'Ask for the occupation certificate', why: `The completion date the builder gave RERA${end ? ` (${monthYear(end)}, ${span(now.getTime() - end.getTime())} ago)` : ''} has passed. If the building is finished it should have an occupation certificate; without one you cannot legally move in.`, link: register });
   else items.push({ key: 'rera', tone: 'warn', title: 'Ask for the RERA registration number', why: 'We could not read a registration period for this project. Any project above 500 sq m or eight flats must be registered; ask for the number and check it on the state register.', link: register });
 
+  if (p.litigation === true) items.push({ key: 'litigation', tone: 'warn', title: 'Ask about the litigation the builder declared', why: `In its registration application ${p.builder} declared that litigation is pending against this project. Ask what the case is about and have your lawyer read the papers before paying.`, link: register });
   if (p.othersLapsed > 0) items.push({ key: 'record', tone: 'warn', title: `Ask about ${p.builder}’s lapsed projects`, why: `${p.othersLapsed} of its ${p.others} other projects in ${p.city} are marked lapsed by the register. Ask what happened there and whether buyers got possession.` });
 
   if (st === 'current' && end) items.push({ key: 'date', tone: 'info', title: 'Get the possession date in writing', why: `The builder told RERA it will finish by ${monthYear(end)}. Your agreement should name a possession date no later than that, and the interest the builder pays you for each month of delay.`, link: { href: '/tools/delay-cost', label: 'What a delay would cost you' } });

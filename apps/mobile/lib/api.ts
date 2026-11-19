@@ -34,6 +34,7 @@ export interface BuilderDetail extends Place {
 }
 export interface ProjectDetail extends Place {
   checklist: CheckItem[];
+  declared?: { litigation: boolean | null; apartments: number | null; towers: number | null; start: string | null; completion: string | null; readAt: string } | null;
   /** The builder the project is listed under; `builder` is the company name as registered. */
   brand: Place | null;
   builder: string; description: string; status: Status; possession: string | null; reraId: string | null; totalUnits: number | null; amenities: string[];

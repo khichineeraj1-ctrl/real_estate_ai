@@ -26,7 +26,9 @@ export default function Project() {
     ...(p.registerSource
       ? [['RERA status', p.registerStatus ?? 'Registered'] as [string, string], ...(p.registerValidUntil ? [['Registration valid to', monthYear(p.registerValidUntil) ?? ''] as [string, string]] : [])]
       : [['Status', statusLabel(p.status)] as [string, string], ...(p.possession ? [['Possession', monthYear(p.possession) ?? ''] as [string, string]] : [])]),
-    ...(p.totalUnits != null ? [['Total units', num(p.totalUnits)] as [string, string]] : []),
+    ...(p.totalUnits != null ? [['Total units', `${num(p.totalUnits)}${p.declared?.towers ? ` in ${p.declared.towers} tower${p.declared.towers === 1 ? '' : 's'}` : ''}`] as [string, string]] : []),
+    ...(p.declared?.start ? [['Construction start, as declared by the builder', monthYear(p.declared.start) ?? ''] as [string, string]] : []),
+    ...(p.declared?.litigation != null ? [['Litigation pending, as declared by the builder', p.declared.litigation ? 'Yes: ask the builder for details' : 'None declared'] as [string, string]] : []),
     ...(p.reraId ? [['RERA number', p.reraId] as [string, string]] : []),
   ];
   return (

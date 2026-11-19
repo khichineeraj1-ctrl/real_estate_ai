@@ -4,7 +4,7 @@ import { BadRequestException, ConflictException, Injectable, Logger, NotFoundExc
 import { Prisma, RegisterProject, RegisterSource } from '@prisma/client';
 import { slugify } from '../admin/input';
 import { PrismaService } from '../prisma/prisma.service';
-import { LIST_URL, RegisterEntry, SOURCE_NAME, displayName, parseHaryana, parseKarnataka, parseMaharashtra, projectName } from './parse';
+import { LIST_URL, RegisterEntry, SOURCE_NAME, displayName, parseHaryana, parseKarnataka, parseMaharashtra, projectName, haryanaFormUrl, parseHaryanaForm, type DeclaredFacts } from './parse';
 import { CITY_OF, PINCODES, Spot, place } from './place';
 
 /**
@@ -116,6 +116,44 @@ export class RegisterService {
       this.log.error(`${SOURCE_NAME[source]}: ${message}`);
       await this.db.importRun.update({ where: { id: runId }, data: { finishedAt: new Date(), requests, error: message.slice(0, 300) } });
     }
+  }
+
+  // ---- The application form behind each Haryana project page
+
+  /**
+   * Reads the application form of Haryana projects that have a page here and have not had theirs read, a few at a
+   * time with a pause between requests, and stops at the first refusal. Runs in the background; the outcome is
+   * recorded as a run, like a read of the register itself.
+   */
+  async startForms(limit = 25) {
+    if (this.running.has('HARYANA')) throw new ConflictException('Haryana RERA is already being read');
+    const todo = await this.db.registerProject.findMany({ where: { source: 'HARYANA', projectId: { not: null }, formFetchedAt: null }, orderBy: { fetchedAt: 'desc' }, take: Math.min(Math.max(limit, 1), 60) });
+    const withForm = todo.filter((r) => haryanaFormUrl(r.sourceUrl));
+    const run = await this.db.importRun.create({ data: { source: 'HARYANA', note: `Reading ${withForm.length} project application forms.` } });
+    this.running.add('HARYANA');
+    void this.readForms(run.id, withForm).finally(() => this.running.delete('HARYANA'));
+    return { ...run, queued: withForm.length };
+  }
+
+  private async readForms(runId: string, rows: RegisterProject[]) {
+    let read = 0; let requests = 0; let stopped: string | null = null;
+    for (const r of rows) {
+      if (requests++) await sleep(PAUSE_MS);
+      let facts: DeclaredFacts;
+      try {
+        facts = parseHaryanaForm(await this.getPatiently(haryanaFormUrl(r.sourceUrl)!));
+      } catch (e) {
+        stopped = e instanceof Error ? e.message : 'request failed';
+        break; // a struggling or refusing site is left alone; what was read so far is kept
+      }
+      await this.db.registerProject.update({ where: { id: r.id }, data: { declaredLitigation: facts.litigation, declaredApartments: facts.apartments, declaredTowers: facts.towers, declaredStart: facts.constructionStart, declaredCompletion: facts.plannedCompletion, formFetchedAt: new Date() } });
+      // The number of homes fills the gap on the project page, where nothing else has.
+      if (facts.apartments && r.projectId) await this.db.project.updateMany({ where: { id: r.projectId, totalUnits: null }, data: { totalUnits: facts.apartments } });
+      read += 1;
+    }
+    const note = `Project application forms: ${read} of ${rows.length} read.${stopped ? ` Stopped: ${stopped}.` : ''}`;
+    await this.db.importRun.update({ where: { id: runId }, data: { finishedAt: new Date(), fetched: read, requests, note, error: stopped && !read ? stopped.slice(0, 300) : null } });
+    this.log.log(note);
   }
 
   // ---- Turning register entries into project pages

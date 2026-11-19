@@ -38,3 +38,8 @@ test('the builder’s record and verified agents appear only when there is somet
   assert.equal(k[1], 'record'); assert.ok(k.includes('agent'));
   for (const always of ['carpet', 'costs', 'ten', 'account', 'title', 'loan']) assert.ok(k.includes(always), always);
 });
+
+test('declared litigation is flagged near the top; "no" adds nothing', () => {
+  assert.equal(keys({ litigation: true })[1], 'litigation');
+  assert.ok(!keys({ litigation: false }).includes('litigation')); assert.ok(!keys({ litigation: null }).includes('litigation'));
+});

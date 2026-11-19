@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { dayFirst, displayName, parseHaryana, parseKarnataka, parseMaharashtra, projectName, text } from './parse';
+import { dayFirst, displayName, parseHaryana, parseKarnataka, parseMaharashtra, projectName, text, haryanaFormUrl, parseHaryanaForm } from './parse';
 import { Spot, km, place } from './place';
 
 // Small excerpts of the registers' real pages, saved on 18 Nov 2026.
@@ -108,4 +108,22 @@ test('project names are made fit to read, and nothing is invented', () => {
   assert.equal(projectName('Group Housing Colony', 'Experion Developers'), 'Group Housing Colony by Experion Developers', 'a name that only says the kind of project is given its builder');
   assert.equal(projectName('Commercial Project of Area 0.4875 Acres', 'Vipul'), 'Commercial Project of Area 0.4875 Acres by Vipul');
   assert.equal(projectName('Emerald Estate', 'Emaar'), 'Emerald Estate', 'a real name is left alone');
+});
+
+test('reads what the builder declared in a Haryana project form', () => {
+  const f = parseHaryanaForm(fixture('haryana-form'));
+  assert.equal(f.litigation, false);
+  assert.equal(f.apartments, 342); assert.equal(f.towers, 3);
+  assert.equal(f.constructionStart?.toISOString().slice(0, 10), '2024-05-01');
+  assert.equal(f.plannedCompletion?.toISOString().slice(0, 10), '2031-07-31');
+});
+
+test('a form without the answers gives nothing, never a guess', () => {
+  assert.deepEqual(parseHaryanaForm('<html><body><p>Under maintenance</p></body></html>'), { litigation: null, apartments: null, towers: null, constructionStart: null, plannedCompletion: null });
+  assert.equal(parseHaryanaForm('<td>Whether any litigation is pending against the Project:</td><td>Yes/No</td><td>Yes</td>').litigation, true);
+});
+
+test('finds the form address from a project page address', () => {
+  assert.equal(haryanaFormUrl('https://haryanarera.gov.in/view_project/searchprojectDetail/2884'), 'https://haryanarera.gov.in/view_project/project_preview_open/2884');
+  assert.equal(haryanaFormUrl('https://rera.karnataka.gov.in/viewAllProjects'), null);
 });

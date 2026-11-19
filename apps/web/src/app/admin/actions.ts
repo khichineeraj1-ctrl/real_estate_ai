@@ -81,6 +81,13 @@ export async function readRegister(source: string, _: FormState, form: FormData)
   redirect('/admin/register?started=1');
 }
 
+/** Reads a batch of Haryana project application forms in the background. */
+export async function readProjectForms(_: FormState, __: FormData): Promise<FormState> {
+  const r = await adminFetch('/register/forms', { method: 'POST', body: { limit: 25 } });
+  if (!r.ok) return failed(r);
+  redirect('/admin/register?started=1');
+}
+
 /** Places a register entry in one of our localities, which makes its project page. */
 export async function publishRegisterEntry(id: string, backTo: string, _: FormState, form: FormData): Promise<FormState> {
   const r = await adminFetch(`/register/entries/${encodeURIComponent(id)}/publish`, { method: 'POST', body: { localityId: String(form.get('localityId') ?? '') } });

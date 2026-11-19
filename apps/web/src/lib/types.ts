@@ -51,6 +51,8 @@ export interface BuilderDetail extends Place {
 }
 export interface ProjectDetail extends Place {
   checklist: CheckItem[];
+  /** What the builder declared in its registration application, where we have read it; unchecked. */
+  declared: { litigation: boolean | null; apartments: number | null; towers: number | null; start: string | null; completion: string | null; readAt: string } | null;
   /** Every photo of the project, cover first. */
   photos: { file: string; width: number; height: number; category?: string | null }[];
   videos?: { youtubeId: string; title: string | null }[];

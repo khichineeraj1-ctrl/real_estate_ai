@@ -22,7 +22,9 @@ Worked out from the RERA registers we already read, and stated as facts and ques
 - **Cost of a delay** (`/tools/delay-cost`): the rent paid while possession is late, the interest the builder owes under RERA, and rent plus EMI each month.
 - **Follow a project**: a buyer leaves an email on a register project and is told when its registration lapses, is extended or reaches its end date. `ProjectWatch` rows; `WatchService` (`catalog/watch.ts`) runs after every register read. Emails are only logged until `SMTP_URL` is set. Each email carries an `/unfollow?token=` link.
 
-Not built: RERA complaints and quarterly progress filings. The register listings we read do not carry them; they would need each project's detail pages read, which is a separate piece of work.
+- **What the builder declared** (Haryana only): each project's registration application (Form A-H) gives whether litigation is pending, the number of flats and towers, and the declared construction start. Read a batch at a time from Admin → RERA registers → "Read 25 project forms" (`POST /admin/register/forms`), one request per project with a pause, stopping at the first refusal. Shown on the project page as "as declared", and a declared litigation adds a warning to the checklist. `parseHaryanaForm` in `rera/parse.ts`. These are the builder's own statements at the time it applied: forms contradict themselves, plotted colonies have no flat count, and some forms omit the litigation question, so a missing answer stays missing.
+
+Not built: RERA complaints and quarterly progress filings. Haryana's public pages do not carry them; Maharashtra's project pages are a JavaScript app our reader cannot see, and Karnataka's list gives no per-project page.
 
 ## Comparing, side by side
 

@@ -523,6 +523,14 @@ model RegisterProject {
   fetchedAt      DateTime
   /// How the locality was decided, in words, for whoever reviews it.
   placedHow      String?
+  /// What the builder declared in its registration application (Haryana's Form A-H), as written, unchecked.
+  declaredLitigation Boolean?
+  declaredApartments Int?
+  declaredTowers     Int?
+  declaredStart      DateTime?
+  declaredCompletion DateTime?
+  /// When the application form was last read; null until it has been.
+  formFetchedAt      DateTime?
   projectId      String?        @unique
   project        Project?       @relation(fields: [projectId], references: [id], onDelete: SetNull)
 

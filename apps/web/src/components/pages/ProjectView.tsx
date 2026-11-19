@@ -51,10 +51,14 @@ export function ProjectView({ p }: { p: ProjectDetail }) {
         {p.registerSource
           ? <><div><dt>RERA status</dt><dd>{p.registerStatus ?? 'Registered'}</dd></div>{p.registerValidUntil && <div><dt>Registration valid to</dt><dd>{monthYear(p.registerValidUntil)}</dd></div>}</>
           : <><div><dt>Status</dt><dd>{statusLabel(p.status)}</dd></div>{p.possession && <div><dt>Possession</dt><dd>{monthYear(p.possession)}</dd></div>}</>}
-        {p.totalUnits != null && <div><dt>Total units</dt><dd>{num(p.totalUnits)}</dd></div>}
+        {p.totalUnits != null && <div><dt>Total units</dt><dd>{num(p.totalUnits)}{p.declared?.towers ? ` in ${p.declared.towers} tower${p.declared.towers === 1 ? '' : 's'}` : ''}</dd></div>}
+        {p.declared?.start && <div><dt>Construction start, as declared</dt><dd>{monthYear(p.declared.start)}</dd></div>}
+        {p.declared?.litigation != null && <div><dt>Litigation pending, as declared</dt><dd>{p.declared.litigation ? 'Yes: ask the builder for details' : 'None declared'}</dd></div>}
         {p.reraId && <div><dt>RERA number</dt><dd>{p.reraId}</dd></div>}
         <div><dt>Locality</dt><dd><Link href={localityPath}>{p.locality.name}</Link>, <Link href={`/${p.city.slug}`}>{p.city.name}</Link></dd></div>
       </dl>
+
+      {p.declared && <p className="calc-note">“As declared” means what {p.builder} stated in its registration application to {p.registerName}, read on {new Date(p.declared.readAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' })}. It was true when the builder applied and has not been checked by us.</p>}
 
       {p.agents.length > 0 && (
         <section className="section" id="agents">

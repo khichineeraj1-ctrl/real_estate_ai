@@ -19,6 +19,10 @@ export class RegisterController {
     return this.register.start(source, { maxPages: Number.isInteger(maxPages) ? maxPages : undefined });
   }
 
+  /** Reads the application forms behind Haryana project pages, a batch at a time. */
+  @UseGuards(AdminGuard) @Roles('ADMIN') @Post('forms') @HttpCode(200)
+  forms(@Body() b: { limit?: unknown }) { const n = Number(b?.limit); return this.register.startForms(Number.isInteger(n) ? n : undefined); }
+
   /** Re-applies the placement rules to pages that were placed automatically. */
   @UseGuards(AdminGuard) @Roles('ADMIN') @Post('recheck') @HttpCode(200)
   recheck(@Body() b: { source?: unknown }) {

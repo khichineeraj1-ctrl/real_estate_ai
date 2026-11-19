@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { ActionButton } from '@/components/admin/Form';
 import { type Options } from '@/components/admin/fields';
 import { adminGet, getMe } from '@/lib/admin';
-import { publishRegisterEntry, readRegister, unpublishRegisterEntry } from '../../actions';
+import { publishRegisterEntry, readProjectForms, readRegister, unpublishRegisterEntry } from '../../actions';
 
 export const metadata = { title: 'RERA registers' };
 
@@ -53,6 +53,9 @@ export default async function Register({ searchParams }: { searchParams: Promise
                   <ActionButton action={readRegister.bind(null, s.source)} label="Read now" confirm={`Read the ${s.name} register now? It is read politely, one page at a time, and can take a few minutes.`}>
                     {s.source === 'MAHARASHTRA' && <input type="hidden" name="maxPages" value="5" />}
                   </ActionButton>
+                )}
+                {me.role === 'ADMIN' && !s.running && s.source === 'HARYANA' && (
+                  <ActionButton action={readProjectForms} label="Read 25 project forms" confirm="Read the application forms of 25 Haryana projects that have a page here? Each is one request, with a pause between, so it takes a few minutes. They give declared litigation, number of homes and construction dates." />
                 )}
               </td>
             </tr>
