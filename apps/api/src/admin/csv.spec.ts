@@ -29,7 +29,7 @@ test('photos are re-encoded to two WebP sizes, and unreadable files are refused'
   assert.deepEqual([p.width, p.height], [1600, 1067]);
   assert.equal(sniffImage(p.full), 'webp');
   const card = await sharp(p.card).metadata();
-  assert.deepEqual([card.width, card.height, card.format], [640, 480, 'webp']);
+  assert.deepEqual([card.width, card.height, card.format], [640, 427, 'webp'], 'the small version keeps the whole picture in its own shape; it is not cropped');
   assert.equal(cardFile('abc.webp'), 'abc-card.webp');
   // Starts like a JPEG, so it passes the first check, but is not one.
   await assert.rejects(processPhoto(Buffer.concat([Buffer.from([0xff, 0xd8, 0xff]), Buffer.from('not really an image')])));
