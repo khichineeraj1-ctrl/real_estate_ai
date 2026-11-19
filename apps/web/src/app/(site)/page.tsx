@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 };
 
 // Short enough to sit on one line under the box.
-const EXAMPLES = ['3 BHK in Whitefield', 'M3M projects in Gurgaon', 'Average rate in Powai?', 'Cheapest 2 BHK in Pune'];
+const EXAMPLES = ['3 BHK in Whitefield', 'M3M projects in Gurgaon', 'Farm land in Rajasthan', 'Warehouse on rent', 'Cheapest 2 BHK in Pune'];
 
 export default async function Home() {
   const [cities, latest, builders, stages, launches, upcoming, land] = await Promise.all([api<CitySummary[]>('/cities'), api<Listing>('/properties?pageSize=6'), api<BuilderSummary[]>('/builders'), api<{ key: string; title: string; guides: { slug: string; short: string; summary: string; icon: string; minutes: number; accent: string }[] }[]>('/guide-stages'), api<{ total: number; months: number; items: Launch[] }>('/launches'), api<{ notice: string; items: UpcomingItem[] }>('/upcoming', { revalidate: 60 }), api<Places>('/land/places', { revalidate: 60 })]);
@@ -26,11 +26,29 @@ export default async function Home() {
   return (
     <>
       <section className="hero">
-        <h1>Ask. Find your home.<span>Homes and builder projects in Gurgaon, Bengaluru, Mumbai and Pune</span></h1>
+        <h1>Ask. Find your home.<span>Homes and projects in Gurgaon, Bengaluru, Mumbai and Pune. Land and warehouses across India.</span></h1>
         <AskBox autoFocus placeholder="Type or speak, e.g. 3 BHK in Whitefield" />
         <ul className="chips" aria-label="Example questions">
           {EXAMPLES.map((q) => <li key={q}><Link href={`/ask?q=${encodeURIComponent(q)}`} rel="nofollow">{q}</Link></li>)}
         </ul>
+      </section>
+
+      <section className="land-band" id="land" aria-labelledby="land-band-h">
+        <div className="land-band-head">
+          <p className="land-new">New · All India</p>
+          <h2 id="land-band-h">Land, plots and warehouses, far beyond the big cities</h2>
+          <p>Selling a field in your village, or hunting for land for a warehouse or a dark store? Both sides meet here, free.</p>
+        </div>
+        <ul className="land-kinds">
+          {(land?.kinds ?? []).map((k) => (
+            <li key={k.kind}><Link href={`/land?kind=${k.kind}#listings`} className={`kind-${k.kind.toLowerCase()}`}><span aria-hidden="true">{KIND_ICON[k.kind]}</span><strong>{KIND_PLURAL[k.kind] ?? k.label}</strong><em>{k.count ? `${k.count} listed` : 'List yours'}</em></Link></li>
+          ))}
+        </ul>
+        <div className="land-doors">
+          <Link href="/land/post" className="land-door"><span aria-hidden="true">🌾</span><div><strong>I have land or space</strong><small>Owners, farmers, dealers. One form, no account, in two minutes. Your number stays private.</small></div><b>List it free →</b></Link>
+          <Link href="/land/wanted/post" className="land-door"><span aria-hidden="true">🏭</span><div><strong>My company needs land or space</strong><small>Warehouse, factory, dark store, shop. Say the size and the area; owners come to you.</small></div><b>Post a requirement →</b></Link>
+        </div>
+        <p className="land-band-foot"><Link href="/land">Browse all land →</Link>{land?.wanted ? <Link href="/land/wanted">{land.wanted} compan{land.wanted === 1 ? 'y is' : 'ies are'} looking now →</Link> : <Link href="/land/wanted">What companies are looking for →</Link>}<Link href="/tools/land-area">Convert acres, bigha, gaj →</Link></p>
       </section>
 
       {launches && launches.items.length > 0 && (
@@ -46,19 +64,6 @@ export default async function Home() {
           <Upcoming items={upcoming.items} notice={upcoming.notice} />
         </section>
       )}
-
-      <section className="section land-home" id="land">
-        <div className="know-head">
-          <div><h2>Land, plots and warehouses, across India</h2><p className="lead">Beyond the big cities: farm land, plots, industrial land and space for warehouses and dark stores.</p></div>
-          <Link className="launch-all" href="/land">See all →</Link>
-        </div>
-        <ul className="land-kinds">
-          {(land?.kinds ?? []).map((k) => (
-            <li key={k.kind}><Link href={`/land?kind=${k.kind}#listings`} className={`kind-${k.kind.toLowerCase()}`}><span aria-hidden="true">{KIND_ICON[k.kind]}</span><strong>{KIND_PLURAL[k.kind] ?? k.label}</strong><em>{k.count ? `${k.count} listed` : 'List yours'}</em></Link></li>
-          ))}
-        </ul>
-        <p className="land-home-acts"><Link className="abtn" href="/land/post">List your land free</Link><Link className="abtn quiet" href="/land/wanted/post">Company? Post what you need</Link>{land?.wanted ? <Link href="/land/wanted">{land.wanted} open requirement{land.wanted === 1 ? '' : 's'} →</Link> : null}</p>
-      </section>
 
       <section className="section usp">
         <h2>Compare before you decide</h2>

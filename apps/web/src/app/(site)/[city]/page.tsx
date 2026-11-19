@@ -1,6 +1,7 @@
 import { AlertForm } from '@/components/AlertForm';
 import { ProjectTile } from '@/components/ProjectTile';
 import type { Metadata } from 'next';
+import { LandBand } from '@/components/land/cards';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AskBox } from '@/components/AskBox';
@@ -88,6 +89,8 @@ export default async function CityPage({ params }: Props) {
           ))}
         </ul>
       </section>
+
+      <LandBand state={city.state} city={city.name} />
 
       <Faq title={`Buying property in ${city.name}: common questions`} faqs={faqs} />
       <JsonLd data={itemListLd(`Property for sale in ${city.name}`, items)} />

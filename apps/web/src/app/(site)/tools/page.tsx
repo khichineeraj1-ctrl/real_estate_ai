@@ -17,6 +17,7 @@ const ICONS = {
   afford: <><path d="M3 11.5 12 4l9 7.5" /><path d="M5.5 10v10h13V10" /><path d="M10 13h4M10 13c3 0 3 3.5 0 3.5l3 3" /></>,
   quote: <><path d="M4 20V8l8-5 8 5v12" /><path d="M9 20v-6h6v6" /><path d="M9 10h6" /></>,
   delay: <><circle cx="12" cy="13" r="8" /><path d="M12 9v4l3 2M9 3h6" /></>,
+  area: <><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h4M3 15h4M9 21v-4M15 21v-4M9 3v2M15 3v2" /></>,
   cost: <><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z" /><path d="M9 8h6M9 12h6" /></>,
 };
 
@@ -26,6 +27,7 @@ const TOOLS = [
   { href: '/tools/cost-of-buying', icon: ICONS.cost, name: 'True cost of buying', ask: 'Stamp duty, registration and GST' },
   { href: '/tools/true-price', icon: ICONS.quote, name: 'True price of a quote', ask: 'Per carpet sq ft, and compare quotes' },
   { href: '/tools/delay-cost', icon: ICONS.delay, name: 'Cost of a delay', ask: 'If possession runs late' },
+  { href: '/tools/land-area', icon: ICONS.area, name: 'Land area converter', ask: 'Acres, hectares, gaj, guntha, kanal' },
 ];
 
 export default async function Tools() {

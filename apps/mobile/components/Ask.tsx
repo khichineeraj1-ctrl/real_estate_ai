@@ -1,7 +1,7 @@
 import { GuidesRow } from './GuidesRow';
 import { Launches } from './Launches';
 import { Upcoming } from './Upcoming';
-import { LandRow } from './Land';
+import { LandCard, LandRow } from './Land';
 import { CompareToggle } from './tools/Compare';
 import { Cover } from './Cover';
 import { ConnectButton } from './LeadForm';
@@ -72,7 +72,7 @@ export function Ask({ header }: { header?: React.ReactNode }) {
           <View style={{ gap: 14 }}>
             {header}
             <Text style={[s.hero, { color: t.brand }]}>Ask. Find your home.</Text>
-            <Text style={{ color: t.muted, fontSize: 16, lineHeight: 23 }}>Homes and builder projects in Gurgaon, Bengaluru, Mumbai and Pune.</Text>
+            <Text style={{ color: t.muted, fontSize: 16, lineHeight: 23 }}>Homes and projects in Gurgaon, Bengaluru, Mumbai and Pune. Land and warehouses across India.</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6 }}>
               {EXAMPLES.map((q) => (
                 <Pressable key={q} accessibilityRole="button" onPress={() => send(q)} style={[s.chip, { borderColor: t.line, backgroundColor: t.soft, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 9 }]}>
@@ -95,6 +95,7 @@ export function Ask({ header }: { header?: React.ReactNode }) {
                     {paragraphs(e.result.reply).map((x, n) => <Text key={n} style={{ color: n === 0 ? t.fg : t.muted, fontSize: 16, lineHeight: 24, fontWeight: n === 0 ? '600' : '400' }}>{x}</Text>)}
                   </View>
                   {e.result.properties.map((p) => <PropertyCard key={p.slug} p={p} />)}
+                  {(e.result.land ?? []).map((l) => <LandCard key={l.slug} l={l} />)}
                   {(e.result.projects ?? []).map((p) => (
                     <View key={p.slug} style={{ borderWidth: 1, borderColor: t.line, backgroundColor: t.card, borderRadius: 14, padding: 12, gap: 8 }}>
                       <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/project/[slug]', params: { slug: p.slug } })} style={({ pressed }) => ({ gap: 2, opacity: pressed ? 0.6 : 1 })}>

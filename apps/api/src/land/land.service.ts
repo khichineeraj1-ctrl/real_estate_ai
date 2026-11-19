@@ -4,7 +4,7 @@ import { Input, slugify } from '../admin/input';
 import { MAX_PHOTO_BYTES, processPhoto, removePhoto, savePhoto, sniffImage, type ProcessedPhoto } from '../admin/photos';
 import { cleanEmail } from '../buyer/buyer.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { DEALS, FEATURES, KINDS, KIND_LABEL, LAND_USES, POSTERS, PURPOSES, PURPOSE_LABEL, STATES, UNITS, areaAlso, areaText, cleanDistrict, landChecks, listingTitle, rate, stateBySlug, toSqft, type Kind } from './rules';
+import { DEALS, FEATURES, KINDS, KIND_LABEL, LAND_USES, POSTERS, PURPOSES, PURPOSE_LABEL, STATES, UNITS, areaAlso, areaText, cleanDistrict, landChecks, landIntent, listingTitle, rate, stateBySlug, toSqft, type Kind } from './rules';
 
 type Body = Record<string, unknown>;
 export const MAX_LAND_PHOTOS = 8;
@@ -61,6 +61,33 @@ export class LandService {
     const nearby = await this.db.landListing.findMany({ where: { status: 'LIVE', stateSlug: l.stateSlug, districtSlug: l.districtSlug, slug: { not: slug } }, orderBy: { decidedAt: 'desc' }, take: 4, select: this.card });
     return { ...this.shape(l), description: l.description, closed: l.status === 'CLOSED', features: l.features.map((f) => FEATURES[f]).filter(Boolean), clearHeightFt: l.clearHeightFt, powerKva: l.powerKva, docks: l.docks, checks: landChecks(l), nearby: nearby.map((r) => this.shape(r)) };
   }
+  /**
+   * The assistant's answer to a question about land, or null when the question is about a home. A district counts
+   * when something is listed in it; nothing found is answered with where to post, never with invented listings.
+   */
+  async askAbout(question: string) {
+    const intent = landIntent(question);
+    if (!intent) return null;
+    const text = ` ${question.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ')} `;
+    const districts = await this.db.landListing.groupBy({ by: ['stateSlug', 'state', 'districtSlug', 'district'], where: { status: 'LIVE', ...(intent.state ? { stateSlug: intent.state.slug } : {}) } });
+    const district = districts.find((d) => text.includes(` ${d.district.toLowerCase()} `));
+    const state = intent.state ?? (district ? { slug: district.stateSlug, name: district.state } : undefined);
+    const { total, items } = await this.list({ kind: intent.kind, deal: intent.deal, state: state?.slug, district: district?.districtSlug, take: 6 });
+    const what = intent.kind ? ({ FARM: 'farm land', PLOT: 'plots', INDUSTRIAL: 'industrial land', BUILT: 'warehouses and shops' } as const)[intent.kind] : 'land and commercial space';
+    const where = district ? ` in ${district.district}, ${district.state}` : state ? ` in ${state.name}` : '';
+    const deal = intent.deal === 'LEASE' ? ' for rent' : intent.deal === 'SALE' ? ' for sale' : '';
+    const qs = new URLSearchParams({ ...(intent.kind ? { kind: intent.kind } : {}), ...(intent.deal ? { deal: intent.deal } : {}) }).toString();
+    if (total === 0) return {
+      reply: `Nothing matching ${what}${deal}${where} is listed yet. Land here comes from owners across India and is new, so the quickest way is to post what you need: say the size, the area and what it is for, and owners with something that fits answer you. It is free.`,
+      items, total, page: { path: '/land/wanted/post', label: 'Post what you are looking for' },
+    };
+    const priced = items.filter((i) => i.rate).slice(0, 2).map((i) => `${i.area} in ${i.place} at ${i.rate}`);
+    return {
+      reply: `I found ${total} listing${total === 1 ? '' : 's'} of ${what}${deal}${where}.${priced.length ? ` For example, ${priced.join(', and ')}.` : ''} These are listed by owners and dealers and checked by our team, but ownership papers are not verified: each listing shows what to check before paying.`,
+      items, total, page: { path: district ? `/land/${district.stateSlug}/${district.districtSlug}` : state && !qs ? `/land/${state.slug}` : `/land${qs ? `?${qs}` : ''}`, label: district ? `Land in ${district.district}` : state && !qs ? `Land in ${state.name}` : `All ${what}${deal}` },
+    };
+  }
+
   /** Where there is something to see: states and their districts with live listings, and how many of each kind. */
   async places() {
     const [byDistrict, byKind, wanted] = await Promise.all([

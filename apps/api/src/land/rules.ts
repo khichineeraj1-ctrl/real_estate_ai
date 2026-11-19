@@ -103,3 +103,23 @@ export function listingTitle(l: { kind: string; deal: string; areaValue: number;
   const what = l.kind === 'BUILT' ? 'warehouse or shop' : KIND_LABEL[l.kind as Kind].toLowerCase();
   return `${areaText(l.areaValue, l.areaUnit)} ${what} ${l.deal === 'LEASE' ? 'for rent' : 'for sale'} in ${l.place}, ${l.district}`;
 }
+
+/**
+ * Whether a question to the assistant is about land or commercial space rather than a home, and what it narrows to.
+ * "plot" on its own is not enough: homes in the cities we cover include plots too, so it counts only with a state.
+ */
+export function landIntent(question: string): { kind?: Kind; deal?: Deal; state?: Place; weak: boolean } | null {
+  const t = ` ${question.toLowerCase().replace(/[^a-z0-9\s-]/g, ' ').replace(/\s+/g, ' ')} `;
+  const has = (re: RegExp) => re.test(t);
+  const built = has(/\b(warehouses?|godowns?|sheds?|dark stores?|shops?|showrooms?|cold storage)\b/);
+  const industrial = has(/\b(industrial|factory|factories|logistics)\b/);
+  const farm = has(/\b(farm ?lands?|farmhouses?|agricultur\w+|khet\w*|orchards?|bigha)\b/); // not bare "farms" or "acres": both turn up in project names
+  const plot = has(/\bplots?\b/);
+  const land = has(/\b(lands?|zameen|jameen|zamin)\b/);
+  const state = STATES.find((s) => t.includes(` ${s.name.toLowerCase()} `));
+  if (!(built || industrial || farm || land || (plot && state))) return null;
+  // "warehouse land" and "land for a factory" are land to build on; a bare "warehouse" is a building.
+  const kind: Kind | undefined = (industrial || built) && land ? 'INDUSTRIAL' : built ? 'BUILT' : industrial ? 'INDUSTRIAL' : farm ? 'FARM' : plot ? 'PLOT' : undefined;
+  const deal: Deal | undefined = has(/\b(rent|rental|lease|leasing|on hire)\b/) ? 'LEASE' : has(/\b(buy|sale|sell|purchase)\b/) ? 'SALE' : undefined;
+  return { kind, deal, state, weak: !(built || industrial || farm || land) };
+}

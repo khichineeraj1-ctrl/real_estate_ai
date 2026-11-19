@@ -6,6 +6,7 @@ const TOOLS = [
   { href: '/tools/cost-of-buying', name: 'Stamp duty, registration and GST calculator' },
   { href: '/tools/true-price', name: 'True price of a builder’s quote' },
   { href: '/tools/delay-cost', name: 'What a possession delay costs' },
+  { href: '/tools/land-area', name: 'Land area converter' },
 ];
 
 /** Links from one tool to the others and on to the places a buyer goes next. */

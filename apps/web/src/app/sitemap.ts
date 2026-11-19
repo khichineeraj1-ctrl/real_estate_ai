@@ -16,7 +16,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return [
     { url: SITE_URL, changeFrequency: 'daily', priority: 1 },
     { url: `${SITE_URL}/post-property`, changeFrequency: 'monthly', priority: 0.5 },
-    ...['/tools', '/tools/emi-calculator', '/tools/home-affordability', '/tools/cost-of-buying', '/tools/true-price', '/tools/delay-cost'].map((p) => ({ url: `${SITE_URL}${p}`, changeFrequency: 'monthly' as const, priority: 0.6 })),
+    ...['/tools', '/tools/emi-calculator', '/tools/home-affordability', '/tools/cost-of-buying', '/tools/true-price', '/tools/delay-cost', '/tools/land-area'].map((p) => ({ url: `${SITE_URL}${p}`, changeFrequency: 'monthly' as const, priority: 0.6 })),
     ...['/land', '/land/wanted', '/land/post', '/land/wanted/post'].map((p) => ({ url: `${SITE_URL}${p}`, changeFrequency: 'daily' as const, priority: 0.7 })),
     ...(land?.states ?? []).flatMap((s) => [{ url: `${SITE_URL}/land/${s.slug}`, changeFrequency: 'daily' as const, priority: 0.7 }, ...s.districts.map((d) => ({ url: `${SITE_URL}/land/${s.slug}/${d.slug}`, changeFrequency: 'daily' as const, priority: 0.7 }))]),
     ...(landList?.items ?? []).map((l) => ({ url: `${SITE_URL}/land/listing/${l.slug}`, changeFrequency: 'weekly' as const, priority: 0.6 })),

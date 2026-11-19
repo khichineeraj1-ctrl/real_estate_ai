@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { LandBand } from '@/components/land/cards';
 import { AuthShell } from '@/components/auth/AuthShell';
 import { SignupForm } from '@/components/auth/AuthForms';
 import { Faq } from '@/components/Faq';
@@ -25,8 +26,11 @@ export default function PostProperty() {
         <SignupForm />
       </AuthShell>
 
+      <LandBand />
+
       <Faq title="Posting a property: common questions" faqs={[
         { q: `Who can post a property on ${BRAND}?`, a: 'Property owners, agents and builders selling a home or plot in the cities we cover: Gurgaon, Bengaluru, Mumbai and Pune.' },
+        { q: 'I want to sell farm land, a plot in another town, or rent out a warehouse. Can I?', a: 'Yes, anywhere in India, and without an account. Use the land form at /land/post: it takes two minutes, and our team checks it before it shows.' },
         { q: 'How long before my listing appears?', a: 'Each listing is checked by our team before it is published. If something needs changing, you will see the reason next to the listing when you sign in.' },
         { q: 'Can I edit my listing after it is live?', a: 'Yes. Edits and new photos are checked again before they appear, and the page address of your listing stays the same.' },
         { q: 'What does getting verified mean?', a: 'You tell us who you are and upload documents such as an identity proof and, for agents, a RERA certificate. Our team checks them, and buyers then see you as a verified seller, with your homes shown first.' },

@@ -66,7 +66,7 @@ export interface PropertyDetail extends Omit<PropertyCard, 'locality' | 'project
 export type CompareHome = Omit<PropertyDetail, 'similar'>;
 /** A builder's project in an answer from the assistant. */
 export type ProjectHit = { slug: string; name: string; builder: string; brand: Place | null; registerSource: string | null; registerStatus: string | null; registerValidUntil: string | null; agents?: number; photos?: { file: string; width?: number; height?: number }[]; locality: Place; city: Place };
-export interface AskResult { reply: string; live: boolean; properties: PropertyCard[]; total: number; page: { path: string; label: string } | null; relaxed: string | null; projects?: ProjectHit[]; projectsTotal?: number }
+export interface AskResult { reply: string; live: boolean; properties: PropertyCard[]; total: number; page: { path: string; label: string } | null; relaxed: string | null; projects?: ProjectHit[]; projectsTotal?: number; land?: LandItem[] }
 export interface Turn { role: 'user' | 'assistant'; text: string }
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {

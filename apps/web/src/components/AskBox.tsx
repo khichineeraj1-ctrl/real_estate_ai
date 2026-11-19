@@ -1,5 +1,6 @@
 'use client';
 
+import { LandGrid } from './land/cards';
 import { noteAsked } from '@/lib/intent';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
@@ -123,11 +124,12 @@ export function AskBox({ initial, context, placeholder, autoFocus }: Props) {
                       {e.result.projects!.map((p) => <ProjectTile key={p.slug} city={p.city.slug} p={p} lines={[`${p.locality.name}, ${p.city.name}`, p.brand?.name ?? p.builder, /lapsed/i.test(p.registerStatus ?? '') ? 'RERA registration lapsed' : p.registerValidUntil ? `RERA registration to ${monthYear(p.registerValidUntil)}` : 'RERA registered']} />)}
                     </ul>
                   )}
+                  {(e.result.land?.length ?? 0) > 0 && <LandGrid items={e.result.land!} />}
                   {e.result.page && (
                     <p className="more"><Link href={e.result.page.path}>{e.result.total > e.result.properties.length ? `See all ${e.result.total}: ` : (e.result.projectsTotal ?? 0) > (e.result.projects?.length ?? 0) ? `See all ${e.result.projectsTotal}: ` : 'Open the page: '}{e.result.page.label} →</Link></p>
                   )}
                 </div>
-              ) : e.error ? <p className="answer error">{e.error}</p> : <p className="answer thinking">Looking through the homes and projects…</p>}
+              ) : e.error ? <p className="answer error">{e.error}</p> : <p className="answer thinking">Looking through the homes, projects and land…</p>}
             </div>
           ))}
           <div ref={end} />

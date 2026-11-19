@@ -11,7 +11,7 @@ const question = async (sp: Props['searchParams']) => { const q = (await sp).q; 
 // Answers are endless variations of the same listings, so they stay out of the index and pass crawlers on to the real pages.
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   const q = await question(searchParams);
-  return pageMeta({ title: q ? `${q} — answer` : 'Ask about homes for sale', description: 'Ask about homes and builder projects in your own words, by typing or by voice, and get a direct answer.', path: '/ask', noindex: true });
+  return pageMeta({ title: q ? `${q} — answer` : 'Ask about homes, projects and land', description: 'Ask about homes and builder projects in your own words, by typing or by voice, and get a direct answer.', path: '/ask', noindex: true });
 }
 
 export default async function AskPage({ searchParams }: Props) {
@@ -24,7 +24,7 @@ export default async function AskPage({ searchParams }: Props) {
   }
   return (
     <>
-      <h1>Ask about homes for sale</h1>
+      <h1>Ask about homes, projects and land</h1>
       <p className="lead">Ask in your own words, by typing or with the microphone. Follow-up questions keep the context.</p>
       <AskBox key={q} initial={initial} autoFocus={!q} placeholder={q ? 'Ask a follow-up' : undefined} />
     </>

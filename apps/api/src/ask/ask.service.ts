@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { Injectable, Logger } from '@nestjs/common';
 import { CatalogService, PropertyCard, PropertyFilters, Stats } from '../catalog/catalog.service';
+import { LandService } from '../land/land.service';
 import { Gazetteer, Parsed, comparison, matchPlace, parseQuestion, rupees } from './parse';
 
 export interface Turn { role: 'user' | 'assistant'; text: string }
@@ -21,7 +22,10 @@ export interface AskResult {
   /** Builder projects the answer is about, when the buyer asked about a builder or a project by name. */
   projects?: ProjectHit[];
   projectsTotal?: number;
+  /** Land and commercial space, when the question was about that and not a home. */
+  land?: LandAnswer['items'];
 }
+type LandAnswer = NonNullable<Awaited<ReturnType<LandService['askAbout']>>>;
 
 type ProjectHit = Awaited<ReturnType<CatalogService['searchProjects']>>['items'][number];
 
@@ -104,7 +108,7 @@ export class AskService {
   private log = new Logger('Ask');
   private limiter = new Limiter(Number(process.env.ASK_PER_MIN ?? 10), Number(process.env.ASK_DAILY_CAP ?? 3000));
   private client: Anthropic | null = process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN ? new Anthropic() : null;
-  constructor(private readonly catalog: CatalogService) {}
+  constructor(private readonly catalog: CatalogService, private readonly land: LandService) {}
 
   /** Runs a search; when nothing matches it loosens the budget, then the locality, and says which it loosened. */
   async search(p: Omit<Parsed, 'intent'>): Promise<Outcome> {
@@ -268,6 +272,9 @@ export class AskService {
 
   private async answer(who: string, message: string, history: Turn[], context: string): Promise<AskResult> {
     const q = message.trim().slice(0, MAX_MESSAGE);
+    // Land and commercial space live outside the cities the home search knows, so those questions are answered from the land listings.
+    const land = await this.land.askAbout(q);
+    if (land) return { reply: land.reply, live: false, properties: [], total: land.total, page: land.page, relaxed: null, land: land.items };
     const gazetteer = await this.catalog.gazetteer();
     if (!this.client || !this.limiter.allow(who)) return this.scripted(q, gazetteer, context);
 

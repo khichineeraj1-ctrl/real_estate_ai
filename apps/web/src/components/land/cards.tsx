@@ -72,3 +72,15 @@ export function LandCtas() {
     </div>
   );
 }
+
+/** A strip for pages about homes: tells the reader that land and commercial space exist here too, near where they are looking. */
+export function LandBand({ state, city }: { state?: string; city?: string }) {
+  const slug = state?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  return (
+    <aside className="land-strip" aria-label="Land and commercial space">
+      <span aria-hidden="true">🌾</span>
+      <div><strong>{city ? `Looking for land or a warehouse around ${city}?` : 'Selling land, or need space for a business?'}</strong><p>Farm land, plots, industrial land and warehouses across India, listed by owners. Companies post what they need.</p></div>
+      <p className="land-strip-acts">{slug && state ? <Link className="abtn" href={`/land/${slug}`}>Land in {state}</Link> : <Link className="abtn" href="/land">Browse land</Link>}<Link className="abtn quiet" href="/land/post">List yours free</Link><Link href="/land/wanted/post">Post a requirement →</Link></p>
+    </aside>
+  );
+}

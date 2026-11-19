@@ -40,3 +40,17 @@ test('districts typed differently land on one page', () => {
 test('title says size, kind, deal and place', () => {
   assert.equal(listingTitle({ kind: 'FARM', deal: 'SALE', areaValue: 5, areaUnit: 'bigha', place: 'Tijara', district: 'Alwar' }), '5 bigha farm land for sale in Tijara, Alwar');
 });
+
+test('questions about land are told apart from questions about homes', async () => {
+  const { landIntent } = await import('./rules');
+  assert.equal(landIntent('3 BHK in Whitefield'), null);
+  assert.equal(landIntent('plots in Gurgaon'), null); // homes in our cities include plots
+  assert.equal(landIntent('plots in Rajasthan')?.kind, 'PLOT');
+  assert.deepEqual(landIntent('farm land in Rajasthan'), { kind: 'FARM', deal: undefined, state: { slug: 'rajasthan', name: 'Rajasthan' }, weak: false });
+  assert.equal(landIntent('warehouse on rent near Pune')?.kind, 'BUILT');
+  assert.equal(landIntent('warehouse on rent near Pune')?.deal, 'LEASE');
+  assert.equal(landIntent('land for a warehouse in Uttar Pradesh')?.kind, 'INDUSTRIAL');
+  assert.equal(landIntent('buy 5 acres of farm land')?.deal, 'SALE');
+  assert.equal(landIntent('Godrej 101 Acres'), null);
+  assert.equal(landIntent('M3M projects in Gurgaon'), null);
+});
