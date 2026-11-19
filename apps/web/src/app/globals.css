@@ -20,7 +20,7 @@ button, input, select, textarea { font-family: inherit; }
 a { color: var(--brand); text-decoration: none; }
 a:hover { text-decoration: underline; }
 /* Type: one scale, with headings a touch lighter and tighter than the browser's bold, and room under each. */
-h1 { font-size: clamp(1.6rem, 3.4vw, 2.15rem); font-weight: 700; line-height: 1.2; margin: 0 0 .7rem; letter-spacing: -.022em; text-wrap: balance; }
+h1 { font-size: clamp(1.45rem, 2.8vw, 1.8rem); font-weight: 700; line-height: 1.2; margin: 0 0 .7rem; letter-spacing: -.022em; text-wrap: balance; }
 h2 { font-size: 1.3rem; font-weight: 650; line-height: 1.3; margin: 0 0 1rem; letter-spacing: -.015em; text-wrap: balance; }
 h3 { font-size: 1.02rem; font-weight: 600; margin: 0; line-height: 1.4; letter-spacing: -.005em; }
 p { margin: 0 0 1rem; text-wrap: pretty; }
@@ -28,7 +28,7 @@ strong, b { font-weight: 600; }
 small { font-size: .875rem; }
 .wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
 main.wrap { padding-top: 20px; padding-bottom: 56px; min-height: 60vh; }
-.lead { color: var(--muted); font-size: 1.0625rem; line-height: 1.65; max-width: 66ch; }
+.lead { color: var(--muted); font-size: .95rem; line-height: 1.6; max-width: 72ch; }
 .section { margin-top: 56px; }
 
 .site-header { border-bottom: 1px solid var(--line); position: sticky; top: 0; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px); z-index: 10; }
