@@ -4,64 +4,41 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { LOAN_DEFAULTS, loanPlan } from '@/lib/finance';
 import { price as short } from '@/lib/format';
-import { comparePath } from '@/lib/seo';
-import { SliderField } from './Calculators';
 
 const rupees = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`;
+const MIN = 1_000_000; const MAX = 50_000_000; const STEP = 100_000;
+const PRESETS = [5_000_000, 10_000_000, 20_000_000, 50_000_000];
 
 /** One slider, three quick answers. Each answer opens the full tool for the detail. */
 export function QuickLook() {
   const [amount, setAmount] = useState(10_000_000);
   const p = loanPlan(amount, LOAN_DEFAULTS.downPct, LOAN_DEFAULTS.ratePct, LOAN_DEFAULTS.years);
   const payNeeded = (p.monthly * 100) / LOAN_DEFAULTS.incomeSharePct;
+  const fill = ((amount - MIN) / (MAX - MIN)) * 100;
+  const down = LOAN_DEFAULTS.downPct;
   return (
     <section className="quick" aria-label="A quick look at a price">
       <div className="quick-in">
-        <h2>Pick a price. See what it means.</h2>
-        <SliderField
-          label="Home price" suffix="₹" value={amount} onChange={setAmount} min={1_000_000} max={50_000_000} step={100_000} hint={short(amount)}
-          presets={[{ label: '₹50 L', value: 5_000_000 }, { label: '₹1 Cr', value: 10_000_000 }, { label: '₹2 Cr', value: 20_000_000 }, { label: '₹5 Cr', value: 50_000_000 }]}
+        <p className="quick-label">Home price</p>
+        <p className="quick-price" aria-live="polite">{short(amount)}</p>
+        <input
+          className="quick-slider" type="range" aria-label="Home price" aria-valuetext={short(amount)} min={MIN} max={MAX} step={STEP} value={amount}
+          style={{ '--fill': `${fill}%` } as React.CSSProperties} onChange={(e) => setAmount(Number(e.target.value))}
         />
+        <div className="picks">
+          {PRESETS.map((v) => <button key={v} type="button" className="pick" aria-pressed={amount === v} onClick={() => setAmount(v)}>{short(v)}</button>)}
+        </div>
+        <div className="quick-split" role="img" aria-label={`Loan ${short(p.loan)}, down payment ${short(p.downPayment)}`}>
+          <div className="quick-bar"><i style={{ flexGrow: 100 - down }} className="s1" /><i style={{ flexGrow: down }} className="s2" /></div>
+          <p><span><i className="key s1" />Loan <strong>{short(p.loan)}</strong></span><span><i className="key s2" />Down payment <strong>{short(p.downPayment)}</strong></span></p>
+        </div>
       </div>
       <ul className="quick-out" aria-live="polite">
-        <li><Link href="/tools/emi-calculator"><span>Monthly EMI</span><strong>{rupees(p.monthly)}</strong><small>Change the rate and period →</small></Link></li>
-        <li><Link href="/tools/home-affordability"><span>Take-home pay you would need</span><strong>{rupees(payNeeded)}</strong><small>a month. Work out your own budget →</small></Link></li>
-        <li><Link href="/tools/cost-of-buying"><span>Down payment</span><strong>{short(p.downPayment)}</strong><small>plus stamp duty and fees. See them →</small></Link></li>
+        <li><Link href="/tools/emi-calculator"><span className="quick-ico" aria-hidden="true">📅</span><span>Monthly EMI</span><strong>{rupees(p.monthly)}</strong><b aria-hidden="true">→</b></Link></li>
+        <li><Link href="/tools/home-affordability"><span className="quick-ico" aria-hidden="true">💼</span><span>Monthly pay needed</span><strong>{rupees(payNeeded)}</strong><b aria-hidden="true">→</b></Link></li>
+        <li><Link href="/tools/cost-of-buying"><span className="quick-ico" aria-hidden="true">🧾</span><span>Down payment, before stamp duty</span><strong>{short(p.downPayment)}</strong><b aria-hidden="true">→</b></Link></li>
       </ul>
-      <p className="calc-note">Worked out with {LOAN_DEFAULTS.downPct}% down, an example rate of {LOAN_DEFAULTS.ratePct}% over {LOAN_DEFAULTS.years} years, and EMIs taking {LOAN_DEFAULTS.incomeSharePct}% of pay. Every tool lets you change these.</p>
-    </section>
-  );
-}
-
-interface CityOption { slug: string; name: string; localities: { slug: string; name: string }[] }
-
-/** Choose a city and two of its localities, and open their side-by-side page. */
-export function LocalityPicker({ cities }: { cities: CityOption[] }) {
-  const [citySlug, setCitySlug] = useState(cities[0]?.slug ?? '');
-  const [a, setA] = useState('');
-  const [b, setB] = useState('');
-  const city = cities.find((c) => c.slug === citySlug);
-  if (!city) return null;
-  const ready = a && b && a !== b;
-  const name = (slug: string) => city.localities.find((l) => l.slug === slug)?.name;
-  return (
-    <section className="vs">
-      <h2>Compare two localities</h2>
-      <div className="picks" role="group" aria-label="City">
-        {cities.map((c) => <button key={c.slug} type="button" className="pick" aria-pressed={c.slug === citySlug} onClick={() => { setCitySlug(c.slug); setA(''); setB(''); }}>{c.name}</button>)}
-      </div>
-      <div className="vs-row">
-        <label className="afield"><span>First locality</span>
-          <select value={a} onChange={(e) => setA(e.target.value)}><option value="">Choose…</option>{city.localities.filter((l) => l.slug !== b).map((l) => <option key={l.slug} value={l.slug}>{l.name}</option>)}</select>
-        </label>
-        <span className="vs-mark" aria-hidden="true">vs</span>
-        <label className="afield"><span>Second locality</span>
-          <select value={b} onChange={(e) => setB(e.target.value)}><option value="">Choose…</option>{city.localities.filter((l) => l.slug !== a).map((l) => <option key={l.slug} value={l.slug}>{l.name}</option>)}</select>
-        </label>
-        {ready
-          ? <Link className="abtn" href={comparePath(city.slug, a, b)}>Compare {name(a)} and {name(b)}</Link>
-          : <span className="abtn is-off" aria-disabled="true">Choose two localities</span>}
-      </div>
+      <p className="quick-note">{LOAN_DEFAULTS.downPct}% down · {LOAN_DEFAULTS.ratePct}% example rate · {LOAN_DEFAULTS.years} years · EMI at {LOAN_DEFAULTS.incomeSharePct}% of pay. Tap a card to change these.</p>
     </section>
   );
 }
