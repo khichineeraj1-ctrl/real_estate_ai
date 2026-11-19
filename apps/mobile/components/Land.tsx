@@ -156,29 +156,61 @@ export function ReplyBox({ type, slug, label, sent }: { type: 'listing' | 'wante
   );
 }
 
-/** The home screen's way in: four coloured tiles, one per kind of land. */
+/** The home screen's feature on land: what it is, the four kinds, and a door each for owners and for companies. */
 export function LandRow() {
   const t = useTheme();
   const router = useRouter();
-  const [kinds, setKinds] = useState<{ kind: string; label: string; count: number }[] | null>(null);
-  useEffect(() => { getLandPlaces().then((p) => setKinds(p.kinds)).catch(() => setKinds(null)); }, []);
-  if (!kinds) return null;
-  return (
-    <View style={{ gap: 8, marginTop: 10 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' }}>
-        <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 18, fontWeight: '700' }}>Land and warehouses</Text>
-        <Pressable accessibilityRole="link" onPress={() => router.push('/land')} hitSlop={8}><Text style={{ color: t.brand, fontWeight: '600' }}>See all →</Text></Pressable>
+  const dark = useColorScheme() === 'dark';
+  const [data, setData] = useState<{ kinds: { kind: string; label: string; count: number }[]; wanted: number } | null>(null);
+  useEffect(() => { getLandPlaces().then(setData).catch(() => setData(null)); }, []);
+  if (!data) return null;
+  const door = (icon: string, title: string, text: string, cta: string, href: '/land/post' | '/land/want') => (
+    <Pressable accessibilityRole="button" accessibilityLabel={`${title}. ${cta}`} onPress={() => router.push(href)} style={({ pressed }) => [s.door, { backgroundColor: t.card, borderColor: pressed ? t.brand : t.line }]}>
+      <Text style={{ fontSize: 28 }}>{icon}</Text>
+      <View style={{ flex: 1, gap: 3 }}>
+        <Text style={{ color: t.fg, fontWeight: '700', fontSize: 15 }}>{title}</Text>
+        <Text style={{ color: t.muted, fontSize: 13, lineHeight: 18 }}>{text}</Text>
+        <View style={{ alignSelf: 'flex-start', backgroundColor: t.brand, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 7, marginTop: 5 }}><Text style={{ color: t.brandInk, fontWeight: '700', fontSize: 13 }}>{cta} →</Text></View>
       </View>
-      <Text style={{ color: t.muted, fontSize: 13, lineHeight: 18 }}>Across India, beyond the big cities. Owners list free.</Text>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>{kinds.map((k) => <KindTile key={k.kind} k={k} onPress={() => router.push({ pathname: '/land', params: { kind: k.kind } })} />)}</View>
+    </Pressable>
+  );
+  return (
+    <View style={[s.band, { backgroundColor: dark ? '#13241a' : '#eaf5ee', borderColor: t.line }]}>
+      <View style={s.newTag}><Text style={{ color: '#fff', fontSize: 11, fontWeight: '800', letterSpacing: 0.6 }}>NEW · ALL INDIA</Text></View>
+      <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 20, fontWeight: '800', lineHeight: 26 }}>Land, plots and warehouses, far beyond the big cities</Text>
+      <Text style={{ color: t.muted, fontSize: 14, lineHeight: 20 }}>Selling a field in your village, or hunting for land for a warehouse or a dark store? Both sides meet here, free.</Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 4 }}>{data.kinds.map((k) => <KindTile key={k.kind} k={k} plain onPress={() => router.push({ pathname: '/land', params: { kind: k.kind } })} />)}</View>
+      {door('🌾', 'I have land or space', 'Owners, farmers, dealers. One form, no account. Your number stays private.', 'List it free', '/land/post')}
+      {door('🏭', 'My company needs land or space', 'Warehouse, factory, dark store, shop. Say the size and the area; owners come to you.', 'Post a requirement', '/land/want')}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 18, rowGap: 8, marginTop: 2 }}>
+        <Pressable accessibilityRole="link" hitSlop={6} onPress={() => router.push('/land')}><Text style={{ color: t.brand, fontWeight: '700' }}>Browse all land →</Text></Pressable>
+        <Pressable accessibilityRole="link" hitSlop={6} onPress={() => router.push('/tools/land-area')}><Text style={{ color: t.brand, fontWeight: '700' }}>Convert acres, gaj →</Text></Pressable>
+      </View>
+      {data.wanted ? <Text style={{ color: t.muted, fontSize: 13 }}>{data.wanted} compan{data.wanted === 1 ? 'y is' : 'ies are'} looking for land now.</Text> : null}
     </View>
   );
 }
-export function KindTile({ k, on, onPress }: { k: { kind: string; count: number }; on?: boolean; onPress: () => void }) {
+/** A short pointer to land, for screens about homes. */
+export function LandStrip({ text = 'Selling land, or need space for a business?' }: { text?: string }) {
+  const t = useTheme();
+  const router = useRouter();
+  const dark = useColorScheme() === 'dark';
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={`${text} Open land and warehouses`} onPress={() => router.push('/land')} style={({ pressed }) => [s.door, { backgroundColor: dark ? '#13241a' : '#eaf5ee', borderColor: pressed ? t.brand : t.line }]}>
+      <Text style={{ fontSize: 28 }}>🌾</Text>
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text style={{ color: t.fg, fontWeight: '700', fontSize: 15 }}>{text}</Text>
+        <Text style={{ color: t.muted, fontSize: 13, lineHeight: 18 }}>Farm land, plots, industrial land and warehouses across India, listed by owners.</Text>
+        <Text style={{ color: t.brand, fontWeight: '700', marginTop: 4 }}>Land and warehouses →</Text>
+      </View>
+    </Pressable>
+  );
+}
+export function KindTile({ k, on, plain, onPress }: { k: { kind: string; count: number }; on?: boolean; plain?: boolean; onPress: () => void }) {
   const t = useTheme();
   const [ink, bg] = useTint(k.kind);
   return (
-    <Pressable accessibilityRole="button" accessibilityState={{ selected: !!on }} accessibilityLabel={`${KIND_PLURAL[k.kind]}, ${k.count} listed`} onPress={onPress} style={[s.tile, { backgroundColor: bg, borderColor: on ? ink : 'transparent' }]}>
+    <Pressable accessibilityRole="button" accessibilityState={{ selected: !!on }} accessibilityLabel={`${KIND_PLURAL[k.kind]}, ${k.count} listed`} onPress={onPress} style={[s.tile, { backgroundColor: plain ? t.card : bg, borderColor: on ? ink : 'transparent' }]}>
       <Text style={{ fontSize: 26 }}>{KIND_ICON[k.kind]}</Text>
       <Text style={{ color: t.fg, fontWeight: '700', fontSize: 14 }}>{KIND_PLURAL[k.kind]}</Text>
       <Text style={{ color: ink, fontWeight: '700', fontSize: 12 }}>{k.count ? `${k.count} listed` : 'List yours'}</Text>
@@ -197,6 +229,9 @@ export const s = StyleSheet.create({
   btn: { borderRadius: 999, paddingVertical: 14, paddingHorizontal: 18, alignItems: 'center' },
   box: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
   tile: { flexBasis: '47%', flexGrow: 1, borderRadius: 16, borderWidth: 2, padding: 14, gap: 2 },
+  band: { borderWidth: 1, borderRadius: 22, padding: 16, gap: 10, marginTop: 10 },
+  newTag: { alignSelf: 'flex-start', backgroundColor: '#15803d', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
+  door: { flexDirection: 'row', gap: 12, borderWidth: 1, borderRadius: 16, padding: 14 },
   scrim: { flex: 1, backgroundColor: 'rgba(10,12,16,0.5)' },
   sheet: { maxHeight: '70%', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 24 },
   panel: { borderWidth: 1, borderRadius: 16, padding: 14, gap: 10 },

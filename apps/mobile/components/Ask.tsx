@@ -24,7 +24,7 @@ function paragraphs(reply: string): string[] {
 
 interface Entry { question: string; result: AskResult | null; error?: string }
 
-const EXAMPLES = ['3 BHK in Whitefield', 'M3M projects in Gurgaon', 'Average rate in Powai?', 'Cheapest 2 BHK in Pune'];
+const EXAMPLES = ['3 BHK in Whitefield', 'M3M projects in Gurgaon', 'Farm land in Rajasthan', 'Warehouse on rent', 'Cheapest 2 BHK in Pune'];
 
 /** The conversation: questions typed or spoken, answers shown and read aloud, matching homes as cards. */
 export function Ask({ header }: { header?: React.ReactNode }) {
@@ -80,9 +80,9 @@ export function Ask({ header }: { header?: React.ReactNode }) {
                 </Pressable>
               ))}
             </View>
+            <LandRow />
             <Launches />
             <Upcoming />
-            <LandRow />
             <GuidesRow />
           </View>
         ) : thread.map((e, i) => (
@@ -110,7 +110,8 @@ export function Ask({ header }: { header?: React.ReactNode }) {
                     </View>
                   ))}
                   {(e.result.projectsTotal ?? 0) > (e.result.projects?.length ?? 0) && <Text style={{ color: t.muted, fontSize: 13 }}>Showing {e.result.projects!.length} of {e.result.projectsTotal} projects. Name an area to narrow it down.</Text>}
-                  {e.result.total > e.result.properties.length && <Text style={{ color: t.muted, fontSize: 13 }}>Showing {e.result.properties.length} of {e.result.total}. Ask to narrow it down.</Text>}
+                  {e.result.land ? <Pressable accessibilityRole="link" hitSlop={6} onPress={() => router.push(e.result!.land!.length ? '/land' : '/land/want')}><Text style={{ color: t.brand, fontWeight: '700' }}>{e.result.land.length ? (e.result.total > e.result.land.length ? `See all ${e.result.total} in land and warehouses →` : 'Open land and warehouses →') : 'Post what you are looking for →'}</Text></Pressable> : null}
+                  {!e.result.land && e.result.total > e.result.properties.length && <Text style={{ color: t.muted, fontSize: 13 }}>Showing {e.result.properties.length} of {e.result.total}. Ask to narrow it down.</Text>}
                   {(() => {
                     // "X vs Y" for projects points at /compare/projects?ids=a,b; open the same comparison in the app.
                     const ids = /^\/compare\/projects\?ids=([a-z0-9,-]+)$/.exec(e.result.page?.path ?? '')?.[1];

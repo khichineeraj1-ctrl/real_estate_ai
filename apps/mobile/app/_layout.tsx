@@ -27,6 +27,7 @@ export default function RootLayout() {
         <Stack.Screen name="tools/cost" options={{ title: 'True cost of buying' }} />
         <Stack.Screen name="tools/true-price" options={{ title: 'True price of a quote' }} />
         <Stack.Screen name="tools/delay-cost" options={{ title: 'Cost of a delay' }} />
+        <Stack.Screen name="tools/land-area" options={{ title: 'Land area converter' }} />
         <Stack.Screen name="account" options={{ title: 'My account' }} />
         <Stack.Screen name="new-launches" options={{ title: 'New launches' }} />
         <Stack.Screen name="upcoming/[slug]" options={{ title: 'Upcoming project' }} />

@@ -76,6 +76,8 @@ export default function Land() {
         ? <View style={[s.panel, { borderColor: t.line, borderStyle: 'dashed', backgroundColor: t.soft }]}><Text style={{ color: t.muted, lineHeight: 20 }}>Nothing listed here yet. List yours free, or post what you are looking for and let owners come to you.</Text></View>
         : items.map((l) => <LandCard key={l.slug} l={l} />)}
 
+      <Pressable accessibilityRole="link" hitSlop={6} onPress={() => router.push('/tools/land-area')}><Text style={{ color: t.brand, fontWeight: '700' }}>📏 Convert acres, hectares, gaj, guntha, kanal →</Text></Pressable>
+
       {wanted.length > 0 && (
         <>
           <Text accessibilityRole="header" style={{ color: t.fg, fontSize: 18, fontWeight: '700', marginTop: 10 }}>Wanted: companies looking now</Text>

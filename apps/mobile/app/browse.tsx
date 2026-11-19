@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { LandStrip } from '../components/Land';
 import { getCities, type CitySummary } from '../lib/api';
 import { price } from '../lib/format';
 import { useTheme } from '../lib/theme';
@@ -34,6 +35,7 @@ export default function Browse() {
           </View>
         </View>
       ))}
+      <LandStrip text="Looking outside these cities, or for land?" />
     </ScrollView>
   );
 }

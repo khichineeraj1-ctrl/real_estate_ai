@@ -14,6 +14,7 @@ const TOOLS = [
   { href: '/tools/cost', icon: '🧾', name: 'True cost of buying', ask: 'Stamp duty, registration and GST' },
   { href: '/tools/true-price', icon: '📐', name: 'True price of a quote', ask: 'Per carpet sq ft, and compare quotes' },
   { href: '/tools/delay-cost', icon: '⏳', name: 'Cost of a delay', ask: 'If possession runs late' },
+  { href: '/tools/land-area', icon: '📏', name: 'Land area converter', ask: 'Acres, hectares, gaj, guntha, kanal' },
 ] as const;
 const COMPARE = [{ tab: 'projects', icon: '🏗️', label: 'Projects' }, { tab: 'localities', icon: '📍', label: 'Localities' }, { tab: 'homes', icon: '🏠', label: 'Homes' }] as const;
 
